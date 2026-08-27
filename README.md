@@ -1,8 +1,10 @@
 # Codex TVM/VTA Workspace
 
-This repository is the project-level workspace for integrating and validating
-TVM and VTA. The compiler and accelerator sources remain independent upstream
-repositories included here as Git submodules.
+This repository is a compiler/accelerator co-development workspace based on
+TVM and VTA. It combines workspace governance and integration, the TVM
+compiler, and VTA hardware/runtime so that they can evolve together and be
+validated as a reproducible combination. It is not a general-purpose TVM fork
+or a general-purpose VTA fork.
 
 ## Repository Layout
 
@@ -14,6 +16,9 @@ repositories included here as Git submodules.
 - `.ai/`, `AGENTS.md`, and `CHATGPT.md` — workspace engineering governance
 
 Workspace governance files must not be added to the TVM or VTA repositories.
+Both submodules are actively developed source repositories, not immutable
+third-party dependencies. Their source histories remain independent; the
+workspace records reviewed combinations through Git submodule gitlinks.
 
 ## Project Baseline
 
@@ -38,24 +43,30 @@ VTA:
 The submodule gitlinks, rather than branch names, define the reproducible source
 baseline. The workspace was instantiated from the recorded template baseline.
 
-## Engineering Goals
+## Project Goals
 
-Projects instantiated from this template should progressively become:
+- Establish a reproducible TVM/VTA development baseline.
+- Support coordinated compiler and accelerator hardware/runtime evolution.
+- Provide a defined integration boundary for compiler/hardware interface changes.
+- Provide repository-local, cross-repository, and workspace-level validation.
+- Enable future experimentation with project-specific NPU/VTA architectures.
+- Keep workspace governance decoupled from TVM and VTA source histories.
 
-- Modular
-- Extensible
-- Testable
-- Automated
-- Reproducible
-- Traceable
-- Maintainable
-- AI-operable
+## Non-Goals
+
+- Copying TVM or VTA source into the workspace repository.
+- Adding workspace or Codex governance to either source repository.
+- Treating the submodules as immutable third-party dependencies.
+- Validating every upstream TVM or VTA capability at workspace level.
+- Defining complete product CI/CD or release infrastructure at this stage.
+- Implementing compiler, runtime, or hardware features as part of the current
+  project-definition task.
 
 ## Core Workflow
 
 > Understand → Design → Decide → Plan → Implement → Verify → Record → Review → Evolve
 
-## Standard Engineering Entry Point
+## Planned Engineering Entry Point
 
 Where practical:
 
@@ -68,7 +79,10 @@ Where practical:
 ./scripts/project status
 ```
 
-Human users, Codex, and CI should prefer the same project entry points.
+These commands define the intended common lifecycle interface for humans,
+Codex, and future automation. Project-specific behavior is **Planned / Not Yet
+Implemented**; currently `scripts/project` only provides template help and
+reports unconfigured commands. See `docs/REPRODUCIBILITY.md` for the contract.
 
 ## Verification Hierarchy
 

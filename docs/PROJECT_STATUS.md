@@ -2,17 +2,18 @@
 
 ## Overall Status
 
-Workspace initialized with TVM and VTA pinned as submodules. Initial baseline
-commit and independent review remain pending.
+The workspace project identity and engineering boundaries are being established
+on the pinned TVM/VTA baseline. Project-specific environment, build, test, and
+integration automation remains to be implemented.
 
 ## Engineering Baseline
 
 | Property | Status | Notes |
 |---|---|---|
 | Modularity | Established | Workspace and source repository boundaries documented |
-| Extensibility | TBD | |
-| Testability | TBD | |
-| Automation | TBD | |
+| Extensibility | Defined | Co-development and integration boundaries documented |
+| Testability | Partial | Validation layers defined; commands and coverage pending |
+| Automation | Planned | `scripts/project` lifecycle contract defined; implementation pending |
 | Reproducibility | Partial | Source commits pinned; build environment not yet documented |
 | Traceability | TBD | |
 | Maintainability | TBD | |
@@ -22,7 +23,7 @@ commit and independent review remain pending.
 
 | Component / Area | Status | Current Focus | Main Risk / Blocker |
 |---|---|---|---|
-| Workspace | Initialized | Baseline commit preparation | Build/test workflows not yet characterized |
+| Workspace | Definition in review | Project scope and validation boundary | Build/test workflows not yet characterized |
 | TVM | Pinned | Integration baseline | Build environment pending |
 | VTA | Pinned | Integration baseline | Build environment pending |
 
@@ -42,7 +43,8 @@ commit and independent review remain pending.
 
 ## In Progress
 
-- Preparing the initial workspace baseline commit.
+- Establishing the formal project identity, scope, development model, submodule
+  policy, and validation boundary.
 
 ## Known Issues
 
@@ -52,8 +54,32 @@ commit and independent review remain pending.
 
 - `main` is the workspace default base branch.
 - Workspace governance remains outside both source submodules.
+- TVM and VTA are independently committed, developable submodules; reviewed
+  gitlinks define the workspace integration state.
+- Validation is layered into repository-local, cross-repository integration,
+  and workspace reproducibility checks.
+
+## Initial Milestone
+
+Establish a reproducible TVM/VTA development and validation environment on the
+current baseline before introducing architecture changes:
+
+```text
+environment characterization
+        ↓
+baseline build
+        ↓
+baseline tests
+        ↓
+TVM/VTA integration verification
+        ↓
+scripts/project lifecycle implementation
+```
 
 ## Next Priorities
 
-- Create and independently review the initial workspace baseline commit.
-- Characterize supported build and test environments.
+- Complete Independent Review of the project-definition change.
+- Characterize the supported development environment.
+- Establish and record baseline build, test, and TVM/VTA integration evidence.
+- Implement the documented `scripts/project` lifecycle in a later Engineering
+  Task.
