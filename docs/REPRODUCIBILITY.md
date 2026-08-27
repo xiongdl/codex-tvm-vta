@@ -95,7 +95,9 @@ Invalid or unconfigured CLI invocation exits `2`.
 ```
 
 This read-only diagnostic reports workspace and submodule Git state and an
-overall `READY`, `WARNING`, or `NOT_READY` result. It does not repair state.
+overall `READY`, `WARNING`, or `NOT_READY` result. It exits `0` for `READY` or
+warning-only `WARNING`, `1` for `NOT_READY`, and `2` when the project is not
+configured as a Git workspace. It does not repair state.
 
 ## Configuration
 

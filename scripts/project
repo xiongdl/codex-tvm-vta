@@ -1,7 +1,7 @@
 #!/usr/bin/env sh
 set -eu
 
-script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd -P)
 project_root=$(dirname "$script_dir")
 failures=0
 warnings=0
@@ -28,6 +28,14 @@ EOF
 }
 
 git_value() { git config -f "$project_root/.gitmodules" --get "$1" 2>/dev/null || true; }
+
+require_workspace() {
+  workspace_top=$(git -C "$project_root" rev-parse --show-toplevel 2>/dev/null || true)
+  if [ -z "$workspace_top" ] || [ "$workspace_top" != "$project_root" ]; then
+    echo "NOT_CONFIGURED: scripts/project is not inside the expected Git workspace." >&2
+    exit 2
+  fi
+}
 
 tree_state() {
   repo=$1
@@ -113,7 +121,7 @@ evaluate() {
 }
 
 status_command() {
-  if ! git -C "$project_root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then echo "NOT_CONFIGURED: scripts/project is not inside a Git workspace." >&2; exit 2; fi
+  require_workspace
   workspace_details
   cat <<EOF
 Workspace:
@@ -130,9 +138,11 @@ EOF
   overall=READY
   if [ "$failures" -gt 0 ]; then overall=NOT_READY; elif [ "$warnings" -gt 0 ]; then overall=WARNING; fi
   printf 'Overall:\n  Status: %s\n  Failures: %s\n  Warnings: %s\n' "$overall" "$failures" "$warnings"
+  if [ "$failures" -gt 0 ]; then exit 1; fi
 }
 
 verify_command() {
+  require_workspace
   evaluate
   if [ "$failures" -gt 0 ]; then printf 'VERIFY: FAIL (%s invariant failure(s), %s warning(s))\n' "$failures" "$warnings"; exit 1; fi
   printf 'VERIFY: PASS (%s warning(s))\n' "$warnings"
