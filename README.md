@@ -80,9 +80,9 @@ Where practical:
 ```
 
 These commands define the intended common lifecycle interface for humans,
-Codex, and future automation. Project-specific behavior is **Planned / Not Yet
-Implemented**; currently `scripts/project` only provides template help and
-reports unconfigured commands. See `docs/REPRODUCIBILITY.md` for the contract.
+Codex, and future automation. `status` and `verify` are implemented; the other
+project-specific operations remain **Planned / Not Yet Implemented**. See
+`docs/REPRODUCIBILITY.md` for the contract.
 
 ## Verification Hierarchy
 

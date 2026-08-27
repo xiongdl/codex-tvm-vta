@@ -13,8 +13,8 @@ integration automation remains to be implemented.
 | Modularity | Established | Workspace and source repository boundaries documented |
 | Extensibility | Defined | Co-development and integration boundaries documented |
 | Testability | Partial | Validation layers defined; commands and coverage pending |
-| Automation | Planned | `scripts/project` lifecycle contract defined; implementation pending |
-| Reproducibility | Partial | Source commits pinned; build environment not yet documented |
+| Automation | Partial | `status` and `verify` implemented; setup/build/test remain pending |
+| Reproducibility | Partial | Source-state checks implemented; build environment not yet documented |
 | Traceability | TBD | |
 | Maintainability | TBD | |
 | AI Operability | Established | Template governance and entry points installed |
@@ -40,6 +40,7 @@ integration automation remains to be implemented.
 
 - Applied `codex-template@37a4d22` from `template/`.
 - Configured TVM at `eeebcfa` and VTA at `d4a15f6` as submodules.
+- Implemented project-level source-state `status` and `verify` checks.
 
 ## In Progress
 
@@ -81,5 +82,5 @@ scripts/project lifecycle implementation
 - Complete Independent Review of the project-definition change.
 - Characterize the supported development environment.
 - Establish and record baseline build, test, and TVM/VTA integration evidence.
-- Implement the documented `scripts/project` lifecycle in a later Engineering
-  Task.
+- Implement the remaining documented `scripts/project` lifecycle commands in
+  later Engineering Tasks.

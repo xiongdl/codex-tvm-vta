@@ -46,10 +46,8 @@ The intended common interface is:
 | `status` | Report workspace, submodule, baseline, and environment readiness. |
 | `verify` | Run the required reproducibility and project validation gates. |
 
-These operations are **Planned / Not Yet Implemented**. The current
-`scripts/project` is a template stub: `help` documents suggested operations,
-while project commands report that they are not configured. The sections below
-state the future entry points, not currently passing procedures.
+`status` and `verify` are implemented. Setup, build, test, and clean remain
+**Planned / Not Yet Implemented**.
 
 ## Setup
 
@@ -77,11 +75,27 @@ state the future entry points, not currently passing procedures.
 
 ## Verify
 
-**Status: Planned / Not Yet Implemented**
+**Status: Implemented**
 
 ```bash
 ./scripts/project verify
 ```
+
+The command exits `0` when all required invariants pass and `1` when an
+invariant fails. A non-default checked-out submodule branch is reported as a
+warning because the gitlink commit, not the branch name, is authoritative.
+Invalid or unconfigured CLI invocation exits `2`.
+
+## Status
+
+**Status: Implemented**
+
+```bash
+./scripts/project status
+```
+
+This read-only diagnostic reports workspace and submodule Git state and an
+overall `READY`, `WARNING`, or `NOT_READY` result. It does not repair state.
 
 ## Configuration
 

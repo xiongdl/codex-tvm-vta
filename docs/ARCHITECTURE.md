@@ -101,9 +101,10 @@ Workspace reproducibility verification
   metadata, clean repository state, documented environment assumptions, and
   project-level commands.
 
-Specific project-level build, test, integration, and reproducibility commands
-are **Planned / Not Yet Implemented**. Tasks must report the checks actually
-available and must not imply that absent coverage has passed.
+Project-level source-state status and reproducibility verification are
+implemented. Build, test, and integration commands are **Planned / Not Yet
+Implemented**. Tasks must report the checks actually available and must not
+imply that absent coverage has passed.
 
 ## Architecture Invariants
 
