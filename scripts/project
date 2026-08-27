@@ -1,0 +1,26 @@
+#!/usr/bin/env sh
+set -eu
+
+cmd="${1:-help}"
+
+case "$cmd" in
+  help)
+    cat <<'EOF'
+Project automation entry point.
+
+This template intentionally does not implement project-specific behavior.
+
+Recommended commands:
+  setup
+  build
+  test
+  verify
+  clean
+  status
+EOF
+    ;;
+  *)
+    echo "Command '$cmd' is not configured for this project yet." >&2
+    exit 2
+    ;;
+esac
