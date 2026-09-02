@@ -68,7 +68,7 @@ conda create \
     -p "${env_path}" \
     -y \
     -c conda-forge \
-    "llvmdev>=15" \
+    "llvmdev=17" \
     "cmake>=3.24" \
     git \
     "python=${python_version}" \
