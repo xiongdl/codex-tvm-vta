@@ -69,6 +69,7 @@ conda create \
     -y \
     -c conda-forge \
     "llvmdev=17" \
+    llvm-openmp \
     "cmake>=3.24" \
     git \
     verilator \
@@ -81,12 +82,18 @@ echo "Installing Python packages..."
 
 conda run -p "${env_path}" \
     python -m pip install \
+    attrs \
     numpy \
     cython \
+    decorator \
+    ml_dtypes \
+    pytest \
+    scipy \
     tornado \
     psutil \
     xgboost \
-    cloudpickle
+    cloudpickle \
+    typing_extensions
 
 echo
 echo "TVM/VTA build environment created successfully."
