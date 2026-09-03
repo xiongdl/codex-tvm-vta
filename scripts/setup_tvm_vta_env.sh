@@ -71,6 +71,7 @@ conda create \
     "llvmdev=17" \
     "cmake>=3.24" \
     git \
+    verilator \
     "python=${python_version}" \
     pip
 
