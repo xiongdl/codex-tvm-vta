@@ -6,6 +6,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_dir="$(cd "${script_dir}/.." && pwd)"
 
 env_name="tvm-vta-env"
+run_integration=false
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -17,6 +18,10 @@ while [[ $# -gt 0 ]]; do
             env_name="$2"
             shift 2
             ;;
+        --integration)
+            run_integration=true
+            shift
+            ;;
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo
@@ -25,6 +30,7 @@ while [[ $# -gt 0 ]]; do
             echo "Options:"
             echo "  --env-name NAME       Conda environment under .envs/"
             echo "                        (default: tvm-vta-env)"
+            echo "  --integration         Also run the FSIM integration benchmarks"
             echo "  -h, --help            Show this help message"
             exit 0
             ;;
@@ -70,6 +76,12 @@ echo "  VTA libraries:    ${VTA_LIBRARY_PATH}"
 echo "  VTA hardware:     ${VTA_HW_PATH}"
 echo "  Environment:      ${env_dir}"
 
-"${python_bin}" -m pytest -v \
-    "${vta_dir}/tests/python/unittest/test_environment.py" \
+test_paths=(
+    "${vta_dir}/tests/python/unittest/test_environment.py"
     "${vta_dir}/tests/python/unittest/test_vta_insn.py"
+)
+if [[ "${run_integration}" == true ]]; then
+    test_paths+=("${vta_dir}/tests/python/integration")
+fi
+
+"${python_bin}" -m pytest -v "${test_paths[@]}"
