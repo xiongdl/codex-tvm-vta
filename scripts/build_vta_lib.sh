@@ -74,11 +74,13 @@ if [[ ! "${jobs}" =~ ^[1-9][0-9]*$ ]]; then
 fi
 
 env_dir="${project_dir}/.envs/${env_name}"
-tvm_dir="${project_dir}/tvm"
-tvm_build_dir="${tvm_dir}/build"
-vta_dir="${project_dir}/vta"
-vta_build_dir="${vta_dir}/build"
+TVM_PATH="${TVM_PATH:-${project_dir}/tvm}"
+VTA_PATH="${VTA_PATH:-${project_dir}/vta}"
+tvm_build_dir="${TVM_PATH}/build"
+vta_build_dir="${VTA_PATH}/build"
 cmake_bin="${env_dir}/bin/cmake"
+
+export TVM_PATH VTA_PATH
 
 if [[ ! -x "${cmake_bin}" ]]; then
     echo "Error: CMake was not found in environment: ${cmake_bin}" >&2
@@ -86,8 +88,8 @@ if [[ ! -x "${cmake_bin}" ]]; then
     exit 1
 fi
 
-if [[ ! -f "${tvm_dir}/include/tvm/runtime/registry.h" ]]; then
-    echo "Error: TVM source tree was not found: ${tvm_dir}" >&2
+if [[ ! -f "${TVM_PATH}/include/tvm/runtime/registry.h" ]]; then
+    echo "Error: TVM source tree was not found: ${TVM_PATH}" >&2
     exit 1
 fi
 
@@ -105,26 +107,26 @@ if [[ ! -f "${tvm_build_dir}/libtvm.so" &&
     exit 1
 fi
 
-if [[ ! -f "${vta_dir}/CMakeLists.txt" ]]; then
-    echo "Error: VTA CMake project was not found: ${vta_dir}" >&2
+if [[ ! -f "${VTA_PATH}/CMakeLists.txt" ]]; then
+    echo "Error: VTA CMake project was not found: ${VTA_PATH}" >&2
     exit 1
 fi
 
 echo "Building VTA fast-simulator library..."
 echo
-echo "  TVM source:       ${tvm_dir}"
+echo "  TVM source:       ${TVM_PATH}"
 echo "  TVM libraries:    ${tvm_build_dir}"
-echo "  VTA source:       ${vta_dir}"
+echo "  VTA source:       ${VTA_PATH}"
 echo "  VTA build:        ${vta_build_dir}"
 echo "  Environment:      ${env_dir}"
 echo "  Build type:       ${build_type}"
 echo "  Parallel jobs:    ${jobs}"
 
 "${cmake_bin}" \
-    -S "${vta_dir}" \
+    -S "${VTA_PATH}" \
     -B "${vta_build_dir}" \
-    -DTVM_PATH="${tvm_dir}" \
-    -DTVM_BUILD_DIR="${tvm_build_dir}" \
+    -DTVM_PATH="${TVM_PATH}" \
+    -DVTA_PATH="${VTA_PATH}" \
     -DCMAKE_BUILD_TYPE="${build_type}"
 
 "${cmake_bin}" \

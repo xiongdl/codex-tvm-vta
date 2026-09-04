@@ -44,10 +44,12 @@ done
 
 env_dir="${project_dir}/.envs/${env_name}"
 python_bin="${env_dir}/bin/python"
-tvm_dir="${project_dir}/tvm"
-vta_dir="${project_dir}/vta"
-tvm_build_dir="${tvm_dir}/build"
-vta_build_dir="${vta_dir}/build"
+TVM_PATH="${TVM_PATH:-${project_dir}/tvm}"
+VTA_PATH="${VTA_PATH:-${project_dir}/vta}"
+tvm_build_dir="${TVM_PATH}/build"
+vta_build_dir="${VTA_PATH}/build"
+
+export TVM_PATH VTA_PATH
 
 if [[ ! -x "${python_bin}" ]]; then
     echo "Error: Python was not found in environment: ${python_bin}" >&2
@@ -62,26 +64,22 @@ if [[ ! -f "${vta_build_dir}/libvta_fsim.so" &&
     exit 1
 fi
 
-export PYTHONPATH="${tvm_dir}/python:${vta_dir}/python${PYTHONPATH:+:${PYTHONPATH}}"
-export TVM_LIBRARY_PATH="${tvm_build_dir}"
-export VTA_LIBRARY_PATH="${vta_build_dir}"
-export VTA_HW_PATH="${vta_dir}"
+export PYTHONPATH="${TVM_PATH}/python:${VTA_PATH}/python${PYTHONPATH:+:${PYTHONPATH}}"
 
 echo "Running standalone VTA FSIM unit tests..."
 echo
-echo "  TVM Python:       ${tvm_dir}/python"
-echo "  TVM libraries:    ${TVM_LIBRARY_PATH}"
-echo "  VTA Python:       ${vta_dir}/python"
-echo "  VTA libraries:    ${VTA_LIBRARY_PATH}"
-echo "  VTA hardware:     ${VTA_HW_PATH}"
+echo "  TVM source:       ${TVM_PATH}"
+echo "  TVM libraries:    ${tvm_build_dir}"
+echo "  VTA source:       ${VTA_PATH}"
+echo "  VTA libraries:    ${vta_build_dir}"
 echo "  Environment:      ${env_dir}"
 
 test_paths=(
-    "${vta_dir}/tests/python/unittest/test_environment.py"
-    "${vta_dir}/tests/python/unittest/test_vta_insn.py"
+    "${VTA_PATH}/tests/python/unittest/test_environment.py"
+    "${VTA_PATH}/tests/python/unittest/test_vta_insn.py"
 )
 if [[ "${run_integration}" == true ]]; then
-    test_paths+=("${vta_dir}/tests/python/integration")
+    test_paths+=("${VTA_PATH}/tests/python/integration")
 fi
 
 "${python_bin}" -m pytest -v "${test_paths[@]}"
