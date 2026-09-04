@@ -19,7 +19,7 @@ jobs="${detected_jobs:-1}"
 usage() {
     echo "Usage: $0 [OPTIONS]"
     echo
-    echo "Build the standalone VTA fast-simulator library."
+    echo "Build the standalone VTA FSIM and TSIM runtime libraries."
     echo
     echo "Options:"
     echo "  --env-name NAME       Conda environment under .envs/"
@@ -79,12 +79,25 @@ VTA_PATH="${VTA_PATH:-${project_dir}/vta}"
 tvm_build_dir="${TVM_PATH}/build"
 vta_build_dir="${VTA_PATH}/build"
 cmake_bin="${env_dir}/bin/cmake"
+verilator_bin="${env_dir}/bin/verilator"
 
 export TVM_PATH VTA_PATH
 
 if [[ ! -x "${cmake_bin}" ]]; then
     echo "Error: CMake was not found in environment: ${cmake_bin}" >&2
     echo "Run scripts/setup_tvm_vta_env.sh first." >&2
+    exit 1
+fi
+
+if [[ ! -x "${verilator_bin}" ]]; then
+    echo "Error: Verilator was not found in environment: ${verilator_bin}" >&2
+    echo "Run scripts/setup_tvm_vta_env.sh first." >&2
+    exit 1
+fi
+
+verilator_root="$("${verilator_bin}" -getenv VERILATOR_ROOT)"
+if [[ ! -f "${verilator_root}/include/verilated.cpp" ]]; then
+    echo "Error: Verilator runtime sources were not found in ${verilator_root}" >&2
     exit 1
 fi
 
@@ -112,12 +125,13 @@ if [[ ! -f "${VTA_PATH}/CMakeLists.txt" ]]; then
     exit 1
 fi
 
-echo "Building VTA fast-simulator library..."
+echo "Building VTA FSIM and TSIM runtime libraries..."
 echo
 echo "  TVM source:       ${TVM_PATH}"
 echo "  TVM libraries:    ${tvm_build_dir}"
 echo "  VTA source:       ${VTA_PATH}"
 echo "  VTA build:        ${vta_build_dir}"
+echo "  Verilator root:   ${verilator_root}"
 echo "  Environment:      ${env_dir}"
 echo "  Build type:       ${build_type}"
 echo "  Parallel jobs:    ${jobs}"
@@ -127,24 +141,30 @@ echo "  Parallel jobs:    ${jobs}"
     -B "${vta_build_dir}" \
     -DTVM_PATH="${TVM_PATH}" \
     -DVTA_PATH="${VTA_PATH}" \
+    -DVERILATOR_ROOT="${verilator_root}" \
     -DCMAKE_BUILD_TYPE="${build_type}"
 
 "${cmake_bin}" \
     --build "${vta_build_dir}" \
-    --target vta_fsim \
+    --target vta_fsim vta_tsim \
     --parallel "${jobs}"
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
-    vta_library="${vta_build_dir}/libvta_fsim.dylib"
+    fsim_library="${vta_build_dir}/libvta_fsim.dylib"
+    tsim_library="${vta_build_dir}/libvta_tsim.dylib"
 else
-    vta_library="${vta_build_dir}/libvta_fsim.so"
+    fsim_library="${vta_build_dir}/libvta_fsim.so"
+    tsim_library="${vta_build_dir}/libvta_tsim.so"
 fi
 
-if [[ ! -f "${vta_library}" ]]; then
-    echo "Error: VTA library was not generated: ${vta_library}" >&2
-    exit 1
-fi
+for vta_library in "${fsim_library}" "${tsim_library}"; do
+    if [[ ! -f "${vta_library}" ]]; then
+        echo "Error: VTA library was not generated: ${vta_library}" >&2
+        exit 1
+    fi
+done
 
 echo
-echo "VTA library built successfully:"
-echo "  ${vta_library}"
+echo "VTA libraries built successfully:"
+echo "  ${fsim_library}"
+echo "  ${tsim_library}"
