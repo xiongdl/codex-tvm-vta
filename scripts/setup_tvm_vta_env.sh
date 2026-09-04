@@ -73,6 +73,8 @@ conda create \
     "cmake>=3.24" \
     git \
     verilator \
+    "openjdk=11" \
+    "sbt=1.5.5" \
     "python=${python_version}" \
     pip
 
