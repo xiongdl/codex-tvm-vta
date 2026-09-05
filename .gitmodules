@@ -1,9 +1,9 @@
 [submodule "tvm"]
     path = tvm
-    url = https://github.com/xiongdl/tvm.git
+	url = git@github.com:xiongdl/tvm.git
     branch = tvm_v0.17.0
 
 [submodule "vta"]
     path = vta
-    url = https://github.com/xiongdl/vta.git
+	url = git@github.com:xiongdl/vta.git
     branch = vta_v0.0.2
