@@ -8,14 +8,14 @@ compiler configuration.
 
 **Acceptance criteria:**
 
-- [ ] The approved partitioned function passes validation.
-- [ ] Wrong Python types and missing/mismatched attributes raise stable errors.
-- [ ] Malformed composite bodies and config mismatches fail before TE lowering.
+- [x] The approved partitioned function passes validation.
+- [x] Wrong Python types and missing/mismatched attributes raise stable errors.
+- [x] Malformed composite bodies and config mismatches fail before TE lowering.
 
 **Verification:**
 
-- [ ] Focused validation tests fail before implementation and pass afterward.
-- [ ] Importing the module does not register `relay.ext.vta`.
+- [x] Focused validation tests fail before implementation and pass afterward.
+- [x] Importing the module does not register `relay.ext.vta`.
 
 **Dependencies:** Completed `vta-pattern-partition`
 
