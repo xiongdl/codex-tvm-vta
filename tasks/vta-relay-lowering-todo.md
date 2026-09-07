@@ -138,10 +138,10 @@ Relay metadata for downstream codegen.
 
 ## Checkpoint B: Lowering-safe TIR
 
-- [ ] Tasks 4-5 acceptance criteria pass.
-- [ ] No unscheduled fallback or graphpack dependency exists.
-- [ ] TIR validation fails before downstream codegen for contract violations.
-- [ ] Human review approves the Relay-to-TIR output.
+- [x] Tasks 4-5 acceptance criteria pass.
+- [x] No unscheduled fallback or graphpack dependency exists.
+- [x] TIR validation fails before downstream codegen for contract violations.
+- [x] Human review approves the Relay-to-TIR output.
 
 ## Task 6: Stabilize lowering boundary and run regressions
 
@@ -150,16 +150,16 @@ expand `vta.relay.__all__`, and run the complete module regression gate.
 
 **Acceptance criteria:**
 
-- [ ] `lower_vta_function` is documented for the external-codegen consumer.
-- [ ] The public `vta.relay` surface remains unchanged.
-- [ ] No unrelated VTA API or scheduling behavior changes are introduced.
+- [x] `lower_vta_function` is documented for the external-codegen consumer.
+- [x] The public `vta.relay` surface remains unchanged.
+- [x] No unrelated VTA API or scheduling behavior changes are introduced.
 
 **Verification:**
 
-- [ ] Contract, partition, and lowering tests pass together.
-- [ ] Python compilation and `./scripts/test_vta_fsim.sh` pass.
-- [ ] `git -C tvm status --short` remains empty.
-- [ ] Code review and simplification checks find no unresolved required issue.
+- [x] Contract, partition, and lowering tests pass together.
+- [x] Python compilation and `./scripts/test_vta_fsim.sh` pass.
+- [x] `git -C tvm status --short` remains empty.
+- [x] Code review and simplification checks find no unresolved required issue.
 
 **Dependencies:** Checkpoint B
 
@@ -172,8 +172,8 @@ expand `vta.relay.__all__`, and run the complete module regression gate.
 
 ## Checkpoint C: Ready for external codegen
 
-- [ ] Tasks 1-6 acceptance criteria pass.
-- [ ] Project Definition of Done correctness, quality, integration, and documentation pass.
-- [ ] No tests are skipped, weakened, or deleted.
-- [ ] No `relay.ext.vta` hook or runtime artifact exists in this module.
-- [ ] Human review approves implementation before `vta-external-codegen` begins.
+- [x] Tasks 1-6 acceptance criteria pass.
+- [x] Project Definition of Done correctness, quality, integration, and documentation pass.
+- [x] No tests are skipped, weakened, or deleted.
+- [x] No `relay.ext.vta` hook or runtime artifact exists in this module.
+- [x] Human review approves implementation before `vta-external-codegen` begins.
