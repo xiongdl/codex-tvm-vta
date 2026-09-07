@@ -25,7 +25,7 @@ while [[ $# -gt 0 ]]; do
         -h|--help)
             echo "Usage: $0 [OPTIONS]"
             echo
-            echo "Run standalone VTA FSIM unit tests."
+            echo "Run standalone VTA FSIM unit and BYOC runtime tests."
             echo
             echo "Options:"
             echo "  --env-name NAME       Conda environment under .envs/"
@@ -77,6 +77,7 @@ echo "  Environment:      ${env_dir}"
 test_paths=(
     "${VTA_PATH}/tests/python/unittest/test_environment.py"
     "${VTA_PATH}/tests/python/unittest/test_vta_insn.py"
+    "${VTA_PATH}/tests/python/unittest/test_byoc_runtime.py"
 )
 if [[ "${run_integration}" == true ]]; then
     test_paths+=("${VTA_PATH}/tests/python/integration")
