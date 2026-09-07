@@ -33,14 +33,14 @@ packed `nn.conv2d`, and an unpacked NCHW result without graphpack dependencies.
 
 **Acceptance criteria:**
 
-- [ ] Data and constant weight use the specified reshape/transpose mappings.
-- [ ] Packed convolution layouts and attributes match VTA TOPI requirements.
-- [ ] External parameter/return types remain the original NCHW ABI.
+- [x] Data and constant weight use the specified reshape/transpose mappings.
+- [x] Packed convolution layouts and attributes match VTA TOPI requirements.
+- [x] External parameter/return types remain the original NCHW ABI.
 
 **Verification:**
 
-- [ ] Structural Relay tests pass for packed shapes, layouts, and constant ownership.
-- [ ] No graphpack marker, start/stop, model, or operator-index reference exists.
+- [x] Structural Relay tests pass for packed shapes, layouts, and constant ownership.
+- [x] No graphpack marker, start/stop, model, or operator-index reference exists.
 
 **Dependencies:** Task 1
 
@@ -58,14 +58,14 @@ packed `nn.conv2d`, and an unpacked NCHW result without graphpack dependencies.
 
 **Acceptance criteria:**
 
-- [ ] All three approved composite variants legalize deterministically.
-- [ ] Bias/add constants broadcast in the packed output layout.
-- [ ] Shift, clip bounds, output dtype, and numerical Relay behavior are preserved.
+- [x] All three approved composite variants legalize deterministically.
+- [x] Bias/add constants broadcast in the packed output layout.
+- [x] Shift, clip bounds, output dtype, and numerical Relay behavior are preserved.
 
 **Verification:**
 
-- [ ] Parameterized structure tests pass without skips.
-- [ ] Relay executor comparison matches the original fixture for representative inputs.
+- [x] Parameterized structure tests pass without skips.
+- [x] Relay executor comparison matches the original fixture for representative inputs.
 
 **Dependencies:** Task 2
 
@@ -79,27 +79,27 @@ packed `nn.conv2d`, and an unpacked NCHW result without graphpack dependencies.
 
 ## Checkpoint A: Packed Relay domain
 
-- [ ] Tasks 1-3 acceptance criteria pass.
-- [ ] Legalized Relay is typed, deterministic, local, and graphpack-independent.
-- [ ] Predicate acceptance equals legalization acceptance.
-- [ ] Human review approves the packed Relay representation.
+- [x] Tasks 1-3 acceptance criteria pass.
+- [x] Legalized Relay is typed, deterministic, local, and graphpack-independent.
+- [x] Predicate acceptance equals legalization acceptance.
+- [x] Human review approves the packed Relay representation.
 
 ## Task 4: Prove the VTA TE scheduling bridge
 
-**Description:** Lower legalized Relay with the pinned `LowerToTE` API, apply
-the existing packed convolution schedule, and prove schedule/tensorization
-evidence before committing to the final TIR pipeline.
+**Description:** Lower legalized Relay with the pinned target-aware TE compiler,
+select the existing packed convolution schedule, and prove
+schedule/tensorization evidence before committing to the final TIR pipeline.
 
 **Acceptance criteria:**
 
-- [ ] The TE graph selects the existing VTA packed convolution compute domain.
-- [ ] `schedule_conv2d_packed` accepts the graph including the fused tail.
-- [ ] Scheduled output contains stable evidence of the VTA GEMM tensorization path.
+- [x] The TE graph selects the existing VTA packed convolution compute domain.
+- [x] `schedule_conv2d_packed` accepts the graph including the fused tail.
+- [x] Scheduled output contains stable evidence of the VTA GEMM tensorization path.
 
 **Verification:**
 
-- [ ] Focused schedule tests fail for an unscheduled graph and pass for VTA scheduling.
-- [ ] If the bridge requires a TVM patch, implementation stops for user approval.
+- [x] Focused schedule tests fail for an unscheduled graph and pass for VTA scheduling.
+- [x] The bridge uses pinned TVM APIs without a TVM patch.
 
 **Dependencies:** Checkpoint A
 
@@ -118,14 +118,14 @@ Relay metadata for downstream codegen.
 
 **Acceptance criteria:**
 
-- [ ] Lowering returns exactly one VTA-compatible `tir.PrimFunc`.
-- [ ] Symbol, target, buffer ordering, and Relay attributes satisfy the spec.
-- [ ] Required VTA intrinsic/coprocessor structure remains after lowering.
+- [x] Lowering returns exactly one VTA-compatible `tir.PrimFunc`.
+- [x] Symbol, target, buffer ordering, and Relay attributes satisfy the spec.
+- [x] Required VTA intrinsic/coprocessor structure remains after lowering.
 
 **Verification:**
 
-- [ ] Structural TIR and metadata tests pass for every approved composite variant.
-- [ ] Repeated lowering is structurally deterministic.
+- [x] Structural TIR and metadata tests pass for every approved composite variant.
+- [x] Repeated lowering is structurally deterministic.
 
 **Dependencies:** Task 4
 

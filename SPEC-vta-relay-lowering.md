@@ -83,19 +83,22 @@ NCHW; packed tensors are local expressions.
 
 ## TE and TIR Lowering Contract
 
-The pinned TVM checkout provides `relay.backend.LowerToTE`, which lowers a
-primitive Relay function to an unscheduled `CachedFunc`. VTA must explicitly
-apply its existing `schedule_conv2d_packed` schedule to the returned TE graph.
-The generic UMA pattern of immediately calling `te.create_prim_func` is not
-sufficient because it would bypass VTA scheduling and GEMM tensorization.
+The pinned TVM checkout provides `relay.backend.te_compiler.get().lower`, which
+lowers a primitive Relay function for an explicit target and invokes the TOPI
+schedule selected by the reduction anchor. VTA uses this interface with the
+full `ext_dev -device=vta` target so `schedule_conv2d_packed` is selected. The
+generic UMA pattern of calling the target-less `relay.backend.LowerToTE` and
+then `te.create_prim_func` is not sufficient because it loses the VTA target
+key and bypasses VTA scheduling and GEMM tensorization.
 
 The lowering sequence is:
 
 ```text
 legalized Relay Function
-  -> relay.backend.LowerToTE
-  -> verify one VTA packed-convolution TE graph
-  -> existing VTA TOPI schedule_conv2d_packed
+  -> strip BYOC dispatch attrs from an internal packed-core Relay function
+  -> relay.backend.te_compiler.get().lower(full VTA target)
+  -> existing VTA TOPI schedule_conv2d_packed selected by the conv anchor
+  -> verify one GEMM-tensorized packed-convolution TE schedule
   -> tvm.lower under existing vta.build_config passes
   -> scheduled VTA TIR PrimFunc
 ```
@@ -111,7 +114,7 @@ The resulting `PrimFunc` must:
 - contain no Relay functions, composite wrappers, graphpack markers, or
   start/stop selection state.
 
-Constants discovered by `LowerToTE` remain explicit lowering inputs/artifacts;
+Constants discovered by the TE compiler remain explicit lowering artifacts;
 the exact runtime ownership/serialization policy belongs to
 `vta-external-codegen` and `vta-runtime-integration`.
 
@@ -131,14 +134,15 @@ registration remains unchanged.
 - VTA source baseline: `7a9ad28` plus the committed BYOC partition series.
 - Python 3.11 from `.envs/tvm-vta-env`.
 - Relay `DFPatternCallback`/`rewrite` for composite-local legalization.
-- `relay.backend.LowerToTE` from the pinned TVM TE compiler cache.
+- `relay.backend.te_compiler.get().lower` from the pinned TVM TE compiler.
 - Existing `vta.top.vta_conv2d.schedule_conv2d_packed`.
 - Existing `vta.build_config` and `vta.transform` TIR passes.
 
 Primary repository sources:
 
-- `tvm/src/relay/backend/te_compiler_cache.cc` defines `LowerToTE` and confirms
-  that it returns an unscheduled `CachedFunc` targeting `ext_dev`.
+- `tvm/src/relay/backend/te_compiler_cache.cc` defines `ScheduleBuilder` and
+  confirms that `TECompiler.lower` selects the anchor TOPI schedule for the
+  supplied target; it also confirms target-less `LowerToTE` is unscheduled.
 - `tvm/python/tvm/relay/backend/contrib/uma/api/lower.py` provides the closest
   official Relay-to-TIR staging reference, but its unscheduled
   `te.create_prim_func` step is intentionally not copied for VTA.
@@ -263,8 +267,6 @@ or modify the pinned TVM checkout.
 
 ## Open Questions
 
-1. The exact `CachedFunc` scheduling API and the post-pass IR evidence for GEMM
-   tensorization must be established by the first implementation spike against
-   this pinned TVM revision. If the existing schedule cannot be applied without
-   a TVM patch, stop at Checkpoint A and request approval rather than falling
-   back to unscheduled TIR.
+None. The Task 4 spike established `TECompiler.lower` as the target-aware
+scheduling bridge and verified `TensorIntrin(name=GEMM)` on the convolution
+stage without modifying TVM.

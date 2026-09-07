@@ -15,9 +15,9 @@ runtime module creation remain downstream work.
   a `DFPatternCallback`, following the pinned Ethos-U legalization structure.
 - Reimplement only the approved layout permutations in `vta.relay.transform`;
   do not import graphpack or its stateful `ExprPack` mutator.
-- Use `relay.backend.LowerToTE` for TE graph construction, then explicitly
-  apply VTA's existing packed-convolution schedule. Do not use UMA's direct
-  `te.create_prim_func` path because it bypasses the VTA schedule.
+- Use `relay.backend.te_compiler.get().lower` with the full VTA target so the
+  packed convolution anchor selects VTA's existing TOPI schedule. Do not use
+  UMA's target-less `LowerToTE` plus direct `te.create_prim_func` path.
 - Run existing `vta.build_config` TIR passes and preserve symbol, target, and
   Relay attributes for the external-codegen consumer.
 - Keep lowering internal; `partition_for_vta` remains the only public Relay API.
@@ -83,7 +83,7 @@ structure survives to the inspected lowering stage.
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| `LowerToTE` exposes tensors but no supported scheduling bridge | High | Prove the bridge in Task 4 before implementing final TIR orchestration; stop for approval if a TVM patch is required |
+| TE lowering fails to select the VTA schedule | High | Use target-aware `TECompiler.lower` and structurally require GEMM tensorization before TIR lowering |
 | Relay packing changes the external ABI | High | Lock parameter/return types before and after legalization and keep pack/unpack local |
 | Predicate and lowerer drift | High | Reuse composite/config constants and parameterize the same accepted/rejected fixtures |
 | Constants are lost or reordered between Relay and TE | Medium | Lock `CachedFunc` input/output/constant ordering before downstream artifact work |
@@ -98,5 +98,4 @@ any task can be reverted independently without changing `partition_for_vta`.
 
 ## Open Questions
 
-- Resolve the exact TE scheduling bridge and stable TIR evidence in Task 4.
-  This is an explicit checkpoint, not permission to accept unscheduled TIR.
+None. Task 4 established the target-aware TE scheduling bridge without a TVM patch.
