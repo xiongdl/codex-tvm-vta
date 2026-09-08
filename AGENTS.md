@@ -38,6 +38,9 @@ For work that meets an applicable Addy Skill's `When to Use` criteria, follow:
 
 `Define → Plan → Build → Verify → Review → Ship`
 
+Default to completing the full Define + Plan phases before Build, unless the
+user explicitly asks to skip them or execute directly.
+
 Small, local, low-risk changes do not require the full lifecycle unless an
 applicable skill or approved plan requires it.
 
