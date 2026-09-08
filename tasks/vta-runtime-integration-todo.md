@@ -185,4 +185,4 @@ cleanliness, review, and simplification gates.
 - [x] No tests are skipped, weakened, or deleted.
 - [x] The pinned TVM checkout remains clean and no new runtime format,
   dependency, public API, or graphpack coupling exists.
-- [ ] Human review approves the module before `vta-graphpack-retirement` begins.
+- [x] Human review approves the module before `vta-graphpack-retirement` begins.
