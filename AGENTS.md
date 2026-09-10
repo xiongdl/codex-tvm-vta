@@ -34,12 +34,20 @@ Use lowercase `kebab-case` for `<initiative-id>`.
 
 ## Addy Skills Delegation
 
-For work that meets an applicable Addy Skill's `When to Use` criteria, follow:
+At task intake, the root agent uses `using-agent-skills` to select the applicable
+skills and lifecycle phase. For work that meets an applicable Addy Skill's
+`When to Use` criteria, follow:
 
 `Define → Plan → Build → Verify → Review → Ship`
 
-Default to completing the full Define + Plan phases before Build, unless the
-user explicitly asks to skip them or execute directly.
+Whenever routing enters Define, the root agent starts with `interview-me` and
+continues until the user explicitly confirms the intended outcome. Other Define
+skills determine their own applicability and completion according to their
+instructions.
+
+Default to completing the applicable Define and Plan phases before Build,
+unless the user explicitly asks to skip them or execute directly. Autonomous
+Build starts only after the user approves the applicable SPEC and PLAN.
 
 Small, local, low-risk changes do not require the full lifecycle unless an
 applicable skill or approved plan requires it.
@@ -49,29 +57,109 @@ defines only ownership, delegation, and escalation.
 
 ### Ownership
 
-* **Root agent:** Define, Plan, approvals, lifecycle transitions, escalation,
-  and final reporting.
-* **`default` subagent:** Build, Verify, Fix, Re-verify, and authorized Ship.
-* **`reviewer` subagent:** Review and Re-review only.
+* **Root agent:** Define, Plan, approvals, lifecycle control and transitions,
+  escalation, final reporting, and control of Ship scope and authorization.
+* **Builder:** Build, Fix, and explicitly authorized Ship execution, including
+  writing production and verification code.
+* **Verifier:** Verify and Re-verify execution only.
+* **Reviewer:** Review and Re-review only.
 
 Product-level changes to requirements, scope, architecture, interfaces,
 acceptance criteria, or release behavior remain with the root agent.
 
+### Builder
+
+The Builder executes only the Build, Fix, or authorized Ship work delegated by
+the root agent. During Build and Fix it writes both verification and production
+code, preserves unrelated changes, stages only the exact task paths, and
+returns the base HEAD, staged paths, candidate fingerprint, unstaged tracked
+paths, and risks to the root agent.
+
+The Builder does not perform Verify or Re-verify, expand approved scope, trigger
+or message another agent, or advance the lifecycle. It stops and returns a root
+escalation when work requires a root-owned decision, new authorization, or
+unavailable external state.
+
+### Verifier
+
+The Verifier only executes the verification commands delegated by the root
+agent against the staged candidate. Its tools may emit build or test artifacts,
+but it must not edit or stage tracked files, implement fixes, or commit. It
+reports commands, outcomes, fingerprints, staged paths, unstaged tracked paths,
+and risks to the root agent.
+
+The Verifier does not expand scope, trigger or message another agent, or advance
+the lifecycle. If verification would require any forbidden action or unavailable
+external state, it stops and returns a root escalation.
+
+### Reviewer
+
+The Reviewer independently performs Review or Re-review against the approved
+artifacts and completed implementation. It reports findings or a pass verdict
+to the root agent and does not implement fixes, commit, merge, trigger or
+message another agent, or advance the lifecycle.
+
 ### Delegation
 
-The root agent performs applicable definition/specification work followed by
-`planning-and-task-breakdown` and completes required approval gates before
-Build.
+The root agent directly triggers every Builder, Verifier, and Reviewer. Agents
+return concise evidence only to the root agent; they never trigger or coordinate
+with one another. Every delegation is self-contained and identifies the
+approved artifacts, PLAN task or Ship action, exact scope and staged-path
+allowlist, acceptance criteria, base HEAD, repository rules, and required
+evidence.
 
-Delegate Build and Verify to one fresh `default` subagent with
-`fork_turns: "none"`.
+When the approved PLAN contains native Addy checkpoints, reuse the same Builder
+and Verifier within a checkpoint, then replace both after that checkpoint. When
+the PLAN has no native checkpoint, treat the complete Build and Verify sequence
+as one checkpoint. Do not add a custom checkpoint schema.
 
-Delegate Review to one fresh `reviewer` subagent with
-`fork_turns: "none"`.
+Use a fresh Reviewer for every Review and Re-review. Treat Ship as a separate
+delegation and use a fresh Builder for its execution.
 
-Each delegation must be self-contained and reference the approved artifacts,
-scope, acceptance criteria, relevant repository rules, and required
-verification evidence.
+### RED, GREEN, and Candidate Identity
+
+For every PLAN task, preserve RED → GREEN and commit only the candidate that the
+Verifier proved GREEN:
+
+1. The Builder writes verification code first, stages only the exact task paths
+   with explicit path arguments, confirms there are no unstaged tracked changes,
+   and reports the staged candidate fingerprint.
+2. The Verifier confirms the exact staged-path allowlist and clean tracked
+   worktree, records the fingerprint, runs RED, and confirms the expected
+   failure demonstrates the missing behavior. It recomputes the fingerprint
+   afterward and accepts the evidence only when it is unchanged.
+3. The Builder writes the production code, stages only the exact task paths,
+   confirms there are no unstaged tracked changes, and reports the new candidate
+   fingerprint.
+4. The Verifier repeats the candidate checks, runs GREEN plus the applicable
+   regression suite, and recomputes the fingerprint. GREEN evidence is valid
+   only when the before and after fingerprints match.
+5. After GREEN, the root agent delegates the local commit to the Builder. Before
+   committing, the Builder confirms the staged paths, clean tracked worktree,
+   and verified fingerprint are still exact and unchanged.
+
+Use `git diff --cached --name-only` to check the exact staged paths and
+`git diff --name-only` to detect unstaged tracked changes. Compute every staged
+candidate fingerprint with:
+
+`git diff --cached --binary --full-index | git hash-object --stdin`
+
+Each task receives its own verified atomic commit. Never commit an unverified
+candidate or one whose staged fingerprint changed after verification.
+
+### Lifecycle Routing
+
+Approval of the applicable SPEC and PLAN authorizes the root agent to coordinate
+the approved scope automatically through Build → Verify → Commit → Review and,
+when needed, Fix → Re-verify → Re-review. The root agent directly delegates each
+step and alone advances the lifecycle.
+
+Ordinary implementation or verification failures remain within the automatic
+loop. For repeated findings, the root agent changes the diagnosis or fix
+strategy instead of repeating the same loop. Pause for the user only when a
+resolution would change approved requirements, architecture, interfaces,
+acceptance criteria, or scope; requires new authority; or depends on unavailable
+external or user-only state.
 
 ### Review Routing
 
@@ -84,15 +172,34 @@ Review returns one lifecycle verdict:
 
 On implementation findings:
 
-`reviewer → Root → default Fix/Verify → Root → fresh reviewer Re-review`
+`Reviewer → Root → Builder Fix → Root → Verifier Re-verify → Root → Reviewer Re-review`
 
-Repeat until Review passes or escalation is required. Do not repeat the same
-fix-review loop when the same finding recurs.
+Continue automatically until Review passes or root escalation is required.
+
+### Git and Submodules
+
+Every repository-mutating task uses an ordinary task branch, not an independent
+worktree as the normal isolation mechanism. Before mutation, the root agent
+confirms the parent repository and relevant submodules contain no unrelated
+dirty state. Pause rather than stash, move, commit, or discard unrelated work,
+unless the user has explicitly approved a named exception.
+
+Every modified submodule uses a task branch with the same name as the parent
+repository's task branch. Commit verified submodule changes first, then commit
+the parent repository's submodule pointer. After an authorized merge succeeds,
+delete the merged task branch in every repository where it was created.
 
 ### Ship
 
-Ship begins only after final Review passes and only for actions explicitly
-authorized by the user or approved plan.
+Ship includes merge, push, pull-request mutation, tag, release, deployment,
+production migration, rollout, and rollback. Every Ship action requires explicit
+user authorization after final Review passes. Without that authorization, stop
+at the reviewed, locally committed task branch.
+
+The root agent decides and controls the exact Ship scope and delegates only the
+authorized actions to the Ship Builder identified under Delegation. No agent may
+broaden that authorization. Every merge requires explicit user authorization;
+after a successful merge, delete each merged repository's task branch.
 
 External or irreversible actions remain subject to Codex sandbox, approval
 policy, repository instructions, and `.codex/rules`.
