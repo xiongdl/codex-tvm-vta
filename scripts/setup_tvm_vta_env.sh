@@ -90,6 +90,8 @@ conda run -p "${env_path}" \
     decorator \
     ml_dtypes \
     pytest \
+    "tflite==2.10.0" \
+    "Pillow==11.3.0" \
     scipy \
     tornado \
     psutil \
