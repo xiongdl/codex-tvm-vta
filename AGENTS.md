@@ -151,8 +151,8 @@ candidate or one whose staged fingerprint changed after verification.
 
 Approval of the applicable SPEC and PLAN authorizes the root agent to coordinate
 the approved scope automatically through Build → Verify → Commit → Review and,
-when needed, Fix → Re-verify → Re-review. The root agent directly delegates each
-step and alone advances the lifecycle.
+when needed, Fix → Re-verify → Commit → Re-review. The root agent directly
+delegates each step and alone advances the lifecycle.
 
 Ordinary implementation or verification failures remain within the automatic
 loop. For repeated findings, the root agent changes the diagnosis or fix
@@ -172,7 +172,12 @@ Review returns one lifecycle verdict:
 
 On implementation findings:
 
-`Reviewer → Root → Builder Fix → Root → Verifier Re-verify → Root → Reviewer Re-review`
+`Reviewer → Root → Builder Fix → Root → Verifier Re-verify GREEN → Root → Builder Commit → Root → fresh Reviewer Re-review`
+
+After Re-verify reports GREEN, root delegates the local commit to Builder.
+Builder confirms the staged fingerprint is unchanged from the GREEN evidence,
+the staged paths are exact, and the tracked worktree is clean before committing.
+Only after that local commit does root trigger a fresh Reviewer for Re-review.
 
 Continue automatically until Review passes or root escalation is required.
 

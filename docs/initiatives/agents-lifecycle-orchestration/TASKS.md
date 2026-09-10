@@ -23,8 +23,10 @@ low-cost Verifier. Follow the existing `.codex/agents/reviewer.toml` convention.
 - [ ] RED: `test -f .codex/agents/builder.toml && test -f .codex/agents/verifier.toml`
       fails before implementation because both definitions are absent.
 - [ ] GREEN: the same file-existence command succeeds.
-- [ ] All `.codex/agents/*.toml` files parse with the command documented in the
-      approved SPEC.
+- [ ] Codex `load_workspace_dependencies` resolves a project-available bundled
+      Python interpreter at version 3.11 or newer, and all
+      `.codex/agents/*.toml` files parse with that interpreter and the command
+      documented in the approved SPEC.
 - [ ] `git diff --check -- .codex/agents/builder.toml .codex/agents/verifier.toml`
       succeeds.
 - [ ] Staged paths contain only the two new custom-agent files.

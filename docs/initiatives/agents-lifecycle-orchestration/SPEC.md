@@ -21,8 +21,14 @@ and a fresh Reviewer evaluates completed implementation changes.
 ## Commands
 
 - Validate Markdown whitespace: `git diff --check`
-- Parse custom-agent TOML:
-  `python3 -c 'import pathlib, tomllib; [tomllib.loads(p.read_text()) for p in pathlib.Path(".codex/agents").glob("*.toml")]'`
+- Resolve a project-available bundled Python interpreter with Codex
+  `load_workspace_dependencies`, then confirm it is Python 3.11 or newer. In
+  this workspace, the resolved interpreter used for verification was
+  `/Users/xdl/.cache/codex-runtimes/codex-primary-runtime/dependencies/python/bin/python3`
+  (Python 3.12.14).
+- Parse custom-agent TOML with the resolved bundled interpreter (shown here as
+  `$bundled_python`):
+  `"$bundled_python" -c 'import pathlib, tomllib; [tomllib.loads(p.read_text()) for p in pathlib.Path(".codex/agents").glob("*.toml")]'`
 - Inspect scoped changes: `git status --short`
 - Inspect staged paths: `git diff --cached --name-only`
 - Fingerprint a staged candidate:
@@ -59,7 +65,9 @@ sandbox_mode = "workspace-write"
 
 ## Testing Strategy
 
-- Parse all project custom-agent TOML with Python `tomllib`.
+- Resolve the project-available bundled Python with Codex
+  `load_workspace_dependencies`, require Python 3.11 or newer, and use that
+  interpreter's `tomllib` to parse all project custom-agent TOML.
 - Review the final diff for lifecycle completeness and contradictions.
 - Confirm Builder and Verifier responsibilities are disjoint.
 - Confirm the Verifier can execute repository automation while being forbidden
@@ -110,7 +118,8 @@ sandbox_mode = "workspace-write"
 2. Define always begins with a confirmed `interview-me` intent; subsequent
    skills decide their own applicability and completion.
 3. After required SPEC/PLAN approval, root automatically coordinates
-   Build → Verify → Commit → Review → Fix/Re-verify → Re-review.
+   Build → Verify → Commit → Review and, when needed,
+   Fix → Re-verify → Commit → Re-review.
 4. Only requirement/scope changes, new authority, or unavailable external state
    cause a user-facing pause; repeated findings return to root for a changed
    strategy rather than an identical loop.
