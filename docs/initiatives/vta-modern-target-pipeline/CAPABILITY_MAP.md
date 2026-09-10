@@ -1,81 +1,142 @@
-# Capability Map: Standalone VTA Modern Compiler Pipeline
-## Goal
+# Capability Map: VTA Modern Target Pipeline
 
-Migrate VTA from the classic per-function `relay.ext.vta` compiler callback to
-the modern two-stage `RelayToTIR -> TIRToRuntime` lifecycle while keeping all
-VTA-specific compiler integration in the standalone `vta/` project.
+## Confirmed Intent
 
-The pinned `tvm/` checkout remains unmodified. VTA builds and loads a compiler
-plugin library which registers its TargetKind and TVM hooks at runtime using
-TVM's public C++ extension interfaces.
+Build a VTA-owned compiler extension for the repository's pinned TVM version so
+VTA hardware parameters, instructions, lowering passes, schedules, and code
+generation can evolve without placing VTA-specific implementation in the TVM
+source tree. Replace graph-pack-driven compilation with capability-based Relay
+partitioning and the modern `RelayToTIR -> TIRToRuntime` target lifecycle.
+
+Prove the result on the MLPerf Tiny v1.4 floating-point Image Classification
+model (`pretrainedResnet.tflite`). Import the model with the pinned TVM, quantize
+it into forms supported by the existing VTA hardware, explicitly invoke one
+capability-based VTA partition pass, and compile supported regions to VTA while
+the remainder uses the host C/LLVM target.
+The complete deployment runs directly on the development host with VTA FSIM;
+an Arm FVP, CMSIS-NN, CRT, AOT firmware, and VTA ISA changes are out of scope.
 
 ## Modules
 
 | Module id | Responsibility | Depends on |
 |---|---|---|
-| `vta-compiler-plugin` | Build and load a standalone VTA compiler plugin that registers the `vta` TargetKind and modern hook boundary | — |
-| `vta-relay-to-tir` | Convert all `Compiler="vta"` Relay functions in an IRModule into scheduled VTA PrimFuncs | `vta-compiler-plugin` |
-| `vta-tir-to-runtime` | Compile VTA TIR IRModules into importable and serializable runtime modules | `vta-relay-to-tir` |
-| `vta-byoc-migration` | Atomically switch the public target/build lifecycle, retire the classic callback, document migration, and gate FSIM/TSIM | `vta-tir-to-runtime` |
+| `vta-target-extension` | Build and load the VTA-owned `libtvm-vta-ext` compiler plugin; register the `vta` TargetKind, target options, and modern hook boundary against the pinned TVM libraries | — |
+| `vta-relay-to-tir` | Provide the explicitly invoked, capability-based `partition_for_vta()` pass without GraphPack; outline VTA functions, then use the registered RelayToTIR hook to legalize their layouts and quantization and lower all VTA regions in an IRModule to scheduled VTA PrimFuncs | `vta-target-extension` |
+| `vta-tir-to-runtime` | Convert VTA TIR IRModules into linkable, importable, and serializable runtime artifacts with a stable host–VTA symbol and driver ABI usable by host FSIM | `vta-relay-to-tir` |
+| `mlperf-resnet-host-deployment` | Curate the Image Classification v1 app and ten fixed PNG samples; import the floating-point TFLite model; quantize it with TVM; partition to `VTA -> C/LLVM`; build and execute it on the host with FSIM; verify routing and numerical results | `vta-tir-to-runtime` |
+| `vta-modern-cutover` | Migrate repository-owned VTA compiler consumers to the modern path and retire active GraphPack and classic per-function `relay.ext.vta` compilation only after the modern pipeline and benchmark deployment pass | `mlperf-resnet-host-deployment` |
 
 ## Build Order
 
 ```text
-vta-compiler-plugin
+vta-target-extension
   -> vta-relay-to-tir
   -> vta-tir-to-runtime
-  -> vta-byoc-migration
+  -> mlperf-resnet-host-deployment
+  -> vta-modern-cutover
 ```
 
-## Ownership Boundary
+## Ownership Boundaries
 
-- VTA-specific C++, Python, CMake, tests, and documentation live under `vta/`
-  or repository-level VTA automation.
-- `tvm/` is a pinned upstream dependency and must remain clean.
-- The compiler plugin links against the built TVM compiler library; it is
-  separate from FSIM, TSIM, and hardware runtime libraries.
-- Loading the plugin registers TargetKind/hooks into the current compiler
-  process. Runtime-only deployments do not require compiler registration.
-- If public TVM APIs cannot support the plugin cleanly, stop and propose a
-  generic upstream extension API; do not add VTA-specific code to TVM.
+- VTA-specific compiler, runtime integration, tests, and build logic live under
+  `vta/` or repository-level VTA automation. The pinned `tvm/` source tree
+  remains unmodified.
+- `libtvm-vta-ext` is a compiler-side extension for the pinned TVM build. It
+  may depend on and be rebuilt with `libtvm`, `libtvm_runtime`, and the existing
+  VTA runtime; cross-version source or binary compatibility is not required.
+- VTA owns VTA capability checks and compilation. The deployment app owns model
+  import, quantization configuration, `VTA -> C/LLVM` partition orchestration,
+  host build, and execution.
+- The first deployment reproduces the repository's established VTA
+  `relay.quantize` flow with `global_scale`; it does not require dataset-driven
+  calibration. CIFAR-10 samples are validation inputs, not calibration data.
+- Unsupported Relay remains on the host. No CMSIS-NN, Ethos-U, Cortex-M FVP,
+  bare-metal CRT/AOT, or chip-specific deployment helper is required.
+- The deployment uses the default VTA schedules. It neither runs AutoTVM nor
+  consumes pre-existing tuning records.
+
+## Benchmark And Data Boundaries
+
+- Source benchmark tree:
+  `vta/apps/mlperf_tiny_benchmark/tiny-v1.4/` (local reference, not committed).
+- Source model:
+  `benchmark/training/image_classification/trained_models/pretrainedResnet.tflite`.
+- Deliverable app:
+  `vta/apps/mlperf_tiny_benchmark/image_classification_v1/`.
+- Do not train, retrain, or edit the source TFLite model. TVM-side post-training
+  quantization is an explicit deployment compilation stage.
+- The full CIFAR-10 dataset is supplied locally by the user and is never
+  downloaded or committed by this initiative.
+- Commit exactly ten deterministic PNG samples, one per CIFAR-10 class, with
+  fixed source indices, labels, attribution, and license information. Tests
+  must run from these PNGs without requiring the full dataset.
+- Copy only the MLPerf files required by the Image Classification deployment,
+  preserving license headers and provenance. Do not vendor the complete v1.4
+  benchmark tree.
 
 ## Stable Contracts
 
-- Relay compiler identity remains `vta`.
-- Runtime device identity remains `kDLExtDev`; execution continues to use
-  `ext_dev(0)` and the existing VTA DeviceAPI.
-- The future canonical Target retains `device=vta`, keys `vta,cpu`, and model
-  metadata for AutoTVM and existing deployment consumers.
-- `partition_for_vta()` remains source- and behavior-compatible.
-- Existing VTA TOPI schedules, TIR passes, constants, and unpacked host ABI
-  remain authoritative.
-- Operator coverage does not expand during this architecture migration.
-
-## Migration Policy
-
-The plugin and both modern stages are built and proven before public cutover.
-The classic callback remains the active path at every intermediate checkpoint.
-`vta.register_byoc()` evolves into an idempotent plugin/hook loader and is not
-removed until all repository consumers have migrated and a separate removal is
-approved.
+- Relay compiler and target identity remain `vta`.
+- VTA target configuration is the single source of truth for compiler lowering,
+  generated instruction definitions, and host FSIM execution.
+- Runtime device identity and the host–VTA call ABI remain explicit and stable
+  across FSIM and future physical drivers.
+- VTA partitioning is capability-based, model-independent, idempotent, and does
+  not depend on GraphPack annotations or model-specific operator ranges.
+- Applications explicitly call `partition_for_vta(mod)` once after TVM
+  quantization and before standard `relay.build`. Merely listing `vta` in the
+  target collection is not specified to partition an otherwise unannotated
+  Relay module.
+- Unsupported input must remain compilable for the C/LLVM host rather than fail
+  late inside VTA lowering.
+- Existing VTA hardware instructions and default parameters are used initially.
+  Hardware ISA and SRAM-configuration changes require a separately approved
+  scope change.
 
 ## Acceptance Evidence
 
-- `git -C tvm status --short` is empty throughout the initiative.
-- Plugin build/load tests prove registration ownership and clear missing-library
-  diagnostics.
-- Relay-to-TIR tests cover symbols, targets, constants, multiple partitions,
-  host fallback, and malformed input.
-- TIR-to-runtime tests cover runtime symbols, serialization, and loading.
-- FSIM and TSIM execute exported modern-pipeline artifacts with numerical
-  equality and non-zero accelerator activity.
-- No active build path depends on bare `relay.ext.vta` after final cutover.
+- `libtvm-vta-ext` builds and loads separately, registers the expected target
+  and hooks exactly once, and reports missing/incompatible libraries clearly.
+- The pinned `tvm/` checkout remains clean.
+- Relay tests cover quantized forms emitted by the selected TVM quantization
+  flow, supported and rejected regions, multiple VTA partitions, constants,
+  symbols, and host fallback.
+- Runtime tests cover generated VTA symbols, serialization/linking, and host
+  FSIM execution through the stable driver ABI.
+- The unmodified floating-point MLPerf model is imported and quantized entirely
+  through TVM-side compilation without GraphPack.
+- The host deployment contains and executes at least one VTA partition and a
+  valid C/LLVM fallback region.
+- For all ten committed PNG samples, the `VTA + LLVM` deployment is compared
+  only with a pure-LLVM build of the exact same quantized Relay module. Tensor
+  outputs must satisfy the approved compiler-correctness comparison, and the
+  resulting top-1 classifications must agree.
+- Accuracy relative to the source floating-point TFLite model is not evaluated;
+  correctness of TVM's quantization and pure-LLVM lowering is trusted as the
+  deployment reference.
+- The deployment and its tests require neither an FVP nor CMSIS-NN.
 
 ## Non-Goals
 
-- Embedding VTA under `tvm/src/relay/backend/contrib/`.
-- Changing TVM core or adding VTA-specific TVM CMake options.
-- Expanding supported operators or redesigning AutoTVM/MetaSchedule.
-- Changing VTA RPC, bitstream programming, instruction semantics, or runtime
-  device type.
-- Adding third-party dependencies.
+- Training, retraining, modification of the source TFLite model, or importing
+  the separately supplied quantized TFLite model.
+- Evaluating quantization accuracy against the source floating-point TFLite
+  model or reproducing an official MLPerf accuracy score.
+- CMSIS-NN, Ethos-U, Cortex-M FVP, FVPs-on-Mac, Docker FVP wrappers, bare-metal
+  deployment, CRT firmware, or TSIM.
+- VTA hardware instruction, RTL, or SRAM-parameter changes.
+- Supporting the other MLPerf Tiny workloads or making an official MLPerf
+  performance/energy submission.
+- Collage, runtime cost search, or globally optimal heterogeneous placement.
+- AutoTVM tuning, tuning-log generation or consumption, and performance targets.
+- A general TVMC plugin-discovery mechanism or standard `tvmc` CLI integration
+  in the first release.
+- Cross-TVM-version compatibility or operator-coverage expansion beyond what is
+  required for the ResNet-8 host deployment.
+
+## Approval Gate
+
+Approved by the user on 2026-09-09. The module boundaries, dependency
+direction, and build order are now fixed for specification. Each module receives
+its own reviewed spec in this directory; planning and implementation remain
+separately gated.
