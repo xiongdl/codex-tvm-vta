@@ -59,21 +59,21 @@ defines only ownership, delegation, and escalation.
 
 * **Root agent:** Define, Plan, approvals, lifecycle control and transitions,
   escalation, final reporting, and control of Ship scope and authorization.
-* **Builder:** Build, Fix, and explicitly authorized Ship execution, including
-  writing production and verification code.
+* **Builder:** Build and Fix, including writing production and verification
+  code.
 * **Verifier:** Verify and Re-verify execution only.
 * **Reviewer:** Review and Re-review only.
+* **`default` subagent:** Explicitly authorized Ship execution only.
 
 Product-level changes to requirements, scope, architecture, interfaces,
 acceptance criteria, or release behavior remain with the root agent.
 
 ### Builder
 
-The Builder executes only the Build, Fix, or authorized Ship work delegated by
-the root agent. During Build and Fix it writes both verification and production
-code, preserves unrelated changes, stages only the exact task paths, and
-returns the base HEAD, staged paths, candidate fingerprint, unstaged tracked
-paths, and risks to the root agent.
+The Builder executes only the Build or Fix work delegated by the root agent. It
+writes both verification and production code, preserves unrelated changes,
+stages only the exact task paths, and returns the base HEAD, staged paths,
+candidate fingerprint, unstaged tracked paths, and risks to the root agent.
 
 The Builder does not perform Verify or Re-verify, expand approved scope, trigger
 or message another agent, or advance the lifecycle. It stops and returns a root
@@ -99,14 +99,21 @@ artifacts and completed implementation. It reports findings or a pass verdict
 to the root agent and does not implement fixes, commit, merge, trigger or
 message another agent, or advance the lifecycle.
 
+### Default Ship Subagent
+
+The `default` subagent executes only the exact Ship actions authorized by the
+user and delegated by the root agent. It does not perform Build, Verify, Fix,
+Re-verify, Review, or Re-review, broaden Ship authorization, trigger or message
+another agent, or advance the lifecycle.
+
 ### Delegation
 
-The root agent directly triggers every Builder, Verifier, and Reviewer. Agents
-return concise evidence only to the root agent; they never trigger or coordinate
-with one another. Every delegation is self-contained and identifies the
-approved artifacts, PLAN task or Ship action, exact scope and staged-path
-allowlist, acceptance criteria, base HEAD, repository rules, and required
-evidence.
+The root agent directly triggers every Builder, Verifier, Reviewer, and
+`default` Ship subagent. Agents return concise evidence only to the root agent;
+they never trigger or coordinate with one another. Every delegation is
+self-contained and identifies the approved artifacts, PLAN task or Ship action,
+exact scope and staged-path allowlist, acceptance criteria, base HEAD,
+repository rules, and required evidence.
 
 When the approved PLAN contains native Addy checkpoints, reuse the same Builder
 and Verifier within a checkpoint, then replace both after that checkpoint. When
@@ -114,7 +121,7 @@ the PLAN has no native checkpoint, treat the complete Build and Verify sequence
 as one checkpoint. Do not add a custom checkpoint schema.
 
 Use a fresh Reviewer for every Review and Re-review. Treat Ship as a separate
-delegation and use a fresh Builder for its execution.
+delegation and use a fresh `default` subagent for its execution.
 
 ### RED, GREEN, and Candidate Identity
 
@@ -202,9 +209,10 @@ user authorization after final Review passes. Without that authorization, stop
 at the reviewed, locally committed task branch.
 
 The root agent decides and controls the exact Ship scope and delegates only the
-authorized actions to the Ship Builder identified under Delegation. No agent may
-broaden that authorization. Every merge requires explicit user authorization;
-after a successful merge, delete each merged repository's task branch.
+authorized actions to the fresh `default` subagent identified under Delegation.
+No agent may broaden that authorization. Every merge requires explicit user
+authorization; after a successful merge, delete each merged repository's task
+branch.
 
 External or irreversible actions remain subject to Codex sandbox, approval
 policy, repository instructions, and `.codex/rules`.

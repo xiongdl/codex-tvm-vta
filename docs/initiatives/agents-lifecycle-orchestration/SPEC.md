@@ -7,7 +7,8 @@ agent responsibilities, verification evidence, Git state, and Ship authority
 aligned. The workflow must reduce strong-model usage without weakening Addy
 Skills gates: root controls the lifecycle, a strong Builder writes production
 and verification code, a low-cost Verifier executes verification independently,
-and a fresh Reviewer evaluates completed implementation changes.
+a fresh Reviewer evaluates completed implementation changes, and a fresh
+`default` subagent executes explicitly authorized Ship actions.
 
 ## Tech Stack
 
@@ -57,7 +58,7 @@ and a fresh Reviewer evaluates completed implementation changes.
 
 ```toml
 name = "builder"
-description = "Implementation agent for Build, Fix, and Ship execution."
+description = "Implementation agent for Build and Fix execution."
 model = "gpt-5.6-sol"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
@@ -84,7 +85,8 @@ sandbox_mode = "workspace-write"
 - Run `interview-me` to explicit user confirmation whenever routing enters
   Define.
 - Require the applicable SPEC and PLAN approvals before autonomous Build.
-- Have root directly trigger Builder, Verifier, and Reviewer.
+- Have root directly trigger Builder, Verifier, Reviewer, and the `default` Ship
+  subagent.
 - Preserve Addy's RED → GREEN discipline and per-task verified commits.
 - Use ordinary task branches for every repository-mutating task.
 - Use matching task branches in every modified submodule.
@@ -112,9 +114,9 @@ sandbox_mode = "workspace-write"
 
 ## Success Criteria
 
-1. `AGENTS.md` assigns Define/Plan and lifecycle control to root; Build/Fix and
-   Ship execution to Builder; Verify/Re-verify to Verifier; and
-   Review/Re-review to Reviewer.
+1. `AGENTS.md` assigns Define/Plan and lifecycle control to root; Build/Fix to
+   Builder; Verify/Re-verify to Verifier; Review/Re-review to Reviewer; and
+   authorized Ship execution to a `default` subagent.
 2. Define always begins with a confirmed `interview-me` intent; subsequent
    skills decide their own applicability and completion.
 3. After required SPEC/PLAN approval, root automatically coordinates
@@ -133,8 +135,8 @@ sandbox_mode = "workspace-write"
    before the parent pointer.
 8. Review completion leaves an approved, locally committed task branch awaiting
    explicit Ship authorization.
-9. Authorized Ship is delegated by root to a fresh Builder, including merge;
-   successfully merged task branches are deleted.
+9. Authorized Ship is delegated by root to a fresh `default` subagent, including
+   merge; successfully merged task branches are deleted.
 10. Builder and Verifier model/reasoning settings live only in their custom-agent
     TOML files, not in `AGENTS.md`.
 

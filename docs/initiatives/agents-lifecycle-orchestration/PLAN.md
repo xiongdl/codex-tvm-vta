@@ -21,8 +21,8 @@ own verified commit.
 - Use Addy's existing task and checkpoint structures without adding a custom
   checkpoint schema.
 - Reuse Builder and Verifier within a checkpoint; refresh both after a
-  checkpoint. Use a fresh Reviewer for Review/Re-review and a fresh Builder for
-  Ship execution.
+  checkpoint. Use a fresh Reviewer for Review/Re-review and a fresh `default`
+  subagent for Ship execution.
 
 ## Task List
 

@@ -8,9 +8,8 @@ low-cost Verifier. Follow the existing `.codex/agents/reviewer.toml` convention.
 
 **Acceptance criteria:**
 
-- [ ] `.codex/agents/builder.toml` defines Builder for Build, Fix, and Ship
-      execution, with implementation-focused instructions and explicit stop
-      rules.
+- [ ] `.codex/agents/builder.toml` defines Builder for Build and Fix execution,
+      with implementation-focused instructions and explicit stop rules.
 - [ ] `.codex/agents/verifier.toml` defines Verifier for Verify and Re-verify,
       permits build/test artifacts, and forbids tracked-file edits, staging,
       commits, fixes, and agent orchestration.
@@ -51,8 +50,9 @@ and submodule rules, pause conditions, and Ship authorization/execution policy.
 
 - [ ] Task intake delegates phase selection to `using-agent-skills`; every
       entered Define phase starts with confirmed `interview-me` intent.
-- [ ] Ownership assigns Define/Plan/control to root, Build/Fix/Ship execution to
-      Builder, Verify/Re-verify to Verifier, and Review/Re-review to Reviewer.
+- [ ] Ownership assigns Define/Plan/control to root, Build/Fix to Builder,
+      Verify/Re-verify to Verifier, Review/Re-review to Reviewer, and authorized
+      Ship execution to a `default` subagent.
 - [ ] Root directly triggers all agents; subagents return concise evidence and
       do not trigger one another or advance the lifecycle.
 - [ ] SPEC/PLAN approval starts automatic Build through final Review, with only
@@ -66,7 +66,8 @@ and submodule rules, pause conditions, and Ship authorization/execution policy.
       state pauses; modified submodules use the same branch name and commit
       before the parent pointer.
 - [ ] All Ship operations require explicit user authorization, are delegated to
-      a fresh Builder, and successfully merged task branches are deleted.
+      a fresh `default` subagent, and successfully merged task branches are
+      deleted.
 - [ ] Builder/Verifier model IDs and reasoning settings do not appear in
       `AGENTS.md`.
 
