@@ -26,7 +26,8 @@ usage() {
     echo "Build selected standalone VTA libraries."
     echo
     echo "Options:"
-    echo "  --target TARGET       libvta_fsim, libvta_tsim, libvta_hw, or all"
+    echo "  --target TARGET       libtvm-vta-ext, libvta_fsim, libvta_tsim,"
+    echo "                        libvta_hw, or all"
     echo "                        (default: all)"
     echo "  --env-name NAME       Conda environment under .envs/"
     echo "                        (default: tvm-vta-env)"
@@ -86,8 +87,8 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-[[ "${target}" =~ ^(libvta_fsim|libvta_tsim|libvta_hw|all)$ ]] || {
-    echo "Error: --target must be libvta_fsim, libvta_tsim, libvta_hw, or all." >&2
+[[ "${target}" =~ ^(libtvm-vta-ext|libvta_fsim|libvta_tsim|libvta_hw|all)$ ]] || {
+    echo "Error: --target must be libtvm-vta-ext, libvta_fsim, libvta_tsim, libvta_hw, or all." >&2
     exit 1
 }
 [[ "${jobs}" =~ ^[1-9][0-9]*$ ]] || { echo "Error: --jobs must be a positive integer." >&2; exit 1; }
@@ -133,15 +134,16 @@ verilator_root="$("${verilator_bin}" -getenv VERILATOR_ROOT)"
 export TVM_PATH VTA_PATH JAVA_HOME
 vta_build_dir="${VTA_PATH}/build"
 case "${target}" in
+    libtvm-vta-ext) cmake_targets=(tvm_vta_ext) ;;
     libvta_fsim) cmake_targets=(vta_fsim) ;;
     libvta_tsim|libvta_hw) cmake_targets=(vta_tsim) ;;
     all) cmake_targets=(vta_fsim vta_tsim) ;;
 esac
 
-config_file="${VTA_PATH}/config/vta_config.json"
-if [[ "${target}" != "libvta_fsim" ]]; then
-    config_file="${VTA_PATH}/config/tsim_sample.json"
-fi
+case "${target}" in
+    libtvm-vta-ext|libvta_fsim) config_file="${VTA_PATH}/config/vta_config.json" ;;
+    *) config_file="${VTA_PATH}/config/tsim_sample.json" ;;
+esac
 
 echo "Building VTA libraries..."
 echo "  Target:          ${target}"
@@ -199,6 +201,7 @@ else
     library_suffix="so"
 fi
 case "${target}" in
+    libtvm-vta-ext) expected_libraries=("libtvm-vta-ext.${library_suffix}") ;;
     libvta_fsim) expected_libraries=("libvta_fsim.${library_suffix}") ;;
     libvta_tsim) expected_libraries=("libvta_tsim.${library_suffix}") ;;
     libvta_hw) expected_libraries=("libvta_tsim.${library_suffix}" "libvta_hw.${library_suffix}") ;;
