@@ -209,8 +209,8 @@ user authorization after final Review passes. Without that authorization, stop
 at the reviewed, locally committed task branch.
 
 The root agent decides and controls the exact Ship scope and delegates only the
-authorized actions to the fresh `default` subagent identified under Delegation.
-No agent may broaden that authorization. Every merge requires explicit user
+authorized actions to the `default` subagent identified under Delegation. No
+agent may broaden that authorization. Every merge requires explicit user
 authorization; after a successful merge, delete each merged repository's task
 branch.
 
