@@ -2,11 +2,12 @@
 
 Status: Complete on 2026-09-11
 
-## Verified candidate identity
+## Verification identity
 
-The final verification matrix ran against these exact repository states:
+The complete verification matrix ran against this exact implementation
+candidate:
 
-- Parent repository: `bfd679df7ddd1bfd10d3f19d44115cb253320445`
+- Parent repository: `e5e9a34f3cc47bf8cc63e6556aee3becf61459ac`
 - VTA submodule: `e6443ae67fa28877476e5af954f652a4c2dfeccc`
 - Pinned TVM submodule: `eeebcfa0ad4a6e9d49cce3ee6718ecbef0ee018f`
 
@@ -14,6 +15,12 @@ The parent repository, VTA, and TVM had no staged or unstaged tracked changes
 after verification. TVM remained at its pinned commit and was not modified.
 Only pre-existing untracked local environment, editor, full CIFAR-10, and
 upstream MLPerf source files remained; none were added to the candidate.
+
+This verification record is an evidence-only documentation change layered on
+top of the verified implementation candidate. It does not claim that its own
+later documentation commit was included in the same execution. Final Review
+therefore examines the current documentation HEAD together with its verified
+implementation ancestor `e5e9a34f3cc47bf8cc63e6556aee3becf61459ac`.
 
 ## Target extension foundation
 
@@ -118,13 +125,13 @@ remained available and green.
 The independent final run reported:
 
 ```text
-Aggregate structural suites: 247 passed
-FSIM suite:                    24 passed
-TSIM suite:                    12 passed
-Python compileall:             passed
+Aggregate structural suites:  281 passed
+FSIM suite:                     24 passed
+MLPerf HOST/FSIM suite:         28 passed (including the real ten-image test)
+TSIM suite:                     12 passed
+Python compileall:              passed
 Permanent zero-reference scan: passed
 Scoped repository checks:      passed
-Documented MLPerf HOST/FSIM:    passed
 ```
 
 The aggregate's modern Relay execution path used FSIM; TSIM was exercised only
