@@ -104,12 +104,38 @@ VTA_CONFIG_FILE="${tsim_config}" "${script_dir}/test_vta_tsim.sh" --env-name "${
 echo "==> Python compilation"
 "${python_bin}" -m compileall -q "${VTA_PATH}/python/vta"
 
-echo "==> Retired graphpack reference check"
-if rg -n "graph_pack|get_subgraph|start_name|stop_name|bitpack_start|bitpack_end" \
-    "${VTA_PATH}/python" "${VTA_PATH}/apps" "${VTA_PATH}/tutorials" "${VTA_PATH}/tests" \
-    --glob '!build/**' --glob '!3rdparty/**' \
+legacy_reference_pattern="$(
+    printf '%s' \
+        'graph_' 'pack|' \
+        'get_' 'subgraph|' \
+        'start_' 'name|' \
+        'stop_' 'name|' \
+        'bitpack_' 'start|' \
+        'bitpack_' 'end|' \
+        'register_' 'byoc|' \
+        'relay[.]' 'ext[.]' 'vta|' \
+        'EXTERNAL_' 'COMPILER'
+)"
+legacy_reference_paths=(
+    "${VTA_PATH}/README.md"
+    "${VTA_PATH}/python"
+    "${VTA_PATH}/apps"
+    "${VTA_PATH}/tutorials"
+    "${VTA_PATH}/tests"
+    "${VTA_PATH}/docs"
+    "${VTA_PATH}/scripts"
+    "${VTA_PATH}/Jenkinsfile"
+    "${project_dir}/scripts"
+)
+
+echo "==> Retired Relay compiler and graph-range reference check"
+if rg -n "${legacy_reference_pattern}" "${legacy_reference_paths[@]}" \
+    --glob '!**/build/**' \
+    --glob '!**/3rdparty/**' \
+    --glob '!**/tiny-v1.4/**' \
+    --glob '!**/cifar-10-batches-py/**' \
     --glob '!test_byoc_graphpack_retirement.py'; then
-    echo "Error: retired graphpack references remain in active VTA code." >&2
+    echo "Error: retired Relay compiler or graph-range references remain." >&2
     exit 1
 fi
 
