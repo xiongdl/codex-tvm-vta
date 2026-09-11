@@ -89,6 +89,9 @@ export PYTHONPATH="${TVM_PATH}/python:${VTA_PATH}/python${PYTHONPATH:+:${PYTHONP
 
 echo "==> BYOC structural tests"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
+    "${VTA_PATH}/tests/python/unittest/test_target_extension.py" \
+    "${VTA_PATH}/tests/python/unittest/test_target_hooks.py" \
+    "${VTA_PATH}/tests/python/unittest/test_abi_fingerprint.py" \
     "${VTA_PATH}/tests/python/unittest/test_byoc_contract.py" \
     "${VTA_PATH}/tests/python/unittest/test_byoc_partition.py" \
     "${VTA_PATH}/tests/python/unittest/test_byoc_lowering.py" \
@@ -97,6 +100,12 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
 
 echo "==> FSIM gate"
 VTA_CONFIG_FILE="${fsim_config}" "${script_dir}/test_vta_fsim.sh" --env-name "${env_name}"
+
+echo "==> MLPerf ResNet HOST/FSIM gate"
+VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_assets.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_model_pipeline.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_host_deployment.py"
 
 echo "==> TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${script_dir}/test_vta_tsim.sh" --env-name "${env_name}"
