@@ -1,6 +1,6 @@
 # Tasks: VTA Modern Target Pipeline
 
-Status: Proposed
+Status: Complete
 
 All tasks are governed by the approved specs in this directory. Checkboxes are
 updated only when acceptance and verification evidence both pass.
@@ -13,15 +13,15 @@ failure diagnostics before implementing the loader.
 
 **Acceptance criteria:**
 
-- [ ] Tests distinguish full TVM and runtime-only imports.
-- [ ] Tests require one native `vta` target registration and actionable missing
+- [x] Tests distinguish full TVM and runtime-only imports.
+- [x] Tests require one native `vta` target registration and actionable missing
   or unloadable library errors.
-- [ ] Tests do not register or invoke `relay.ext.vta`.
+- [x] Tests do not register or invoke `relay.ext.vta`.
 
 **Verification:**
 
-- [ ] New focused tests fail for the expected missing modern behavior.
-- [ ] Existing Python package import tests remain attributable and deterministic.
+- [x] New focused tests fail for the expected missing modern behavior.
+- [x] Existing Python package import tests remain attributable and deterministic.
 
 **Dependencies:** None
 
@@ -41,15 +41,15 @@ runtime-only import skips it.
 
 **Acceptance criteria:**
 
-- [ ] `build_vta_lib.sh --target libtvm-vta-ext` produces the platform library.
-- [ ] `import vta` registers `Target("vta")` once; reload is safe.
-- [ ] Runtime-only import does not search for or load the compiler library.
+- [x] `build_vta_lib.sh --target libtvm-vta-ext` produces the platform library.
+- [x] `import vta` registers `Target("vta")` once; reload is safe.
+- [x] Runtime-only import does not search for or load the compiler library.
 
 **Verification:**
 
-- [ ] Run the Task 1 isolated tests.
-- [ ] Build the target on the current macOS host.
-- [ ] Confirm `git -C tvm status --short` is empty.
+- [x] Run the Task 1 isolated tests.
+- [x] Build the target on the current macOS host.
+- [x] Confirm `git -C tvm status --short` is empty.
 
 **Dependencies:** Task 1
 
@@ -65,9 +65,9 @@ runtime-only import skips it.
 
 ## Checkpoint A: Target extension foundation
 
-- [ ] Tasks 1-2 acceptance evidence passes.
-- [ ] Build/load errors name the failing artifact and recovery command.
-- [ ] No old external compiler callback was added as an intermediate bridge.
+- [x] Tasks 1-2 acceptance evidence passes.
+- [x] Build/load errors name the failing artifact and recovery command.
+- [x] No old external compiler callback was added as an intermediate bridge.
 
 ## Task 3: Implement the approved single-convolution partition matrix
 
@@ -134,18 +134,18 @@ lowering components without the legacy external compiler callback.
 
 **Acceptance criteria:**
 
-- [ ] The target exposes a typed non-null RelayToTIR hook.
-- [ ] One hook invocation lowers all VTA functions and preserves non-VTA IR.
-- [ ] Malformed annotated functions fail before partial module mutation.
+- [x] The target exposes a typed non-null RelayToTIR hook.
+- [x] One hook invocation lowers all VTA functions and preserves non-VTA IR.
+- [x] Malformed annotated functions fail before partial module mutation.
 
 **Verification:**
 
-- [ ] Run isolated native-hook tests for zero, one, and multiple VTA regions.
-- [ ] Prove `relay.ext.vta` is absent and not invoked.
-- [ ] Prove Ethos-U-equivalent module replacement: every existing VTA
+- [x] Run isolated native-hook tests for zero, one, and multiple VTA regions.
+- [x] Prove `relay.ext.vta` is absent and not invoked.
+- [x] Prove Ethos-U-equivalent module replacement: every existing VTA
   GlobalVar is updated in place to a PrimFunc and no global or nested Relay
   Function retaining `Compiler="vta"` reaches `LowerTE`.
-- [ ] Run Task 3-4 focused suites.
+- [x] Run Task 3-4 focused suites.
 
 **Dependencies:** Task 4
 
@@ -161,10 +161,10 @@ lowering components without the legacy external compiler callback.
 
 ## Checkpoint B: Relay partition and lowering
 
-- [ ] Tasks 3-5 acceptance evidence passes.
-- [ ] Both layouts and all approved convolution variants tensorize.
-- [ ] Unsupported candidates remain buildable for LLVM.
-- [ ] The pinned TVM checkout is clean.
+- [x] Tasks 3-5 acceptance evidence passes.
+- [x] Both layouts and all approved convolution variants tensorize.
+- [x] Unsupported candidates remain buildable for LLVM.
+- [x] The pinned TVM checkout is clean.
 
 ## Task 6: Define canonical VTA ABI fingerprint generation
 
@@ -174,14 +174,14 @@ to compiler and runtime builds.
 
 **Acceptance criteria:**
 
-- [ ] Ordering, JSON formatting, path, and timestamp do not alter the result.
-- [ ] Every ABI-relevant definition and schema version alters the result.
-- [ ] Compiler extension and FSIM consume generated values from one source.
+- [x] Ordering, JSON formatting, path, and timestamp do not alter the result.
+- [x] Every ABI-relevant definition and schema version alters the result.
+- [x] Compiler extension and FSIM consume generated values from one source.
 
 **Verification:**
 
-- [ ] Run deterministic and sensitivity tests across generated fixtures.
-- [ ] Build extension and FSIM with the default config and compare fingerprints.
+- [x] Run deterministic and sensitivity tests across generated fixtures.
+- [x] Build extension and FSIM with the default config and compare fingerprints.
 
 **Dependencies:** Task 2
 
@@ -202,14 +202,14 @@ command/profiler activity.
 
 **Acceptance criteria:**
 
-- [ ] Matching checks succeed repeatedly without side effects.
-- [ ] Mismatch diagnostics contain expected and actual fingerprints.
-- [ ] No VTA activity occurs after a failed check.
+- [x] Matching checks succeed repeatedly without side effects.
+- [x] Mismatch diagnostics contain expected and actual fingerprints.
+- [x] No VTA activity occurs after a failed check.
 
 **Verification:**
 
-- [ ] Run focused C/Python FSIM fingerprint tests.
-- [ ] Run existing VTA instruction and FSIM smoke tests.
+- [x] Run focused C/Python FSIM fingerprint tests.
+- [x] Run existing VTA instruction and FSIM smoke tests.
 
 **Dependencies:** Task 6
 
@@ -230,15 +230,15 @@ export/reload/FSIM lifecycle.
 
 **Acceptance criteria:**
 
-- [ ] One/many valid PrimFuncs produce one module with every expected symbol.
-- [ ] Invalid input fails before partial codegen and no public `tvm.build` recurs.
-- [ ] Exported/reloaded fixture executes on FSIM and equals pure LLVM exactly.
+- [x] One/many valid PrimFuncs produce one module with every expected symbol.
+- [x] Invalid input fails before partial codegen and no public `tvm.build` recurs.
+- [x] Exported/reloaded fixture executes on FSIM and equals pure LLVM exactly.
 
 **Verification:**
 
-- [ ] Run codegen and runtime tests for symbols, malformed input, and lifecycle.
-- [ ] Run matched/mismatched fingerprint execution tests.
-- [ ] Require positive GEMM/load/store profiler counters.
+- [x] Run codegen and runtime tests for symbols, malformed input, and lifecycle.
+- [x] Run matched/mismatched fingerprint execution tests.
+- [x] Require positive GEMM/load/store profiler counters.
 
 **Dependencies:** Tasks 5 and 7
 
@@ -260,14 +260,14 @@ and clear diagnostics.
 
 **Acceptance criteria:**
 
-- [ ] Full import validates TargetKind, RelayToTIR, and TIRToRuntime.
-- [ ] Re-import/reload preserves one hook identity.
-- [ ] Incomplete or incompatible extension fails immediately and clearly.
+- [x] Full import validates TargetKind, RelayToTIR, and TIRToRuntime.
+- [x] Re-import/reload preserves one hook identity.
+- [x] Incomplete or incompatible extension fails immediately and clearly.
 
 **Verification:**
 
-- [ ] Run all target-extension isolated tests.
-- [ ] Import in full and simulated runtime-only subprocesses.
+- [x] Run all target-extension isolated tests.
+- [x] Import in full and simulated runtime-only subprocesses.
 
 **Dependencies:** Task 8
 
@@ -281,10 +281,10 @@ and clear diagnostics.
 
 ## Checkpoint C: Runtime artifact
 
-- [ ] Tasks 6-9 acceptance evidence passes.
-- [ ] Compile/export is independent of simulator loading.
-- [ ] Reloaded artifact resolves FSIM ABI and executes accelerator work.
-- [ ] Configuration mismatch fails before profiler activity.
+- [x] Tasks 6-9 acceptance evidence passes.
+- [x] Compile/export is independent of simulator loading.
+- [x] Reloaded artifact resolves FSIM ABI and executes accelerator work.
+- [x] Configuration mismatch fails before profiler activity.
 
 ## Task 10: Add lightweight dependencies and licensed deterministic assets
 
@@ -294,15 +294,15 @@ samples plus manifest from user-supplied CIFAR-10.
 
 **Acceptance criteria:**
 
-- [ ] Setup automation installs only the approved additional dependencies.
-- [ ] Model and PNG hashes/provenance/license are committed and verified.
-- [ ] Samples are the first `test_batch` occurrence of labels 0 through 9.
+- [x] Setup automation installs only the approved additional dependencies.
+- [x] Model and PNG hashes/provenance/license are committed and verified.
+- [x] Samples are the first `test_batch` occurrence of labels 0 through 9.
 
 **Verification:**
 
-- [ ] Recreate hashes and validate manifest uniqueness/completeness.
-- [ ] Decode PNGs and compare exact pixels with local `test_batch` when present.
-- [ ] Confirm local full datasets and `tiny-v1.4` remain untracked.
+- [x] Recreate hashes and validate manifest uniqueness/completeness.
+- [x] Decode PNGs and compare exact pixels with local `test_batch` when present.
+- [x] Confirm local full datasets and `tiny-v1.4` remain untracked.
 
 **Dependencies:** Checkpoint C
 
@@ -326,15 +326,15 @@ branches.
 
 **Acceptance criteria:**
 
-- [ ] Model input/output/topology assertions match the committed artifact.
-- [ ] Quantization runs once with global scale 8.0 and skipped first convolution.
-- [ ] Partitioning produces exactly eight one-convolution VTA functions and LLVM
+- [x] Model input/output/topology assertions match the committed artifact.
+- [x] Quantization runs once with global scale 8.0 and skipped first convolution.
+- [x] Partitioning produces exactly eight one-convolution VTA functions and LLVM
   fallback from the shared quantized module.
 
 **Verification:**
 
-- [ ] Run fast model, preprocessing, quantization, and routing tests.
-- [ ] Confirm no TensorFlow, calibration, GraphPack, or AutoTVM import/call.
+- [x] Run fast model, preprocessing, quantization, and routing tests.
+- [x] Confirm no TensorFlow, calibration, GraphPack, or AutoTVM import/call.
 
 **Dependencies:** Task 10
 
@@ -355,14 +355,14 @@ proof.
 
 **Acceptance criteria:**
 
-- [ ] Both non-committed artifacts export and reload through standard TVM APIs.
-- [ ] All ten tensors and top-1 indices agree exactly.
-- [ ] Expected VTA symbols exist and FSIM GEMM/load/store counters are positive.
+- [x] Both non-committed artifacts export and reload through standard TVM APIs.
+- [x] All ten tensors and top-1 indices agree exactly.
+- [x] Expected VTA symbols exist and FSIM GEMM/load/store counters are positive.
 
 **Verification:**
 
-- [ ] Run the documented application command from a clean build-output state.
-- [ ] Run the end-to-end pytest without full CIFAR-10 or local `tiny-v1.4`.
+- [x] Run the documented application command from a clean build-output state.
+- [x] Run the end-to-end pytest without full CIFAR-10 or local `tiny-v1.4`.
 
 **Dependencies:** Task 11
 
@@ -378,10 +378,10 @@ proof.
 
 ## Checkpoint D: MLPerf HOST deployment
 
-- [ ] Tasks 10-12 acceptance evidence passes.
-- [ ] App is self-contained within approved committed assets/dependencies.
-- [ ] Exact routing and ten-image equality pass after artifact reload.
-- [ ] No FVP, CMSIS-NN, TVM `c` target, AOT/CRT, TSIM, or AutoTVM is used.
+- [x] Tasks 10-12 acceptance evidence passes.
+- [x] App is self-contained within approved committed assets/dependencies.
+- [x] Exact routing and ten-image equality pass after artifact reload.
+- [x] No FVP, CMSIS-NN, TVM `c` target, AOT/CRT, TSIM, or AutoTVM is used.
 
 ## Task 13: Migrate active Relay consumers and documentation
 
@@ -391,15 +391,15 @@ partitioning, and modern `Target("vta")`, preserving host fallback.
 
 **Acceptance criteria:**
 
-- [ ] Every inventoried active Relay consumer uses the modern call sequence.
-- [ ] Documentation distinguishes modern `vta` from low-level `ext_dev`.
-- [ ] Each migrated executable consumer passes its focused validation or is
+- [x] Every inventoried active Relay consumer uses the modern call sequence.
+- [x] Documentation distinguishes modern `vta` from low-level `ext_dev`.
+- [x] Each migrated executable consumer passes its focused validation or is
   escalated rather than silently retired.
 
 **Verification:**
 
-- [ ] Run focused consumer/tutorial compile checks.
-- [ ] Re-run modern partition/runtime and MLPerf gates.
+- [x] Run focused consumer/tutorial compile checks.
+- [x] Re-run modern partition/runtime and MLPerf gates.
 
 **Dependencies:** Checkpoint D
 
@@ -421,17 +421,17 @@ legacy-reference scan while preserving low-level APIs.
 
 **Acceptance criteria:**
 
-- [ ] `register_byoc`, `relay.ext.vta`, `EXTERNAL_COMPILER`, and production
+- [x] `register_byoc`, `relay.ext.vta`, `EXTERNAL_COMPILER`, and production
   callback code are absent.
-- [ ] Active GraphPack/range references are absent and permanently checked.
-- [ ] Representative low-level `vta.build*`, TE/TIR, FSIM, and `ext_dev` tests
+- [x] Active GraphPack/range references are absent and permanently checked.
+- [x] Representative low-level `vta.build*`, TE/TIR, FSIM, and `ext_dev` tests
   remain green.
 
 **Verification:**
 
-- [ ] Run the zero-reference scan with only approved narrow exclusions.
-- [ ] Run modern suites and preserved low-level regression tests.
-- [ ] Confirm runtime-only import behavior.
+- [x] Run the zero-reference scan with only approved narrow exclusions.
+- [x] Run modern suites and preserved low-level regression tests.
+- [x] Confirm runtime-only import behavior.
 
 **Dependencies:** Task 13
 
@@ -456,17 +456,17 @@ without committing, pushing, or releasing.
 
 **Acceptance criteria:**
 
-- [ ] Every module success criterion traces to passing evidence.
-- [ ] Aggregate FSIM-only gate, MLPerf app, low-level regressions, and repository
+- [x] Every module success criterion traces to passing evidence.
+- [x] Aggregate FSIM-only gate, MLPerf app, low-level regressions, and repository
   checks pass.
-- [ ] No unapproved dependency, target, model, generated artifact, or TVM source
+- [x] No unapproved dependency, target, model, generated artifact, or TVM source
   change is present.
 
 **Verification:**
 
-- [ ] Run `./scripts/test_vta_byoc.sh`.
-- [ ] Run the documented MLPerf application command.
-- [ ] Run `python -m compileall`, `git diff --check`, and inspect both root and
+- [x] Run `./scripts/test_vta_byoc.sh`.
+- [x] Run the documented MLPerf application command.
+- [x] Run `python -m compileall`, `git diff --check`, and inspect both root and
   nested VTA/TVM status.
 
 **Dependencies:** Task 14
@@ -480,10 +480,10 @@ without committing, pushing, or releasing.
 
 ## Checkpoint E: Ready for independent review
 
-- [ ] Tasks 1-15 are complete with recorded verification.
-- [ ] All approved specs remain satisfied without amendment.
-- [ ] Implementation is ready for reviewer verdict.
-- [ ] No Ship action has been performed or implied.
+- [x] Tasks 1-15 are complete with recorded verification.
+- [x] All approved specs remain satisfied without amendment.
+- [x] Implementation is ready for reviewer verdict.
+- [x] No Ship action has been performed or implied.
 
 ## Approval Gate
 
