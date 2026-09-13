@@ -2,9 +2,11 @@
 
 This directory contains the maintained setup, build, test, and data-extraction
 entry points for this repository. Run them from the repository root. Read each
-script's `--help` output before using it, pass `--env-name` when the default
-environment is not appropriate, and do not assume that a build or downloaded
-dataset already exists.
+shell script's `--help` output before using it; the six environment-backed
+shell scripts accept `--env-name` when the default environment is not
+appropriate. The Python extractor instead requires its documented
+`--test-batch` and `--output-dir` arguments. Do not assume that a build or
+downloaded dataset already exists.
 
 ## Repository layout and prerequisites
 
@@ -12,16 +14,21 @@ The repository root contains the `scripts/` directory and two Git submodules:
 `tvm/` and `vta/`. The scripts use those checkout locations by default. The
 VTA scripts expect the TVM and VTA submodules to be initialized, and the build
 and test scripts expect the libraries they consume to have already been
-produced.
+produced. Git must be available on `PATH` for the initial submodule command and
+for the scoped repository checks in `test_vta_byoc.sh`. The setup script
+includes a `git` executable in the Conda prefix it creates, but that does not
+install host Git or the other host prerequisites needed before activation.
 
 The setup script uses Conda and the `conda-forge` channel. It creates a
 prefix environment under `.envs/` (by default `.envs/tvm-vta-env`) and then
 installs Python packages with that environment's `pip`. The scripts invoke
 Bash, CMake, Make, Python, and (for the hardware path) SBT, Java, Verilator,
-and a C++ compiler. The Apple Silicon TVM script additionally requires macOS,
-`arm64`, Apple Clang discoverable through `xcrun`, and `llvm-config` in the
-Conda environment. The VTA build and test scripts select `.dylib` on Darwin
-and `.so` otherwise.
+and a C++ compiler. The full BYOC validation gate also requires Ripgrep
+(`rg`) on `PATH`: `test_vta_byoc.sh` invokes it for the retired-reference
+check, and the setup script does not install it. The Apple Silicon TVM script
+additionally requires macOS, `arm64`, Apple Clang discoverable through
+`xcrun`, and `llvm-config` in the Conda environment. The VTA build and test
+scripts select `.dylib` on Darwin and `.so` otherwise.
 
 The repository-provided TVM build entry point is therefore macOS/Apple Silicon
 only. On non-macOS systems, build TVM separately using a compatible TVM build
@@ -97,10 +104,12 @@ its printed `conda activate <prefix>` command, or use `conda run -p
 
 ## Script reference
 
-All scripts derive the repository root from their own location, but commands
-below are shown from the repository root. Outputs and side effects are those
-implemented by the scripts; the scripts do not fetch submodules or perform a
-TVM build on behalf of another platform.
+The six environment-backed shell scripts derive the repository root from their
+own location, but commands below are shown from the repository root. The
+Python extractor does not derive a repository root; it operates only on the
+paths supplied through `--test-batch` and `--output-dir`. Outputs and side
+effects are those implemented by the scripts; the scripts do not fetch
+submodules or perform a TVM build on behalf of another platform.
 
 ### Setup and builds
 
@@ -159,8 +168,8 @@ shape and keys, and only then unpickles the authenticated bytes. It selects
 the first test-batch occurrence of each numeric label 0 through 9. The output
 directory is created if needed and receives ten `NN-class.png` RGB images plus
 `manifest.json` containing selection metadata and PNG/raw-RGB SHA-256 hashes.
-Python with NumPy is required for extraction; `--help` can be run with any
-available Python that can import the script's dependencies.
+Python with NumPy is required for extraction, including `--help` because the
+module imports NumPy before parsing arguments.
 
 ## Environment-variable overrides
 
