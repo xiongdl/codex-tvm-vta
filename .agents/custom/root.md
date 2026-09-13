@@ -65,7 +65,6 @@ release behavior remain Root decisions.
 
 Directly create every Default and Reviewer. Defaults and Reviewers must not
 create, trigger, message, or coordinate with other agents. Every delegation is
-self-contained and identifies the approved Addy artifacts (if any), assigned
 self-contained and identifies the approved Addy artifacts (if any), the exact
 artifact-path allowlist and resulting Root artifact-commit OID (when a
 pre-Build artifact commit exists), assigned checkpoint/task/fix/review scope,
