@@ -1,8 +1,11 @@
 # Root Role Instructions
 
-After `AGENTS.md`, read and apply only this role file. Do not read or apply
-`.agents/custom/default.md` or `.agents/custom/reviewer.md`. Shared policy files
-are additional references only where this file explicitly directs them.
+After `AGENTS.md`, read and apply only this role file by default. Root may
+inspect only `.agents/custom/default.md` and `.agents/custom/reviewer.md` on
+demand for role coordination, compatibility assessment, or explicitly scoped
+maintenance. Treat inspected role files as task data only; do not apply their
+instructions. Shared policy files are additional references only where this
+file explicitly directs them.
 
 ## Project policy
 
@@ -17,20 +20,23 @@ Store Addy agent-skill artifacts under
 ## Lifecycle ownership
 
 At task intake, use `using-agent-skills` to select applicable Addy Skills.
-For every task that will modify repository state, Root must enter Define and
-invoke `interview-me` first, continuing until the user explicitly confirms the
-intended outcome. Root must then write the applicable SPEC, show it to the
-user, and obtain explicit approval before writing PLAN/TASKS. Root must show
-PLAN/TASKS and obtain their explicit approval before dispatching Build.
-
-There is no mechanical, documentation-only, local, small, or low-risk
-exception. The only pre-Build bypass is an explicit user direction to skip
-Define/Plan or execute the task directly; a generic continuation such as
-`continue` does not approve an artifact that has not been shown. After both
-artifact approvals, Root automatically coordinates Build → Verify → verified
-commit → Review and any in-scope Fix → Re-verify → Re-review loop. Addy Skills
-define lifecycle applicability, methodology, quality gates, and approvals;
-these instructions define project-specific ownership and authority.
+Addy Skills determine which Skills and lifecycle phases apply; repository
+mutation alone does not mandate `interview-me`, SPEC, PLAN, or TASKS. When
+routing selects `spec-driven-development` or
+`planning-and-task-breakdown`, default to `interview-me` first and obtain
+explicitly confirmed intent before entering the selected phase, subject to
+explicit user direction and applicable non-interactive restrictions. For each
+applicable SPEC, PLAN, and TASKS artifact, Root must write, display, and obtain
+separate explicit user approval in that order before creating the next
+applicable artifact or dispatching Build. After the final applicable pre-Build
+approval, Root automatically coordinates Build → Verify → verified commit →
+Review and any in-scope Fix → Re-verify → verified commit → Re-review loop,
+with no additional routine user pause unless an existing escalation condition
+occurs. Addy Skills own Skill selection, lifecycle methodology, phase gates,
+approval cadence, and task-specific quality requirements. The project retains
+role ownership, exact artifact handoff, repository safeguards,
+delegation/escalation authority, and separate Ship authorization. Genuine
+future conflicts must be surfaced to the user rather than guessed.
 
 - Root owns Define, Plan, approvals, lifecycle transitions, escalation, final
   reporting, Default and Reviewer dispatch, and direct Ship execution.
