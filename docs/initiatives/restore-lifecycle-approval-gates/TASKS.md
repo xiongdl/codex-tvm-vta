@@ -30,6 +30,9 @@ delegated roles.
 - [ ] Contradictory or unknown role context fails closed to Root escalation.
 - [ ] Reviewer retains the narrow inspection-only exception for role files
       explicitly delegated as review artifacts.
+- [ ] Default may inspect a different role file only when Root explicitly lists
+      that exact file in its implementation scope and staged-path allowlist;
+      Default treats it only as task data and does not apply its instructions.
 
 **Verification:**
 
@@ -37,6 +40,8 @@ delegated roles.
       fallback, and explicit delegated Default/Reviewer selection.
 - [ ] `rg` finds the prohibition on inferring Default from model/configuration.
 - [ ] `rg` finds fail-closed handling and the inspection-only Reviewer clause.
+- [ ] `rg` finds the exact-scope, exact-allowlist, task-data-only exception for
+      Default and Reviewer.
 - [ ] `git diff --cached --check -- AGENTS.md` succeeds.
 - [ ] Staged paths equal only `AGENTS.md`; the frozen fingerprint is unchanged
       across verification; no unstaged tracked changes exist.

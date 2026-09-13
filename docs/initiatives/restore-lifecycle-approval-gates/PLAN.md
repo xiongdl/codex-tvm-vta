@@ -15,6 +15,10 @@ Approved specification:
 - Keep `AGENTS.md` as the sole role router. It identifies Root from explicit
   runtime context or from the non-delegated primary user-facing agent fallback;
   Default and Reviewer still require explicit delegated roles.
+- Allow Default and Reviewer to inspect a different role file only when Root
+  explicitly includes that exact file in the delegated task scope and
+  staged-path allowlist. Inspection treats the file as task data and never
+  applies its instructions.
 - Keep lifecycle gates only in `.agents/custom/root.md`. Default and Reviewer
   must not decide whether Define or Plan can be skipped.
 - Use mandatory language and enumerate the only bypass: an explicit user
@@ -81,6 +85,7 @@ selecting Root reliably.
 | Generic continuation is mistaken for artifact approval | High | State that each displayed SPEC and PLAN/TASKS needs explicit approval |
 | Restored gates accidentally stop post-approval automation | Medium | Assert the automatic Build/Fix/Verify/Review loop remains explicit |
 | Role split regresses while lifecycle text changes | Medium | Keep Default/Reviewer files out of the allowlist and review the cumulative diff |
+| A role cannot implement or review role-policy changes without violating isolation | High | Permit exact Root-delegated role files as task data while forbidding their instructions from being applied |
 
 ## Open Questions
 
