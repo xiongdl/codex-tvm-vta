@@ -147,8 +147,18 @@ authorized, verified submodule commit is also a failure.
 ## Integration and cleanup
 
 ```bash
-git -C <repo-path> switch <original-branch>
+# Run the complete preflight on the current checkout before switching.
+git -C <repo-path> symbolic-ref --quiet --short HEAD
+git -C <repo-path> rev-parse HEAD
 git -C <repo-path> status --porcelain=v1 --branch --untracked-files=all
+git -C <repo-path> submodule status --recursive
+git -C <repo-path> switch <original-branch>
+# Re-run the complete preflight after switching; stop before OID checks or
+# merging if any command reports unexpected state.
+git -C <repo-path> symbolic-ref --quiet --short HEAD
+git -C <repo-path> rev-parse HEAD
+git -C <repo-path> status --porcelain=v1 --branch --untracked-files=all
+git -C <repo-path> submodule status --recursive
 expected_original_oid="<workflow-supplied-expected-original-oid>"
 reviewed_task_oid="<workflow-supplied-reviewed-task-oid>"
 actual_original_oid="$(git -C <repo-path> rev-parse --verify refs/heads/<original-branch>^{commit})" || exit 1
@@ -162,8 +172,14 @@ git -C <repo-path> merge-base --is-ancestor <base-head> <task-branch>
 git -C <repo-path> status --porcelain=v1 --branch --untracked-files=all
 ```
 
-The full repository preflight above must be clean before the exact
-workflow-supplied authorized merge command is executed. The workflow must
+The full repository preflight must be clean both before switching and after
+switching. The first preflight protects the current checkout: if its branch,
+HEAD, tracked or untracked paths, or submodule state is unexpected, stop
+without switching and report the state. The second preflight protects the
+original branch: if switching fails, or if any post-switch preflight command
+reports unexpected state, stop without comparing OIDs or merging and report
+the state. In particular, do not let staged, unstaged, untracked, or submodule
+changes ride across the branch switch. The workflow must
 supply the exact OID of the reviewed task tip and the expected OID of the
 original branch (normally the recorded `<base-head>`); do not use a newly
 resolved tip as an implicit expectation. Resolve both branch refs to full OIDs,
