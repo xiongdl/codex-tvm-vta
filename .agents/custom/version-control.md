@@ -149,21 +149,35 @@ authorized, verified submodule commit is also a failure.
 ```bash
 git -C <repo-path> switch <original-branch>
 git -C <repo-path> status --porcelain=v1 --branch --untracked-files=all
-git -C <repo-path> rev-parse --verify refs/heads/<original-branch>^{commit}
-git -C <repo-path> rev-parse --verify refs/heads/<task-branch>^{commit}
+expected_original_oid="<workflow-supplied-expected-original-oid>"
+reviewed_task_oid="<workflow-supplied-reviewed-task-oid>"
+actual_original_oid="$(git -C <repo-path> rev-parse --verify refs/heads/<original-branch>^{commit})" || exit 1
+actual_task_oid="$(git -C <repo-path> rev-parse --verify refs/heads/<task-branch>^{commit})" || exit 1
+git -C <repo-path> rev-parse --verify "${expected_original_oid}^{commit}" >/dev/null || exit 1
+git -C <repo-path> rev-parse --verify "${reviewed_task_oid}^{commit}" >/dev/null || exit 1
+test "$actual_original_oid" = "$expected_original_oid" || exit 1
+test "$actual_task_oid" = "$reviewed_task_oid" || exit 1
 git -C <repo-path> merge-base --is-ancestor <base-head> <task-branch>
 <exact-authorized-merge-command>
 git -C <repo-path> status --porcelain=v1 --branch --untracked-files=all
 ```
 
 The full repository preflight above must be clean before the exact
-workflow-supplied authorized merge command is executed. The ancestry check
-exits 0 when the base is an ancestor and nonzero otherwise; resolve divergence
-before authorization. Execute the authorized command verbatim and keep its
-merge strategy external: `--ff-only` and `--no-ff` are examples with distinct
-semantics, not defaults. Integrate modified submodules into their recorded
-original branches first, then the parent task branch. Verify each result with
-the post-merge status and `git log --oneline -n 3`.
+workflow-supplied authorized merge command is executed. The workflow must
+supply the exact OID of the reviewed task tip and the expected OID of the
+original branch (normally the recorded `<base-head>`); do not use a newly
+resolved tip as an implicit expectation. Resolve both branch refs to full OIDs,
+resolve the supplied OIDs as commits, and compare the values exactly before
+merging. `rev-parse --verify` exits nonzero when a supplied value or ref cannot
+be resolved; either that failure or either `test` mismatch is a stop-without-
+merge condition that must be documented. The ancestry check remains an
+additional invariant: it exits 0 when the base is an ancestor and nonzero
+otherwise; resolve divergence before authorization. Execute the authorized
+command verbatim and keep its merge strategy external: `--ff-only` and
+`--no-ff` are examples with distinct semantics, not defaults. Integrate
+modified submodules into their recorded original branches first, then the
+parent task branch. Verify each result with the post-merge status and
+`git log --oneline -n 3`.
 
 After all integrations succeed, confirm ancestry and clean task branches from
 submodules before the parent:
