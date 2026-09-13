@@ -1,28 +1,12 @@
 # Project Instructions
 
-## Reuse Existing Repository Automation First
+## Shared Automation and Project Documentation
 
-Before creating a script, test program, debugging helper, or temporary file:
-
-1. Search existing automation first. Start with `rg --files scripts`. When
-   relevant, also check build files, CI configuration, and project
-   documentation.
-2. Read before using or modifying. Understand the relevant script's purpose,
-   interface, side effects, and usage first.
-3. Prefer reuse when the responsibilities align. Invoke an existing script,
-   or minimally extend it when the new behavior fits its established purpose.
-4. Add reusable automation to `scripts/`. When new automation is genuinely
-   needed and likely to be useful again, add a focused, documented script.
-5. Avoid files for one-off work. Prefer inline commands that leave no
-   repository artifacts. Use a temporary file only when materially clearer or
-   safer, and remove it afterward when safe.
-
-Preserve existing script interfaces and behavior whenever practical. If a
-change is necessary, minimize compatibility impact and update its usage
-documentation.
-
-Do not force an unrelated script to accommodate new behavior merely to avoid
-adding a well-scoped script.
+- Every role and agent must read and apply `.agents/custom/automation.md`.
+- Read `scripts/README.md` before choosing project commands, dependencies, or
+  environments; it is the project-specific command reference.
+- Keep reusable automation under `scripts/` and document its supported
+  interfaces in `scripts/README.md`.
 
 ## Addy Skill Artifacts
 
