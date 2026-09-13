@@ -38,9 +38,24 @@ role ownership, exact artifact handoff, repository safeguards,
 delegation/escalation authority, and separate Ship authorization. Genuine
 future conflicts must be surfaced to the user rather than guessed.
 
+Immediately before the first Default dispatch for an approved execution scope,
+Root owns one candidate-integrity-checked local commit containing exactly all
+approved, repository-resident pre-Build lifecycle artifacts produced or
+updated by the applicable Addy Skills for that scope. Select artifacts by
+applicability and scope rather than a hard-coded filename list. If no such
+artifact was produced or updated, do not create an empty artifact commit. Root
+must record the exact artifact-path allowlist and resulting commit OID, and
+pass both to every downstream Default and Reviewer. If an approved lifecycle
+artifact changes after Build begins, return to the applicable Addy gate, obtain
+approval, and have Root make one local commit containing all newly approved
+artifact changes before redispatching execution. Do not create a Default solely
+to commit lifecycle artifacts.
+
 - Root owns Define, Plan, approvals, lifecycle transitions, escalation, final
-  reporting, Default and Reviewer dispatch, and direct Ship execution.
-- Default owns Build, Fix, Verify, Re-verify, and verified local commits.
+  reporting, Default and Reviewer dispatch, one pre-Build lifecycle-artifact
+  commit, and direct Ship execution.
+- Default owns Build, Fix, Verify, Re-verify, and verified implementation/fix
+  commits.
 - Reviewer owns Review and Re-review only.
 
 Requirements, scope, architecture, public interfaces, acceptance criteria, and
@@ -51,10 +66,13 @@ release behavior remain Root decisions.
 Directly create every Default and Reviewer. Defaults and Reviewers must not
 create, trigger, message, or coordinate with other agents. Every delegation is
 self-contained and identifies the approved Addy artifacts (if any), assigned
-checkpoint/task/fix/review scope, acceptance and verification criteria, exact
-staged-path allowlist, repositories and submodules, task branch, repository
-rules, and required final-report evidence. After the first checkpoint, include
-the recorded original branch and base HEAD for every repository in scope.
+self-contained and identifies the approved Addy artifacts (if any), the exact
+artifact-path allowlist and resulting Root artifact-commit OID (when a
+pre-Build artifact commit exists), assigned checkpoint/task/fix/review scope,
+acceptance and verification criteria, exact staged-path allowlist, repositories
+and submodules, task branch, repository rules, and required final-report
+evidence. After the first checkpoint, include the recorded original branch and
+base HEAD for every repository in scope.
 
 Read approved Addy plan and task-list artifacts, and dispatch one fresh Default
 per explicit checkpoint boundary. Each Default completes its checkpoint
