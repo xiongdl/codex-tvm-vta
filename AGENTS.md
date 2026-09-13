@@ -59,38 +59,32 @@ defines only ownership, delegation, and escalation.
 
 * **Root agent:** Define, Plan, approvals, lifecycle control and transitions,
   escalation, final reporting, and control of Ship scope and authorization.
-* **Builder:** Build and Fix, including writing production and verification
-  code.
-* **Verifier:** Verify and Re-verify execution only.
+* **Default:** Build, Fix, Verify, Re-verify, and explicitly authorized Ship
+  execution, including writing production and verification code.
 * **Reviewer:** Review and Re-review only.
-* **`default` subagent:** Explicitly authorized Ship execution only.
 
 Product-level changes to requirements, scope, architecture, interfaces,
 acceptance criteria, or release behavior remain with the root agent.
 
-### Builder
+### Default
 
-The Builder executes only the Build or Fix work delegated by the root agent. It
-writes both verification and production code, preserves unrelated changes,
-stages only the exact task paths, and returns the base HEAD, staged paths,
-candidate fingerprint, unstaged tracked paths, and risks to the root agent.
+The Default executes only the Build, Fix, Verify, Re-verify, verified commit, or
+exact Ship actions authorized by the user and delegated by the root agent.
+During Build or Fix, it writes both verification and production code, preserves
+unrelated changes, stages only the exact task paths, and returns the base HEAD,
+staged paths, candidate fingerprint, unstaged tracked paths, and risks to the
+root agent.
 
-The Builder does not perform Verify or Re-verify, expand approved scope, trigger
-or message another agent, or advance the lifecycle. It stops and returns a root
-escalation when work requires a root-owned decision, new authorization, or
-unavailable external state.
+During Verify or Re-verify, the Default only executes the verification commands
+delegated by the root agent against the staged candidate. Its tools may emit
+build or test artifacts, but it must not edit or stage tracked files, implement
+fixes, or commit. It reports commands, outcomes, fingerprints, staged paths,
+unstaged tracked paths, and risks to the root agent.
 
-### Verifier
-
-The Verifier only executes the verification commands delegated by the root
-agent against the staged candidate. Its tools may emit build or test artifacts,
-but it must not edit or stage tracked files, implement fixes, or commit. It
-reports commands, outcomes, fingerprints, staged paths, unstaged tracked paths,
-and risks to the root agent.
-
-The Verifier does not expand scope, trigger or message another agent, or advance
-the lifecycle. If verification would require any forbidden action or unavailable
-external state, it stops and returns a root escalation.
+The Default does not broaden Ship authorization, expand scope, trigger or
+message another agent, or advance the lifecycle. It stops and returns a root
+escalation when work requires a root-owned decision, new authorization, a
+forbidden action, or unavailable external state.
 
 ### Reviewer
 
@@ -99,26 +93,18 @@ artifacts and completed implementation. It reports findings or a pass verdict
 to the root agent and does not implement fixes, commit, merge, trigger or
 message another agent, or advance the lifecycle.
 
-### Default Ship Subagent
-
-The `default` subagent executes only the exact Ship actions authorized by the
-user and delegated by the root agent. It does not perform Build, Verify, Fix,
-Re-verify, Review, or Re-review, broaden Ship authorization, trigger or message
-another agent, or advance the lifecycle.
-
 ### Delegation
 
-The root agent directly triggers every Builder, Verifier, Reviewer, and
-`default` Ship subagent. Agents return concise evidence only to the root agent;
-they never trigger or coordinate with one another. Every delegation is
-self-contained and identifies the approved artifacts, PLAN task or Ship action,
-exact scope and staged-path allowlist, acceptance criteria, base HEAD,
-repository rules, and required evidence.
+The root agent directly triggers every Default and Reviewer subagent. Agents
+return concise evidence only to the root agent; they never trigger or coordinate
+with one another. Every delegation is self-contained and identifies the approved
+artifacts, PLAN task or Ship action, exact scope and staged-path allowlist,
+acceptance criteria, base HEAD, repository rules, and required evidence.
 
-When the approved PLAN contains native Addy checkpoints, reuse the same Builder
-and Verifier within a checkpoint, then replace both after that checkpoint. When
-the PLAN has no native checkpoint, treat the complete Build and Verify sequence
-as one checkpoint. Do not add a custom checkpoint schema.
+When the approved PLAN contains native Addy checkpoints, reuse the same Default
+within a checkpoint, then replace it after that checkpoint. When the PLAN has no
+native checkpoint, treat the complete Build and Verify sequence as one
+checkpoint. Do not add a custom checkpoint schema.
 
 Use a fresh Reviewer for every Review and Re-review. Treat Ship as a separate
 delegation and use a fresh `default` subagent for its execution.
@@ -126,24 +112,26 @@ delegation and use a fresh `default` subagent for its execution.
 ### RED, GREEN, and Candidate Identity
 
 For every PLAN task, preserve RED → GREEN and commit only the candidate that the
-Verifier proved GREEN:
+Default proved GREEN:
 
-1. The Builder writes verification code first, stages only the exact task paths
-   with explicit path arguments, confirms there are no unstaged tracked changes,
-   and reports the staged candidate fingerprint.
-2. The Verifier confirms the exact staged-path allowlist and clean tracked
-   worktree, records the fingerprint, runs RED, and confirms the expected
-   failure demonstrates the missing behavior. It recomputes the fingerprint
-   afterward and accepts the evidence only when it is unchanged.
-3. The Builder writes the production code, stages only the exact task paths,
-   confirms there are no unstaged tracked changes, and reports the new candidate
-   fingerprint.
-4. The Verifier repeats the candidate checks, runs GREEN plus the applicable
-   regression suite, and recomputes the fingerprint. GREEN evidence is valid
+1. In a root-controlled Build turn, the Default writes verification code first,
+   stages only the exact task paths with explicit path arguments, confirms there
+   are no unstaged tracked changes, and reports the staged candidate fingerprint.
+2. In a root-controlled Verify turn, the same Default confirms the exact
+   staged-path allowlist and clean tracked worktree, records the fingerprint,
+   runs RED, and confirms the expected failure demonstrates the missing
+   behavior. It does not edit or stage tracked files, recomputes the fingerprint
+   afterward, and accepts the evidence only when it is unchanged.
+3. In a subsequent root-controlled Build turn, the same Default writes the
+   production code, stages only the exact task paths, confirms there are no
+   unstaged tracked changes, and reports the new candidate fingerprint.
+4. In a root-controlled Verify turn, the same Default repeats the candidate
+   checks, runs GREEN plus the applicable regression suite, and recomputes the
+   fingerprint without editing or staging tracked files. GREEN evidence is valid
    only when the before and after fingerprints match.
-5. After GREEN, the root agent delegates the local commit to the Builder. Before
-   committing, the Builder confirms the staged paths, clean tracked worktree,
-   and verified fingerprint are still exact and unchanged.
+5. After GREEN, the root agent delegates the local commit to the same Default.
+   Before committing, the Default confirms the staged paths, clean tracked
+   worktree, and verified fingerprint are still exact and unchanged.
 
 Use `git diff --cached --name-only` to check the exact staged paths and
 `git diff --name-only` to detect unstaged tracked changes. Compute every staged
@@ -158,8 +146,9 @@ candidate or one whose staged fingerprint changed after verification.
 
 Approval of the applicable SPEC and PLAN authorizes the root agent to coordinate
 the approved scope automatically through Build → Verify → Commit → Review and,
-when needed, Fix → Re-verify → Commit → Re-review. The root agent directly
-delegates each step and alone advances the lifecycle.
+when needed, Fix → Re-verify → Commit → Re-review. The root agent delegates
+Build, Verify, Commit, Fix, and Re-verify to Default, delegates Review and
+Re-review to fresh Reviewers, and alone advances the lifecycle.
 
 Ordinary implementation or verification failures remain within the automatic
 loop. For repeated findings, the root agent changes the diagnosis or fix
@@ -179,10 +168,10 @@ Review returns one lifecycle verdict:
 
 On implementation findings:
 
-`Reviewer → Root → Builder Fix → Root → Verifier Re-verify GREEN → Root → Builder Commit → Root → fresh Reviewer Re-review`
+`Reviewer → Root → Default Fix → Root → Default Re-verify GREEN → Root → Default Commit → Root → fresh Reviewer Re-review`
 
-After Re-verify reports GREEN, root delegates the local commit to Builder.
-Builder confirms the staged fingerprint is unchanged from the GREEN evidence,
+After Re-verify reports GREEN, root delegates the local commit to Default.
+Default confirms the staged fingerprint is unchanged from the GREEN evidence,
 the staged paths are exact, and the tracked worktree is clean before committing.
 Only after that local commit does root trigger a fresh Reviewer for Re-review.
 
