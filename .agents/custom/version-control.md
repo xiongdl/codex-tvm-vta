@@ -216,12 +216,15 @@ vc_verify_parent_pointer() {
   test "${#}" -eq 3 || return 1
   local repo_path="${1}" submodule_path="${2}" verified_child_oid="${3}"
   local canonical_child_oid child_repo_path child_head_oid
-  canonical_child_oid="$(git -C "${repo_path}" rev-parse --verify \
-    "${verified_child_oid}^{commit}")" || return 1
   case "${submodule_path}" in
     /*) child_repo_path="${submodule_path}" ;;
     *) child_repo_path="${repo_path}/${submodule_path}" ;;
   esac
+  # The supplied child OID belongs to the child checkout, not the parent.
+  # Resolve it in that repository so an object absent from the superproject
+  # cannot be accepted accidentally (paths may contain spaces).
+  canonical_child_oid="$(git -C "${child_repo_path}" rev-parse --verify \
+    "${verified_child_oid}^{commit}")" || return 1
   child_head_oid="$(git -C "${child_repo_path}" rev-parse --verify \
     'HEAD^{commit}')" || return 1
   test "${child_head_oid}" = "${canonical_child_oid}" || return 1
