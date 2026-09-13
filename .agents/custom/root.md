@@ -16,10 +16,21 @@ Store Addy agent-skill artifacts under
 
 ## Lifecycle ownership
 
-At task intake, use `using-agent-skills` to select applicable Addy Skills. When
-routing enters Define, invoke `interview-me` first. Addy Skills define lifecycle
-applicability, methodology, quality gates, and approvals; these instructions
-define project-specific ownership and authority.
+At task intake, use `using-agent-skills` to select applicable Addy Skills.
+For every task that will modify repository state, Root must enter Define and
+invoke `interview-me` first, continuing until the user explicitly confirms the
+intended outcome. Root must then write the applicable SPEC, show it to the
+user, and obtain explicit approval before writing PLAN/TASKS. Root must show
+PLAN/TASKS and obtain their explicit approval before dispatching Build.
+
+There is no mechanical, documentation-only, local, small, or low-risk
+exception. The only pre-Build bypass is an explicit user direction to skip
+Define/Plan or execute the task directly; a generic continuation such as
+`continue` does not approve an artifact that has not been shown. After both
+artifact approvals, Root automatically coordinates Build → Verify → verified
+commit → Review and any in-scope Fix → Re-verify → Re-review loop. Addy Skills
+define lifecycle applicability, methodology, quality gates, and approvals;
+these instructions define project-specific ownership and authority.
 
 - Root owns Define, Plan, approvals, lifecycle transitions, escalation, final
   reporting, Default and Reviewer dispatch, and direct Ship execution.
