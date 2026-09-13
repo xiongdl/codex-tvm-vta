@@ -2,11 +2,14 @@
 
 ## Overview
 
-Make two surgical instruction changes: permit Root to inspect Default/Reviewer
-role files on demand without applying them, and replace the project's
-repository-mutation-based SPEC/PLAN mandate with Addy-driven skill selection.
-Preserve all existing agent coordination, implementation, verification, review,
-Git safety, escalation, artifact handoff, and Ship behavior.
+Preserve the two completed instruction changes—on-demand Root role-file
+inspection and Addy-driven lifecycle selection—and add one narrowly scoped
+lifecycle duty. Immediately before the first Default dispatch for an approved
+execution scope, Root makes one candidate-integrity-checked commit of all
+approved, repository-resident pre-Build lifecycle artifacts produced or updated
+for that scope. Preserve all other agent coordination, implementation,
+verification, review, Git safety, escalation, artifact handoff, and Ship
+behavior.
 
 Approved specification:
 `docs/initiatives/follow-addy-lifecycle-policy/SPEC.md`.
@@ -28,28 +31,42 @@ Approved specification:
   Build/Verify/Commit/Review and in-scope fix loop.
 - Preserve the existing initiative artifact convention and exact-path handoff;
   do not change vendored Addy defaults or introduce an adapter.
+- Select lifecycle artifacts by applicability and scope rather than hard-coded
+  filenames. This includes future Addy artifact types while excluding caches,
+  logs, build outputs, unapproved files, and unrelated paths.
+- Root makes the lifecycle-artifact commit directly after all applicable
+  pre-Build approvals. Do not dispatch a Default solely for this commit, and do
+  not create an empty commit when no repository-resident artifact changed.
+- If lifecycle artifacts change after Build starts, return to the applicable
+  Addy gates, approve the changes, make one Root-owned artifact commit, and then
+  redispatch execution.
 - Do not edit `.agents/custom/default.md`, `.agents/custom/reviewer.md`, shared
   policies, `.codex/**`, product code, or submodules.
 
 ## Dependency Order
 
 ```text
-Approved SPEC
-    -> Approved PLAN
-        -> Approved TASKS
-            -> AGENTS.md inspection boundary
-                -> root.md Addy lifecycle policy
-                    -> cumulative static verification
-                        -> verified commits
-                            -> independent Review
+Reviewed commits 02bd9c0e..894c4d49
+    -> Approved revised SPEC
+        -> Approved revised PLAN
+            -> Approved revised TASKS
+                -> one Root-owned lifecycle-artifact commit
+                    -> root.md artifact-commit policy adjustment
+                        -> cumulative static verification
+                            -> verified implementation commit
+                                -> independent Re-review
 ```
 
-The router boundary is updated first so the resulting Root policy can describe
-on-demand inspection without contradicting the always-loaded `AGENTS.md`.
+The router and Addy-selection changes are already implemented and independently
+reviewed. The scope-extension artifact commit precedes the fresh Default that
+implements the remaining Root policy adjustment.
 
 ## Planned Tasks
 
 ### Task 1: Clarify Root role-file inspection
+
+Completed by reviewed commit `ec7c5404ffab7389e81b563ba23a89e80c36f296`;
+retain without further modification.
 
 Modify only the final cross-role inspection paragraph in `AGENTS.md`:
 
@@ -63,6 +80,9 @@ Modify only the final cross-role inspection paragraph in `AGENTS.md`:
 - Preserve all role-routing bullets verbatim.
 
 ### Task 2: Adopt Addy-driven lifecycle selection
+
+Completed by reviewed commit `894c4d499a39ecd22dfaa1c9acccb48ebf5c503d`;
+retain except for the approved artifact-commit responsibility extension below.
 
 Modify only the opening role-file paragraph and the applicable portion of
 `Lifecycle ownership` in `.agents/custom/root.md`:
@@ -79,16 +99,35 @@ Modify only the opening role-file paragraph and the applicable portion of
 - State that Addy owns selection, methodology, phase gates, approval cadence,
   and task-specific quality requirements, while the project owns agent roles,
   exact artifact handoff, Git safeguards, escalation, and Ship authority.
-- Preserve the role responsibility list and the complete Delegation, Review and
-  escalation, and Ship sections verbatim.
+- Preserve the reviewed Task 2 behavior while Task 3 adds only the newly
+  approved artifact-commit responsibility.
+
+### Task 3: Assign the lifecycle-artifact commit to Root
+
+After the revised TASKS approval and Root's one commit of the revised lifecycle
+artifacts, modify only `.agents/custom/root.md`:
+
+- Add Root ownership of the generic, single pre-Build lifecycle-artifact commit.
+- Qualify Default's verified local commits as implementation/fix commits.
+- Require downstream delegations to include exact approved artifact paths and
+  the Root artifact commit OID.
+- Forbid a Default created solely to commit lifecycle artifacts and forbid empty
+  artifact commits.
+- Define the re-approval, one-commit, and redispatch behavior when lifecycle
+  artifacts change after Build begins.
+- Preserve all previously reviewed Addy routing, interview, separate approval,
+  automatic execution, role inspection, review/escalation, and Ship behavior.
 
 ### Checkpoint: Policy aligned without coordination drift
 
-- Both tasks satisfy their focused static assertions.
+- Tasks 1 and 2 remain unchanged from their reviewed commits, and Task 3
+  satisfies its focused static assertions.
 - The cumulative diff changes only the approved paragraphs in `AGENTS.md` and
   `.agents/custom/root.md` plus approved initiative artifacts.
-- Default/Reviewer responsibilities, fresh-agent boundaries, delegation data,
-  automated Build-through-Review behavior, escalation, and Ship remain intact.
+- Default/Reviewer execution and review responsibilities, fresh-agent
+  boundaries, delegation data, automated Build-through-Review behavior,
+  escalation, and Ship remain intact. Only Root's lifecycle-artifact commit
+  responsibility is added.
 - Exact staged-path allowlists and candidate fingerprints pass.
 - A fresh independent Reviewer returns Pass.
 
@@ -115,9 +154,11 @@ Diff review must additionally confirm:
 
 - The four role-routing bullets in `AGENTS.md` are unchanged.
 - The artifact path and shared-policy paragraphs in `root.md` are unchanged.
-- The Root/Default/Reviewer responsibility list is unchanged.
-- The complete Delegation, Review and escalation, and Ship sections are
-  unchanged.
+- The responsibility list changes only to add Root's lifecycle-artifact commit
+  and to qualify Default commits as implementation/fix commits.
+- The Delegation section changes only if needed to require exact generic
+  artifact paths and the Root artifact commit OID downstream.
+- The complete Review and escalation and Ship sections are unchanged.
 - `.agents/custom/default.md`, `.agents/custom/reviewer.md`,
   `.agents/custom/automation.md`, `.agents/custom/version-control.md`,
   `.codex/**`, vendored Skills, product paths, and submodule pointers are
@@ -130,14 +171,14 @@ evidence. No TVM/VTA build is required because no runtime code changes.
 
 ## Commit and Review Strategy
 
-- Commit the approved planning artifacts before Build so the implementation
-  agent starts from a clean recorded base.
-- Implement Task 1 and Task 2 as separate focused verified commits if the
-  candidate-integrity procedure can keep each state internally consistent;
-  otherwise use one atomic implementation commit covering both mutually
-  dependent instruction updates.
-- Dispatch Build/Verify to a fresh Default with exact file and staged-path
-  allowlists.
+- After TASKS approval, Root creates one candidate-integrity-checked local
+  commit containing all newly approved or updated repository-resident lifecycle
+  artifacts for the execution scope. For the present scope extension, that
+  commit contains exactly the revised SPEC, PLAN, and TASKS.
+- Root passes the artifact commit OID and exact artifact paths to the fresh
+  implementation Default and subsequent Reviewer.
+- Dispatch a fresh Default for Task 3 with `.agents/custom/root.md` as its sole
+  staged-path allowlist. Do not reimplement or amend the completed commits.
 - Dispatch a fresh Reviewer after the checkpoint. Route actionable findings to
   a fresh Default for Fix/Re-verify/commit, followed by a fresh Reviewer for
   Re-review.
@@ -152,6 +193,9 @@ evidence. No TVM/VTA build is required because no runtime code changes.
 | “Default interview” becomes an unconditional interview everywhere | Medium | Tie it specifically to selected spec/planning workflows and preserve explicit/context restrictions |
 | Addy approval gates are recombined | High | Assert separate SPEC, PLAN, and TASKS approvals |
 | Post-approval automation gains new pauses | High | Preserve and assert the existing automatic Build-through-Review and fix loop |
+| Future artifact types bypass the commit gate | High | Select all applicable repository-resident lifecycle artifacts by scope, not filename |
+| Artifact commit accidentally includes generated or unrelated files | High | Require approved exact-path allowlist and candidate-integrity checks |
+| A dedicated commit agent is still created | Medium | Assign the one artifact commit to Root and statically prohibit a Default solely for that purpose |
 | Cross-role reading causes instruction leakage | High | Require task-data-only inspection and retain role-specific application rules |
 | Unrelated coordination policy drifts | High | Restrict edits by paragraph and compare protected sections verbatim |
 
