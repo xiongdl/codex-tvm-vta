@@ -212,7 +212,48 @@ Commit verified submodule content before its parent pointer:
 git -C <submodule-path> add -- <path> [<path> ...] || exit 1
 git -C <submodule-path> diff --cached --check || exit 1
 git -C <submodule-path> commit -m "<type>: <description>" || exit 1
-git -C <repo-path> submodule status --recursive || exit 1
+vc_verify_parent_pointer() {
+  test "${#}" -eq 3 || return 1
+  local repo_path="${1}" submodule_path="${2}" verified_child_oid="${3}"
+  local canonical_child_oid child_repo_path child_head_oid
+  canonical_child_oid="$(git -C "${repo_path}" rev-parse --verify \
+    "${verified_child_oid}^{commit}")" || return 1
+  case "${submodule_path}" in
+    /*) child_repo_path="${submodule_path}" ;;
+    *) child_repo_path="${repo_path}/${submodule_path}" ;;
+  esac
+  child_head_oid="$(git -C "${child_repo_path}" rev-parse --verify \
+    'HEAD^{commit}')" || return 1
+  test "${child_head_oid}" = "${canonical_child_oid}" || return 1
+  local submodule_output submodule_record status_char record_rest record_oid
+  local record_path record_count=0
+  submodule_output="$(git -C "${repo_path}" submodule status --recursive)" || return 1
+  while IFS= read -r submodule_record; do
+    test -n "${submodule_record}" || continue
+    status_char="${submodule_record%"${submodule_record#?}"}"
+    record_rest="${submodule_record#?}"
+    record_oid="${record_rest%% *}"
+    test "${record_oid}" != "${record_rest}" || return 1
+    record_path="${record_rest#"${record_oid} "}"
+    if [[ "${record_path}" =~ ^(.*)[[:space:]]\(.*\)$ ]]; then
+      record_path="${BASH_REMATCH[1]}"
+    fi
+    case "${status_char}" in
+      -|U) return 1 ;;
+      +)
+        test "${record_oid}" = "${canonical_child_oid}" || return 1
+        test "${record_path}" = "${submodule_path}" || return 1
+        record_count=$((record_count + 1))
+        test "${record_count}" -eq 1 || return 1
+        ;;
+      ' ') ;;
+      *) return 1 ;;
+    esac
+  done <<< "${submodule_output}"
+  test "${record_count}" -eq 1 || return 1
+}
+vc_verify_parent_pointer <repo-path> <submodule-path> \
+  <verified-child-oid> || exit 1
 git -C <repo-path> add -- <submodule-path> || exit 1
 git -C <repo-path> diff --cached --submodule=diff -- <submodule-path> || exit 1
 ```
@@ -222,6 +263,17 @@ exact verified child commit (confirm the checked-out child OID with
 `git -C <submodule-path> rev-parse HEAD`) while its parent pointer awaits
 staging. Any other `+`, or any `-` or `U`, is a failure. A pointer without an
 authorized, verified submodule commit is also a failure.
+
+The vc_verify_parent_pointer gate is the executable form of these rules. It
+resolves the supplied child commit to a full OID, independently confirms the
+child checkout HEAD, and captures recursive submodule status with command
+failure propagation. Every minus or U record fails. A plus record passes only
+when its canonical OID and path exactly match the supplied verified child;
+that allowed record must occur exactly once. Space-prefixed records pass.
+Malformed records, a second plus, a wrong path or OID, a missing plus, or any
+failed Git command stops before the parent gitlink is staged. Only a final
+space-parenthesized description is stripped, preserving paths containing
+spaces.
 
 ## Integration and cleanup
 
