@@ -20,6 +20,52 @@ when authorized by the owning workflow.
 
 ## Repository preflight
 
+Use this executable gate before any operation that changes checkout state. It
+compares the attached branch and canonical commit OID, treats any porcelain
+record (including untracked paths) as dirty, and validates every recursive
+submodule record. All failures return nonzero without changing the repository.
+
+```bash
+vc_preflight() {
+  test "$#" -eq 3 || return 1
+  local repo_path="$1"
+  local expected_branch="$2"
+  local expected_commit="$3"
+
+  local actual_branch
+  actual_branch="$(git -C "$repo_path" symbolic-ref --quiet --short HEAD)" || return 1
+  test "$actual_branch" = "$expected_branch" || return 1
+
+  local actual_head_oid expected_head_oid
+  actual_head_oid="$(git -C "$repo_path" rev-parse --verify 'HEAD^{commit}')" || return 1
+  expected_head_oid="$(git -C "$repo_path" rev-parse --verify "${expected_commit}^{commit}")" || return 1
+  test "$actual_head_oid" = "$expected_head_oid" || return 1
+
+  local status_output
+  status_output="$(git -C "$repo_path" status --porcelain=v1 --untracked-files=all)" || return 1
+  test -z "$status_output" || return 1
+
+  local submodule_output submodule_record
+  submodule_output="$(git -C "$repo_path" submodule status --recursive)" || return 1
+  while IFS= read -r submodule_record; do
+    case "$submodule_record" in
+      [+\-U]*) return 1 ;;
+    esac
+  done <<< "$submodule_output"
+}
+```
+
+Call it with the repository path, expected attached branch, and expected
+commit/ref. A successful return is the only condition that permits the next
+operation:
+
+```bash
+vc_preflight <repo-path> <expected-branch> <expected-commit-or-ref> || exit 1
+```
+
+The gate intentionally does not use `git status`'s exit code as a cleanliness
+signal: Git returns zero for a successfully inspected dirty tree.
+
 ```bash
 git -C <repo-path> symbolic-ref --quiet --short HEAD
 git -C <repo-path> rev-parse HEAD
@@ -45,32 +91,47 @@ or delete anything to conceal the condition.
 ## Task branch creation and reuse
 
 ```bash
-git -C <repo-path> show-ref --verify --quiet refs/heads/<original-branch>
-git -C <repo-path> rev-parse --verify refs/heads/<original-branch>^{commit}
-git -C <repo-path> show-ref --verify --quiet refs/heads/<task-branch>
+original_branch_ref="refs/heads/<original-branch>"
+task_branch_ref="refs/heads/<task-branch>"
+recorded_base_oid="<recorded-base-head>"
+
+if git -C <repo-path> show-ref --verify --quiet "$original_branch_ref"; then
+  actual_original_oid="$(git -C <repo-path> rev-parse --verify "${original_branch_ref}^{commit}")" || exit 1
+  canonical_base_oid="$(git -C <repo-path> rev-parse --verify "${recorded_base_oid}^{commit}")" || exit 1
+  test "$actual_original_oid" = "$canonical_base_oid" || exit 1
+else
+  original_ref_status=$?
+  test "$original_ref_status" -eq 1 && exit 1
+  exit "$original_ref_status"
+fi
+
+if git -C <repo-path> show-ref --verify --quiet "$task_branch_ref"; then
+  expected_task_head="<expected-task-head>"
+  actual_task_oid="$(git -C <repo-path> rev-parse --verify "${task_branch_ref}^{commit}")" || exit 1
+  canonical_task_oid="$(git -C <repo-path> rev-parse --verify "${expected_task_head}^{commit}")" || exit 1
+  test "$actual_task_oid" = "$canonical_task_oid" || exit 1
+  git -C <repo-path> switch <task-branch>
+else
+  task_ref_status=$?
+  if test "$task_ref_status" -eq 1; then
+    git -C <repo-path> switch --create <task-branch> "$canonical_base_oid" || exit 1
+  else
+    exit "$task_ref_status"
+  fi
+fi
 ```
 
 `show-ref --verify --quiet` exits 0 when the exact ref exists, 1 when absent,
 and another nonzero status for an error. The original branch must exist and
 its resolved OID must equal the recorded `<base-head>` where required.
 
-If the task-ref command exits 1, create it from the recorded base without
-altering the original branch:
-
-```bash
-git -C <repo-path> switch --create <task-branch> <base-head>
-```
-
-If it exits 0, resolve and compare its existing OID before switching:
-
-```bash
-git -C <repo-path> rev-parse --verify refs/heads/<task-branch>^{commit}
-git -C <repo-path> switch <task-branch>
-```
-
-The resolved OID must equal `<expected-task-head>`; only then may `switch` run.
-An unexpected existing HEAD or detached original branch is a failure. Do not
-force-create, reset, rename, or delete branches. Do not work on
+The original branch must exist and its resolved OID must equal the recorded
+base OID before either task-branch path proceeds. A missing task ref is valid
+only for first creation from that canonical base OID. An existing task ref is
+valid only when its canonical OID exactly equals the supplied
+`<expected-task-head>`, checked before `switch`. Any other ref status or OID is
+a stop condition. Do not force-create, reset, rename, or delete branches. Do
+not work on
 `<original-branch>`. Every modified submodule uses the same task-branch name,
 after its own preflight and base recording.
 
@@ -147,20 +208,14 @@ authorized, verified submodule commit is also a failure.
 ## Integration and cleanup
 
 ```bash
-# Run the complete preflight on the current checkout before switching.
-git -C <repo-path> symbolic-ref --quiet --short HEAD
-git -C <repo-path> rev-parse HEAD
-git -C <repo-path> status --porcelain=v1 --branch --untracked-files=all
-git -C <repo-path> submodule status --recursive
-git -C <repo-path> switch <original-branch>
-# Re-run the complete preflight after switching; stop before OID checks or
-# merging if any command reports unexpected state.
-git -C <repo-path> symbolic-ref --quiet --short HEAD
-git -C <repo-path> rev-parse HEAD
-git -C <repo-path> status --porcelain=v1 --branch --untracked-files=all
-git -C <repo-path> submodule status --recursive
+# Resolve workflow inputs before either enforcing gate.
 expected_original_oid="<workflow-supplied-expected-original-oid>"
 reviewed_task_oid="<workflow-supplied-reviewed-task-oid>"
+# The task checkout must pass before switching; a failed gate stops here.
+vc_preflight <repo-path> <task-branch> "$reviewed_task_oid" || exit 1
+git -C <repo-path> switch <original-branch> || exit 1
+# The original checkout must pass again; do not compare OIDs or merge first.
+vc_preflight <repo-path> <original-branch> "$expected_original_oid" || exit 1
 actual_original_oid="$(git -C <repo-path> rev-parse --verify refs/heads/<original-branch>^{commit})" || exit 1
 actual_task_oid="$(git -C <repo-path> rev-parse --verify refs/heads/<task-branch>^{commit})" || exit 1
 git -C <repo-path> rev-parse --verify "${expected_original_oid}^{commit}" >/dev/null || exit 1
