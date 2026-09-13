@@ -70,25 +70,14 @@ Before mutation, the Default performs the repository preflight defined in
 repository state exists, the Default stops and escalates to the Root. It must
 not stash, move, commit, reset, overwrite, or discard unrelated work.
 
-The Default handles ordinary implementation and verification failures without
-reporting intermediate progress to the Root.
+The Default applies the staging, candidate-fingerprint, frozen-verification,
+and commit procedure in `.agents/custom/version-control.md`. It handles
+ordinary implementation and verification failures by rebuilding, restaging,
+and repeating that procedure. Policy failures and Root-owned input are
+escalated to the Root.
 
-Before committing a task candidate, the Default:
-
-1. Stages only the exact task paths using explicit path arguments.
-2. Confirms there are no unstaged tracked changes.
-3. Computes the staged candidate fingerprint with:
-
-   `git diff --cached --binary --full-index | git hash-object --stdin`
-
-4. Freezes the staged candidate and runs the verification required by the
-   delegated Addy Skills without editing or staging tracked files.
-5. Recomputes the fingerprint after verification.
-6. Commits only when verification is GREEN and both fingerprints match.
-
-If verification fails, the Default may return internally to Build, make the
-fix, restage the exact allowlist, compute a new fingerprint, and re-run
-verification. It does not involve the Root unless Root-owned input is required.
+The Root performs authorized Ship integration and cleanup using
+`.agents/custom/version-control.md` after explicit Ship authorization.
 
 ## Default Reports
 
