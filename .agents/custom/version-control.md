@@ -99,6 +99,7 @@ if git -C <repo-path> show-ref --verify --quiet "$original_branch_ref"; then
   actual_original_oid="$(git -C <repo-path> rev-parse --verify "${original_branch_ref}^{commit}")" || exit 1
   canonical_base_oid="$(git -C <repo-path> rev-parse --verify "${recorded_base_oid}^{commit}")" || exit 1
   test "$actual_original_oid" = "$canonical_base_oid" || exit 1
+  vc_preflight <repo-path> <original-branch> "$canonical_base_oid" || exit 1
 else
   original_ref_status=$?
   test "$original_ref_status" -eq 1 && exit 1
@@ -110,7 +111,7 @@ if git -C <repo-path> show-ref --verify --quiet "$task_branch_ref"; then
   actual_task_oid="$(git -C <repo-path> rev-parse --verify "${task_branch_ref}^{commit}")" || exit 1
   canonical_task_oid="$(git -C <repo-path> rev-parse --verify "${expected_task_head}^{commit}")" || exit 1
   test "$actual_task_oid" = "$canonical_task_oid" || exit 1
-  git -C <repo-path> switch <task-branch>
+  git -C <repo-path> switch <task-branch> || exit 1
 else
   task_ref_status=$?
   if test "$task_ref_status" -eq 1; then
@@ -138,19 +139,23 @@ after its own preflight and base recording.
 ## Candidate staging and integrity
 
 ```bash
-git -C <repo-path> add -- <path> [<path> ...]
-git -C <repo-path> diff --cached --name-only
-git -C <repo-path> diff --cached --
-git -C <repo-path> diff --cached --check
-git -C <repo-path> diff --quiet --
+git -C <repo-path> add -- <path> [<path> ...] || exit 1
+git -C <repo-path> diff --cached --name-only || exit 1
+git -C <repo-path> diff --cached -- || exit 1
+git -C <repo-path> diff --cached --check || exit 1
+git -C <repo-path> diff --quiet -- || exit 1
 ```
 
 The staged names must exactly equal the allowlist. Produce and compare the
 newline-delimited lists deterministically:
 
 ```bash
-git -C <repo-path> diff --cached --name-only | LC_ALL=C sort > <actual-allowlist>
-cmp --silent <actual-allowlist> <recorded-allowlist>
+(
+  set -o pipefail
+  git -C <repo-path> diff --cached --name-only \
+    | LC_ALL=C sort > <actual-allowlist> || exit 1
+)
+cmp --silent <actual-allowlist> <recorded-allowlist> || exit $?
 ```
 
 Both files must contain one path per line in bytewise sorted order. `cmp`
@@ -167,12 +172,25 @@ Compute the candidate fingerprint, freeze it, and run required verification
 without editing tracked files:
 
 ```bash
-git -C <repo-path> diff --cached --binary --full-index \
-  | git hash-object --stdin
-<required-verification-command>
-git -C <repo-path> diff --quiet --
-git -C <repo-path> diff --cached --binary --full-index \
-  | git hash-object --stdin
+candidate_before="$({
+  set -o pipefail
+  git -C <repo-path> diff --cached --binary --full-index \
+    | git hash-object --stdin
+} )" || exit 1
+<required-verification-command> || exit 1
+git -C <repo-path> diff --quiet -- || exit 1
+(
+  set -o pipefail
+  git -C <repo-path> diff --cached --name-only \
+    | LC_ALL=C sort > <actual-allowlist-after> || exit 1
+)
+cmp --silent <actual-allowlist-after> <recorded-allowlist> || exit $?
+candidate_after="$({
+  set -o pipefail
+  git -C <repo-path> diff --cached --binary --full-index \
+    | git hash-object --stdin
+} )" || exit 1
+test "$candidate_before" = "$candidate_after" || exit 1
 ```
 
 Verification must exit 0. After it completes, the repeated unstaged-tracked
@@ -182,8 +200,8 @@ Do not commit a candidate whose allowlist, unstaged check, verification, or
 fingerprints fail. Then commit:
 
 ```bash
-git -C <repo-path> commit -m "<type>: <description>"
-git -C <repo-path> status --porcelain=v1 --untracked-files=all
+git -C <repo-path> commit -m "<type>: <description>" || exit 1
+git -C <repo-path> status --porcelain=v1 --untracked-files=all || exit 1
 ```
 
 ## Submodule commits and parent pointers
@@ -191,12 +209,12 @@ git -C <repo-path> status --porcelain=v1 --untracked-files=all
 Commit verified submodule content before its parent pointer:
 
 ```bash
-git -C <submodule-path> add -- <path> [<path> ...]
-git -C <submodule-path> diff --cached --check
-git -C <submodule-path> commit -m "<type>: <description>"
-git -C <repo-path> submodule status --recursive
-git -C <repo-path> add -- <submodule-path>
-git -C <repo-path> diff --cached --submodule=diff -- <submodule-path>
+git -C <submodule-path> add -- <path> [<path> ...] || exit 1
+git -C <submodule-path> diff --cached --check || exit 1
+git -C <submodule-path> commit -m "<type>: <description>" || exit 1
+git -C <repo-path> submodule status --recursive || exit 1
+git -C <repo-path> add -- <submodule-path> || exit 1
+git -C <repo-path> diff --cached --submodule=diff -- <submodule-path> || exit 1
 ```
 
 A leading `+` is allowed only as the deliberate intermediate state for the
@@ -211,20 +229,23 @@ authorized, verified submodule commit is also a failure.
 # Resolve workflow inputs before either enforcing gate.
 expected_original_oid="<workflow-supplied-expected-original-oid>"
 reviewed_task_oid="<workflow-supplied-reviewed-task-oid>"
+canonical_expected_original_oid="$(git -C <repo-path> rev-parse --verify \
+  "${expected_original_oid}^{commit}")" || exit 1
+canonical_reviewed_task_oid="$(git -C <repo-path> rev-parse --verify \
+  "${reviewed_task_oid}^{commit}")" || exit 1
 # The task checkout must pass before switching; a failed gate stops here.
-vc_preflight <repo-path> <task-branch> "$reviewed_task_oid" || exit 1
+vc_preflight <repo-path> <task-branch> "$canonical_reviewed_task_oid" || exit 1
 git -C <repo-path> switch <original-branch> || exit 1
 # The original checkout must pass again; do not compare OIDs or merge first.
-vc_preflight <repo-path> <original-branch> "$expected_original_oid" || exit 1
+vc_preflight <repo-path> <original-branch> "$canonical_expected_original_oid" || exit 1
 actual_original_oid="$(git -C <repo-path> rev-parse --verify refs/heads/<original-branch>^{commit})" || exit 1
 actual_task_oid="$(git -C <repo-path> rev-parse --verify refs/heads/<task-branch>^{commit})" || exit 1
-git -C <repo-path> rev-parse --verify "${expected_original_oid}^{commit}" >/dev/null || exit 1
-git -C <repo-path> rev-parse --verify "${reviewed_task_oid}^{commit}" >/dev/null || exit 1
-test "$actual_original_oid" = "$expected_original_oid" || exit 1
-test "$actual_task_oid" = "$reviewed_task_oid" || exit 1
-git -C <repo-path> merge-base --is-ancestor <base-head> <task-branch>
-<exact-authorized-merge-command>
-git -C <repo-path> status --porcelain=v1 --branch --untracked-files=all
+test "$actual_original_oid" = "$canonical_expected_original_oid" || exit 1
+test "$actual_task_oid" = "$canonical_reviewed_task_oid" || exit 1
+git -C <repo-path> merge-base --is-ancestor \
+  "$actual_original_oid" "$actual_task_oid" || exit 1
+<exact-authorized-merge-command> || exit 1
+git -C <repo-path> status --porcelain=v1 --branch --untracked-files=all || exit 1
 ```
 
 The full repository preflight must be clean both before switching and after
@@ -254,8 +275,14 @@ After all integrations succeed, confirm ancestry and clean task branches from
 submodules before the parent:
 
 ```bash
-git -C <repo-path> merge-base --is-ancestor <task-branch> <original-branch>
-git -C <repo-path> branch --delete <task-branch>
+current_original_oid="$(git -C <repo-path> rev-parse --verify \
+  refs/heads/<original-branch>^{commit})" || exit 1
+vc_preflight <repo-path> <original-branch> "$current_original_oid" || exit 1
+actual_task_oid="$(git -C <repo-path> rev-parse --verify \
+  refs/heads/<task-branch>^{commit})" || exit 1
+git -C <repo-path> merge-base --is-ancestor \
+  "$actual_task_oid" "$current_original_oid" || exit 1
+git -C <repo-path> branch --delete <task-branch> || exit 1
 ```
 
 `branch --delete` safely refuses to delete an unmerged branch. Never use
