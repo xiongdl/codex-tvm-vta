@@ -1,9 +1,9 @@
 [submodule "tvm"]
     path = tvm
-	url = git@github.com:xiongdl/tvm.git
+	url = git@github.com:xiongdl/apache-tvm.git
     branch = tvm_v0.17.0
 
 [submodule "vta"]
     path = vta
-	url = git@github.com:xiongdl/vta.git
+	url = git@github.com:xiongdl/zvslab-vta.git
     branch = vta_v0.0.2
