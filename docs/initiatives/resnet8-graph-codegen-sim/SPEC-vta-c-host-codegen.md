@@ -4,11 +4,12 @@ Module id: `vta-c-host-codegen`
 
 ## Objective
 
-Extend the repository-local VTA target hooks so `relay.build` and the native
-VTA `TIRToRuntime` path accept either an LLVM host target or a C host target.
-The C path must emit inspectable C source, compile through TVM's standard
-library export path, reload as a runnable host DSO, and preserve the existing
-VTA runtime ABI, configuration-fingerprint guard, and public partition symbols.
+Extend the repository-local VTA target hooks and the repository-pinned TVM C
+host backend so `relay.build` and the native VTA `TIRToRuntime` path accept
+either an LLVM host target or a C host target. The C path must emit inspectable
+C source, compile through TVM's standard library export path, reload as a
+runnable host DSO, and preserve the existing VTA runtime ABI,
+configuration-fingerprint guard, and public partition symbols.
 
 This module establishes host-codegen correctness independently of ResNet-8
 simulation. FSIM execution is owned by `resnet8-fsim-matrix`; TSIM execution is
@@ -33,8 +34,14 @@ the repository VTA submodule.
 - `tvm/tests/python/codegen/test_target_codegen_c_host.py` establishes that a C
   source module can be exported, reloaded, and invoked through the normal TVM
   runtime library mechanism.
+- The pinned C host backend emits `__tvm_module_ctx` only for an AoT runner,
+  does not emit forward declarations for calls represented by `TGlobalSymbol`,
+  and explicitly does not support vector operators. A Graph Executor C export
+  therefore currently fails before DSO reload.
 
-No pinned TVM source is changed.
+Pinned TVM changes are limited to correcting those C host source-generation
+contracts and adding focused regression tests. No LLVM backend, executor,
+runtime, target-hook driver, or unrelated TVM subsystem is changed.
 
 ## Supported Host Contract
 
@@ -93,10 +100,13 @@ must validate the entire module before invoking either host builder.
 - Any invalid or mixed-host module fails before `target.build.llvm` or
   `target.build.c` is called.
 
-The same transformation sequence remains in force: flatten external buffers,
+The base transformation sequence remains in force: flatten external buffers,
 make the packed API, bind the selected host, lower TVM builtins/custom types and
 intrinsics, combine context calls, inject `VTACheckConfig`, then invoke
-`codegen::Build(lowered, host)` exactly once.
+`codegen::Build(lowered, host)` exactly once. The C branch additionally
+scalarizes through the standard pass configuration and normalizes VTA external
+calls to their opaque-handle ABI before C source generation; LLVM skips those
+C-only steps.
 
 ## Generated C Contract
 
@@ -111,10 +121,31 @@ runtime-specific source template is introduced. After export and reload, the
 DSO must implement every expected VTA symbol. Compilation and export must not
 load FSIM or TSIM and must not execute VTA instructions.
 
+Every C source module used by the Graph library must declare and export a TVM
+module-context slot. Non-AoT C modules use a `TVM_WEAK` definition so multiple
+C source modules in the same standard DSO export coalesce without duplicate
+symbols; the existing AoT behavior remains strong. Loading the final DSO must
+allow TVM's library loader to populate that slot normally.
+
+Calls represented by a registered `TGlobalSymbol`, including
+`tir.vta.command_handle`, must receive the same forward-declaration treatment
+as `call_extern`. Declarations must precede use and remain valid C/C++ source.
+The VTA lowering side must normalize opaque VTA runtime address arguments to
+the existing handle ABI so generated declarations accept `void*`; it must not
+change the VTA runtime implementation or public ABI.
+
+Because the pinned C backend explicitly does not support vector operators,
+C-host Graph builds use TVM's standard `tir.disable_vectorize` PassContext
+option. Scalarization occurs in TIR lowering before source generation. LLVM
+builds do not set this option. Generated-source rewriting after codegen is not
+permitted.
+
 ## Public Interfaces
 
-No new public C++ or Python API is introduced. Existing interfaces gain the
-following accepted input:
+No new public C++ or Python API is introduced. The existing
+`vta.build_config(config=...)` keyword contract must correctly merge standard
+TVM PassContext options. Existing interfaces gain the following accepted
+input:
 
 ```python
 target = tvm.target.Target("vta", host=tvm.target.Target("c"))
@@ -131,19 +162,26 @@ c_source_module = hook(vta_tir_module, target)
 
 ## Project Structure
 
-Expected implementation changes are limited to the VTA submodule:
+Expected implementation changes are limited to the following files:
 
 ```text
 vta/
+  python/vta/build_module.py
+  python/vta/transform.py
   src/compiler/target.cc
   src/compiler/tir_to_runtime.cc
   tests/python/unittest/test_byoc_codegen.py
+tvm/
+  src/target/source/codegen_c_host.cc
+  src/target/source/codegen_c_host.h
+  tests/python/codegen/test_target_codegen_c_host.py
 ```
 
 If keeping target-hook tests separate materially improves clarity, focused
 coverage may instead be added to the existing
 `tests/python/unittest/test_byoc_lowering.py`; this does not expand the module
-boundary. No application code is changed by this module.
+boundary. No application, TVM runtime, LLVM backend, executor, or simulator
+code is changed by this module.
 
 ## Commands
 
@@ -156,6 +194,14 @@ PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
   vta/tests/python/unittest/test_byoc_codegen.py
 ```
 
+Focused TVM C host tests:
+
+```bash
+PYTHONPATH="$PWD/tvm/python" \
+  ./.envs/tvm-vta-env/bin/python -m pytest -q \
+  tvm/tests/python/codegen/test_target_codegen_c_host.py
+```
+
 If target-hook coverage is placed in the lowering suite:
 
 ```bash
@@ -165,9 +211,11 @@ PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
   vta/tests/python/unittest/test_byoc_lowering.py
 ```
 
-VTA libraries must be rebuilt before tests exercise the changed native hooks:
+TVM must be rebuilt before tests exercise the changed C host backend, followed
+by the VTA libraries:
 
 ```bash
+bash scripts/build_tvm_lib_macos.sh
 bash scripts/build_vta_lib.sh --target all
 ```
 
@@ -179,24 +227,29 @@ bash scripts/test_vta_byoc.sh
 
 ## Testing Strategy
 
-1. Parameterize native `TIRToRuntime` tests over LLVM and C and require one
+1. Add TVM C host regressions that require Graph-runtime module context,
+   collision-free multi-C-module linkage, and forward declarations for
+   `TGlobalSymbol` calls.
+2. Parameterize native `TIRToRuntime` tests over LLVM and C and require one
    standard host module with every requested symbol.
-2. Require non-empty LLVM IR for LLVM and non-empty C source for C, with each
+3. Require non-empty LLVM IR for LLVM and non-empty C source for C, with each
    public symbol defined exactly once.
-3. For both source forms, prove `VTACheckConfig` precedes the first VTA runtime
+4. For both source forms, prove `VTACheckConfig` precedes the first VTA runtime
    activity in every entry point.
-4. Export the C source module through `export_library`, reload its DSO, and
+5. Export the C source module through `export_library`, reload its DSO, and
    require every expected symbol without loading a simulator.
-5. Build a small partitioned QNN convolution through `relay.build` with an
+6. Build a small partitioned QNN convolution through `relay.build` with an
    active C-host VTA target; require its generated VTA module/source and
    reloaded DSO symbols to be C-host artifacts rather than LLVM artifacts.
-6. Prove the modern target hook replaces the environment-carried LLVM host
+7. Prove the modern target hook replaces the environment-carried LLVM host
    with the requested C host on every routed PrimFunc.
-7. Reject missing hosts, unsupported hosts, packed/raw function host mismatch,
+8. Require C output to contain no unsupported fixed-length vector aliases and
+   require VTA runtime address arguments to use the opaque handle ABI.
+9. Reject missing hosts, unsupported hosts, packed/raw function host mismatch,
    wrong target kinds, malformed calls, duplicate symbols, and partial invalid
    modules before either builder is called.
-8. Keep all existing LLVM-only codegen, export-without-FSIM, lowering, runtime,
-   and aggregate tests green.
+10. Keep all existing LLVM-only codegen, export-without-FSIM, lowering, runtime,
+    and aggregate tests green.
 
 ## Code Style
 
@@ -219,21 +272,32 @@ bash scripts/test_vta_byoc.sh
 - Inject and retain the VTA configuration-fingerprint guard.
 - Validate all functions before either host builder is invoked.
 - Exercise actual C export and DSO reload, not source-text checks alone.
+- Keep the pinned TVM patch confined to the C host backend and its focused
+  regression tests.
+- Use `TVM_WEAK` for non-AoT Graph module-context definitions and prove standard
+  multi-module linkage.
+- Use only the standard `tir.disable_vectorize` pass option for C scalarization;
+  leave LLVM vectorization unchanged.
 
 ### Ask first
 
 - Add another host target kind beyond LLVM and C.
 - Change the VTA runtime ABI, public symbol naming, calling convention, target
   registration, or configuration fingerprint.
-- Add custom compiler/linker flags not already required by TVM's standard
-  `export_library` path.
+- Modify pinned TVM files outside the approved C host backend and focused-test
+  allowlist.
+- Change the strong/weak module-context contract for existing AoT output.
+- Add custom compiler/linker flags or replace TVM's standard `export_library`
+  path.
 
 ### Never
 
-- Modify the pinned `tvm/` checkout.
 - Fall back from requested C host codegen to LLVM.
 - Implement C support by text-translating LLVM IR or maintaining a separate VTA
   C template.
+- Rewrite, patch, or post-process generated source after C codegen.
+- Modify TVM's LLVM backend, executors, runtime loader, target-hook driver, or
+  unrelated target backends.
 - Load FSIM/TSIM, run ResNet-8, or claim simulator correctness in this module.
 - Weaken existing LLVM validation or skip malformed functions to reach codegen.
 
@@ -250,8 +314,12 @@ bash scripts/test_vta_byoc.sh
    before VTA activity.
 5. Missing, unsupported, or inconsistent hosts fail before codegen with an
    actionable diagnostic.
-6. Focused and aggregate tests pass with no tracked change in the pinned TVM
-   checkout.
+6. Standard C export supports Graph runtime context and `TGlobalSymbol`
+   declarations, including collision-free linkage of multiple C source modules.
+7. C output contains no unsupported vector aliases, while LLVM behavior and
+   vectorization remain unchanged.
+8. Focused and aggregate tests pass with pinned TVM changes confined exactly to
+   the approved C host backend and focused-test files.
 
 ## Open Questions
 
@@ -259,5 +327,5 @@ None.
 
 ## Approval Gate
 
-This specification requires explicit user approval before the next module
-specification, `resnet8-fsim-matrix`, is written.
+This amended specification requires explicit user approval before the
+initiative plan is amended and implementation resumes.

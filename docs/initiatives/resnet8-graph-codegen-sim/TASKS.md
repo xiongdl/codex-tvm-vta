@@ -11,19 +11,21 @@ native build output, and Verilator traces are never staged.
 
 **Owner:** Root for lifecycle commit and dispatch; Default for build preflight.
 
-**Description:** Create scoped parent/VTA feature branches, commit exactly the
-approved lifecycle artifacts, record nested-repository starting OIDs/statuses,
-and make the documented TVM/VTA native build prerequisites available before
-source implementation begins.
+**Description:** Retain the scoped parent/VTA feature branches, create the same
+scoped feature branch in TVM, commit exactly the newly approved lifecycle
+amendments, record all nested-repository starting OIDs/statuses, and make the
+documented TVM/VTA native build prerequisites available before implementation
+resumes.
 
 **Acceptance criteria:**
 
 - [ ] Parent, VTA, and pinned TVM OIDs, branches, and statuses are recorded;
   unrelated user changes are absent or explicitly preserved.
-- [ ] The approved capability map, four specs, plan, and tasks are committed in
-  one parent lifecycle commit and its OID is passed to implementation.
-- [ ] Required TVM/VTA libraries build or are confirmed current; the pinned TVM
-  checkout remains clean.
+- [ ] The approved capability-map, C-host SPEC, PLAN, and TASKS amendments are
+  committed in one parent lifecycle commit and its OID is passed downstream
+  together with the original lifecycle commit.
+- [ ] Required TVM/VTA libraries build or are confirmed current; TVM is clean on
+  its scoped task branch before source changes begin.
 
 **Verification:**
 
@@ -38,7 +40,7 @@ source implementation begins.
 **Files likely touched:**
 
 - `docs/initiatives/resnet8-graph-codegen-sim/CAPABILITY_MAP.md`
-- `docs/initiatives/resnet8-graph-codegen-sim/SPEC-*.md`
+- `docs/initiatives/resnet8-graph-codegen-sim/SPEC-vta-c-host-codegen.md`
 - `docs/initiatives/resnet8-graph-codegen-sim/PLAN.md`
 - `docs/initiatives/resnet8-graph-codegen-sim/TASKS.md`
 
@@ -151,7 +153,41 @@ FSIM behavior and proving real LLVM IR plus disk-only Graph Executor reload.
 - [ ] Existing LLVM FSIM deployment passes from reloaded bundle files.
 - [ ] No generated output is tracked and pinned TVM remains clean.
 
-## Task 4: Propagate the active LLVM/C host through RelayToTIR
+## Task 4: Correct TVM C Graph source contracts
+
+**Owner:** Default.
+
+**Description:** Add focused regressions and minimally update the pinned TVM C
+host backend so Graph-runtime C modules export a usable module-context slot and
+calls represented by `TGlobalSymbol` receive valid forward declarations.
+
+**Acceptance criteria:**
+
+- [ ] Non-AoT Graph C modules emit a `TVM_WEAK` module-context definition;
+  existing AoT C output retains its strong definition.
+- [ ] Multiple C source modules link into one DSO without duplicate context
+  symbols, and TVM's loader populates the context on reload.
+- [ ] `TGlobalSymbol` calls are declared before use; no TVM runtime, LLVM,
+  executor, target-hook driver, or unrelated backend file changes.
+
+**Verification:**
+
+- [ ] New focused tests fail on the pinned base and pass after implementation.
+- [ ] Rebuild TVM with `bash scripts/build_tvm_lib_macos.sh`.
+- [ ] Run `tvm/tests/python/codegen/test_target_codegen_c_host.py`, including
+  actual multi-module export and reload.
+
+**Dependencies:** Checkpoint A.
+
+**Files likely touched:**
+
+- `tvm/src/target/source/codegen_c_host.cc`
+- `tvm/src/target/source/codegen_c_host.h`
+- `tvm/tests/python/codegen/test_target_codegen_c_host.py`
+
+**Estimated scope:** Medium (3 files)
+
+## Task 5: Propagate the active LLVM/C host through RelayToTIR
 
 **Owner:** Default.
 
@@ -175,7 +211,7 @@ requested.
 - [ ] Run the existing `test_byoc_lowering.py` regression suite.
 - [ ] Rebuild `libtvm-vta-ext` before exercising the native change.
 
-**Dependencies:** Checkpoint A.
+**Dependencies:** Task 4.
 
 **Files likely touched:**
 
@@ -185,13 +221,14 @@ requested.
 
 **Estimated scope:** Medium (3 files)
 
-## Task 5: Generate and reload native C VTA host modules
+## Task 6: Generate ABI-correct scalar C VTA modules
 
 **Owner:** Default.
 
-**Description:** Extend native `TIRToRuntime` validation and dispatch to support
-consistent LLVM/C module and function hosts, then prove actual C source,
-standard DSO export/reload, symbol completeness, and fingerprint ordering.
+**Description:** Extend native `TIRToRuntime` for consistent LLVM/C hosts,
+correct the existing VTA PassContext configuration merge, scalarize C builds
+through `tir.disable_vectorize`, and normalize VTA address operands to the
+existing opaque-handle ABI before source generation.
 
 **Acceptance criteria:**
 
@@ -199,64 +236,73 @@ standard DSO export/reload, symbol completeness, and fingerprint ordering.
   matching standard TVM module type with every public symbol.
 - [ ] Raw/packed host mismatch, missing host, unsupported host, and malformed
   partial modules fail before either builder is called.
-- [ ] Exported C DSO reloads and exposes all symbols while retaining
-  `VTACheckConfig` before VTA activity.
+- [ ] C source contains no unsupported fixed-length vector aliases or
+  incompatible typed-pointer VTA declarations; LLVM vectorization is unchanged.
+- [ ] `vta.build_config(config=...)` merges the standard PassContext options
+  without changing its default behavior.
 
 **Verification:**
 
 - [ ] Rebuild all VTA native libraries and run `test_byoc_codegen.py`.
-- [ ] Compile/reload the focused C artifact without importing a simulator.
-- [ ] Rerun every existing LLVM TIRToRuntime and configuration-fingerprint test.
-
-**Dependencies:** Task 4.
-
-**Files likely touched:**
-
-- `vta/src/compiler/tir_to_runtime.cc`
-- `vta/tests/python/unittest/test_byoc_codegen.py`
-
-**Estimated scope:** Small (2 files)
-
-## Task 6: Prove partitioned Graph build with C host
-
-**Owner:** Default.
-
-**Description:** Add a one-region QNN Graph Executor integration proof that the
-modern partitioned Relay path produces C-host VTA source, exports/reloads a DSO,
-and exposes its symbol without simulator initialization.
-
-**Acceptance criteria:**
-
-- [ ] `relay.build(partitioned, Target("vta", host="c"))` succeeds through the
-  modern target hooks.
-- [ ] Generated/imported module sources are C-family and contain the expected
-  VTA entry point rather than LLVM IR.
-- [ ] Standard export/reload succeeds without FSIM/TSIM import or execution.
-
-**Verification:**
-
-- [ ] Run the isolated C Graph test in `test_byoc_codegen.py`.
-- [ ] Run the complete VTA codegen and lowering suites.
-- [ ] Confirm `git -C tvm status --short` is empty.
+- [ ] Compile/reload focused C modules without importing a simulator.
+- [ ] Rerun every existing LLVM TIRToRuntime, build-config, lowering, and
+  configuration-fingerprint test.
 
 **Dependencies:** Task 5.
 
 **Files likely touched:**
 
+- `vta/python/vta/build_module.py`
+- `vta/python/vta/transform.py`
+- `vta/src/compiler/tir_to_runtime.cc`
 - `vta/tests/python/unittest/test_byoc_codegen.py`
-- `vta/src/compiler/target.cc` only if a test exposes an approved propagation defect
-- `vta/src/compiler/tir_to_runtime.cc` only if a test exposes an approved validation defect
+
+**Estimated scope:** Medium (4 files)
+
+## Task 7: Prove partitioned Graph build with C host
+
+**Owner:** Default.
+
+**Description:** Add a one-region QNN Graph Executor integration proof that the
+modern partitioned Relay path produces scalar, ABI-correct C-host source,
+exports/reloads a DSO, and exposes its symbol without simulator initialization.
+
+**Acceptance criteria:**
+
+- [ ] `relay.build(partitioned, Target("vta", host="c"))` succeeds through the
+  modern target hooks with the approved standard PassContext option.
+- [ ] Generated/imported sources are C-family, contain the expected VTA entry
+  point and fingerprint guard, and contain neither LLVM IR nor unsupported
+  vector aliases.
+- [ ] Standard export/reload succeeds without source post-processing, custom
+  compiler/linker flags, FSIM/TSIM import, or VTA execution.
+
+**Verification:**
+
+- [ ] Run the isolated C Graph test in `test_byoc_codegen.py`.
+- [ ] Run the complete TVM C host and VTA codegen/lowering suites.
+- [ ] Audit TVM and VTA changes against their exact approved path allowlists.
+
+**Dependencies:** Task 6.
+
+**Files likely touched:**
+
+- `vta/tests/python/unittest/test_byoc_codegen.py`
+- Approved Task 4-6 implementation files only when the integration proof exposes
+  a defect within their existing contracts
 
 **Estimated scope:** Small (normally 1 test file)
 
 ## Checkpoint B: C host codegen
 
-- [ ] Tasks 4-6 meet all acceptance criteria.
-- [ ] The Default agent commits the focused VTA C-host slice.
-- [ ] LLVM and C native codegen/export/reload suites pass.
+- [ ] Tasks 4-7 meet all acceptance criteria.
+- [ ] The Default agent commits the focused TVM backend slice, then the dependent
+  VTA C-host slice, with exact path allowlists and stable candidate fingerprints.
+- [ ] LLVM and C native codegen/export/reload suites pass after TVM and VTA
+  rebuilds.
 - [ ] No simulator was needed for code-generation acceptance.
 
-## Task 7: Build the four LLVM/C FSIM bundles
+## Task 8: Build the four LLVM/C FSIM bundles
 
 **Owner:** Default.
 
@@ -288,7 +334,7 @@ identity so one prepared model builds LLVM/C reference and mixed bundles under
 
 **Estimated scope:** Medium (3 files)
 
-## Task 8: Execute the complete LLVM/C FSIM matrix
+## Task 9: Execute the complete LLVM/C FSIM matrix
 
 **Owner:** Default.
 
@@ -312,7 +358,7 @@ entry point, CLI selection, and user documentation.
 - [ ] Inspect four FSIM bundles and record ten comparisons plus positive
   counters for each mixed host.
 
-**Dependencies:** Task 7.
+**Dependencies:** Task 8.
 
 **Files likely touched:**
 
@@ -325,12 +371,12 @@ entry point, CLI selection, and user documentation.
 
 ## Checkpoint C: Complete FSIM matrix
 
-- [ ] Tasks 7-8 meet all acceptance criteria.
+- [ ] Tasks 8-9 meet all acceptance criteria.
 - [ ] The Default agent commits the focused VTA FSIM matrix slice.
 - [ ] The complete real LLVM/C FSIM command passes all ten samples.
 - [ ] Four inspectable FSIM bundles exist only as ignored build output.
 
-## Task 9: Introduce validated simulator selection
+## Task 10: Introduce validated simulator selection
 
 **Owner:** Default.
 
@@ -363,7 +409,7 @@ VTA environment before model preparation while preserving lazy initialization.
 
 **Estimated scope:** Medium (3 files)
 
-## Task 10: Execute the complete LLVM/C TSIM matrix
+## Task 11: Execute the complete LLVM/C TSIM matrix
 
 **Owner:** Default.
 
@@ -388,7 +434,7 @@ selection, and TSIM user documentation.
 - [ ] Inspect four TSIM bundles and record twenty comparisons plus two positive
   cycle snapshots.
 
-**Dependencies:** Task 9.
+**Dependencies:** Task 10.
 
 **Files likely touched:**
 
@@ -399,7 +445,7 @@ selection, and TSIM user documentation.
 
 **Estimated scope:** Medium (4 files)
 
-## Task 11: Add TSIM matrix to the aggregate gate
+## Task 12: Add TSIM matrix to the aggregate gate
 
 **Owner:** Default.
 
@@ -414,34 +460,37 @@ checks.
   the exact TSIM configuration and fails on any nonzero result.
 - [ ] Existing structural, FSIM, standalone TSIM, compile, source-scan, and
   nested-repository gates retain their prior coverage.
-- [ ] The VTA gitlink references the verified implementation commits and pinned
-  TVM remains unchanged.
+- [ ] The VTA and TVM gitlinks reference their verified implementation commits;
+  TVM paths are confined to the approved C host backend and focused tests.
 
 **Verification:**
 
 - [ ] Run `bash scripts/test_vta_byoc.sh` to completion.
 - [ ] Run `git diff --check`, `git -C vta diff --check`, and all three status
   checks.
-- [ ] Inspect parent and VTA staged diffs before their attributable commits.
+- [ ] Inspect parent, VTA, and TVM staged diffs before their attributable
+  commits.
 
-**Dependencies:** Task 10.
+**Dependencies:** Task 11.
 
 **Files likely touched:**
 
 - `scripts/test_vta_byoc.sh`
 - `vta` gitlink in the parent repository
+- `tvm` gitlink in the parent repository
 
-**Estimated scope:** Small (1 script plus intentional gitlink update)
+**Estimated scope:** Small (1 script plus two intentional gitlink updates)
 
 ## Checkpoint D: Complete simulator matrices
 
-- [ ] Tasks 9-11 meet all acceptance criteria.
+- [ ] Tasks 10-12 meet all acceptance criteria.
 - [ ] The Default agent commits the VTA TSIM slice and parent aggregate/gitlink
   changes separately.
 - [ ] Real complete FSIM and TSIM LLVM/C commands both pass.
-- [ ] The aggregate repository gate passes with pinned TVM clean.
+- [ ] The aggregate repository gate passes with committed TVM/VTA worktrees
+  clean and exact approved path scope.
 
-## Task 12: Record verification evidence
+## Task 13: Record verification evidence
 
 **Owner:** Default for verification execution and evidence draft; Root for
 acceptance audit.
@@ -456,8 +505,8 @@ inspection, partition/sample counts, simulator counters, and repository status.
   command results rather than inferred or smoke-only claims.
 - [ ] Generated artifacts demonstrate LLVM/C source, Graph JSON, params, DSOs,
   manifests, exact eight-symbol mixed contracts, and forbidden reference symbols.
-- [ ] Final parent/VTA diffs and commits are scoped, generated output is ignored,
-  and pinned TVM is clean.
+- [ ] Final parent/VTA/TVM diffs and commits are scoped, generated output is
+  ignored, and all three worktrees are clean.
 
 **Verification:**
 
@@ -474,7 +523,7 @@ inspection, partition/sample counts, simulator counters, and repository status.
 
 **Estimated scope:** Small (1 evidence document)
 
-## Task 13: Complete independent review and fixes
+## Task 14: Complete independent review and fixes
 
 **Owner:** Reviewer for read-only review; Default for any fixes; Root for final
 acceptance.
@@ -495,12 +544,14 @@ blocking finding remains.
 
 **Verification:**
 
-- [ ] Review exact parent and VTA commit ranges from the recorded baselines.
+- [ ] Review exact parent, VTA, and TVM commit ranges from the recorded
+  baselines.
 - [ ] Rerun focused tests for fixes and the full aggregate gate after any
   behavior-affecting fix.
-- [ ] Confirm final parent/VTA status is expected and pinned TVM is clean.
+- [ ] Confirm final parent/VTA/TVM status is expected and TVM changes remain
+  inside the approved C host allowlist.
 
-**Dependencies:** Task 12.
+**Dependencies:** Task 13.
 
 **Files likely touched:**
 
@@ -519,7 +570,7 @@ blocking finding remains.
 
 ## Approval Gate
 
-The user must explicitly approve this task list before Task 0 begins. Approval
-authorizes implementation, local verification, and scoped local commits under
-the approved artifacts. It does not authorize push, merge, release, or any
-other external ship action.
+The user must explicitly approve this amended task list before Checkpoint B
+implementation resumes. Approval authorizes implementation, local verification,
+and scoped local commits under the approved artifacts. It does not authorize
+push, merge, release, or any other external ship action.
