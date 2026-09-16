@@ -110,6 +110,11 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
 echo "==> TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${script_dir}/test_vta_tsim.sh" --env-name "${env_name}"
 
+echo "==> MLPerf ResNet HOST/TSIM gate"
+VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/run.py" \
+    --simulator tsim --host-codegen all
+
 echo "==> Python compilation"
 "${python_bin}" -m compileall -q "${VTA_PATH}/python/vta"
 
