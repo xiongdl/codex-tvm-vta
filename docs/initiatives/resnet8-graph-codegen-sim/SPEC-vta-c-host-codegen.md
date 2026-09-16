@@ -9,7 +9,8 @@ host backend so `relay.build` and the native VTA `TIRToRuntime` path accept
 either an LLVM host target or a C host target. The C path must emit inspectable
 C source, compile through TVM's standard library export path, reload as a
 runnable host DSO, and preserve the existing VTA runtime ABI,
-configuration-fingerprint guard, and public partition symbols.
+configuration-fingerprint guard, public partition symbols, and static micro-op
+initialization semantics carried by `coproc_uop_scope`.
 
 This module establishes host-codegen correctness independently of ResNet-8
 simulation. FSIM execution is owned by `resnet8-fsim-matrix`; TSIM execution is
@@ -36,8 +37,12 @@ the repository VTA submodule.
   runtime library mechanism.
 - The pinned C host backend emits `__tvm_module_ctx` only for an AoT runner,
   does not emit forward declarations for calls represented by `TGlobalSymbol`,
-  and explicitly does not support vector operators. A Graph Executor C export
-  therefore currently fails before DSO reload.
+  treats `coproc_uop_scope` as a transparent attribute, and explicitly does not
+  support vector operators. A Graph Executor C export originally failed before
+  DSO reload. After correcting the context, declaration, and scalarization
+  contracts, a real C-host VTA bundle builds and reloads but calls
+  `VTAUopPush` without first registering the recording callback, causing the
+  runtime to abort because its recording kernel is null.
 
 Pinned TVM changes are limited to correcting those C host source-generation
 contracts and adding focused regression tests. No LLVM backend, executor,
@@ -133,6 +138,32 @@ as `call_extern`. Declarations must precede use and remain valid C/C++ source.
 The VTA lowering side must normalize opaque VTA runtime address arguments to
 the existing handle ABI so generated declarations accept `void*`; it must not
 change the VTA runtime implementation or public ABI.
+
+The C host backend must give `coproc_uop_scope` the same observable static
+initialization semantics as the LLVM CPU backend for the capture-free scopes
+used by VTA. Each scope emits:
+
+- one uniquely named, module-local static handle initialized to null;
+- one uniquely named, module-local callback with the existing
+  `int32_t(void*)` initializer ABI, containing the scope body and returning
+  zero on success;
+- a declaration for the initializer named by the attribute, such as
+  `VTAPushGEMMOp` or `VTAPushALUOp`; and
+- an entry-function call that passes the handle, callback, null signature, and
+  zero signature bytes, propagating a nonzero initializer return before later
+  VTA commands execute.
+
+The scope body is emitted only inside its callback and is not also emitted
+directly in the entry function. Handles and callbacks are distinct between
+scopes even when they use the same initializer. The runtime remains responsible
+for caching the recorded micro-op kernel through the handle, exactly as on the
+LLVM path.
+
+This increment supports only scopes for which `tir::UndefinedVars` finds no
+captured values. A captured scope fails during C source generation with a
+diagnostic identifying `coproc_uop_scope`; it must not be flattened into the
+entry function or silently receive an incomplete callback. This restriction
+does not alter LLVM's existing closure-packing support.
 
 Because the pinned C backend explicitly does not support vector operators,
 C-host Graph builds use TVM's standard `tir.disable_vectorize` PassContext
@@ -230,25 +261,32 @@ bash scripts/test_vta_byoc.sh
 1. Add TVM C host regressions that require Graph-runtime module context,
    collision-free multi-C-module linkage, and forward declarations for
    `TGlobalSymbol` calls.
-2. Parameterize native `TIRToRuntime` tests over LLVM and C and require one
+2. Add C host regressions for capture-free `coproc_uop_scope`: distinct static
+   handles and callbacks for multiple scopes, attribute-selected initializer
+   declarations and calls, callback-only body emission, nonzero-return
+   propagation, deterministic generated source, and an actionable rejection of
+   captured scopes.
+3. Parameterize native `TIRToRuntime` tests over LLVM and C and require one
    standard host module with every requested symbol.
-3. Require non-empty LLVM IR for LLVM and non-empty C source for C, with each
+4. Require non-empty LLVM IR for LLVM and non-empty C source for C, with each
    public symbol defined exactly once.
-4. For both source forms, prove `VTACheckConfig` precedes the first VTA runtime
+5. For both source forms, prove `VTACheckConfig` precedes the first VTA runtime
    activity in every entry point.
-5. Export the C source module through `export_library`, reload its DSO, and
+6. Export the C source module through `export_library`, reload its DSO, and
    require every expected symbol without loading a simulator.
-6. Build a small partitioned QNN convolution through `relay.build` with an
+7. Build a small partitioned QNN convolution through `relay.build` with an
    active C-host VTA target; require its generated VTA module/source and
-   reloaded DSO symbols to be C-host artifacts rather than LLVM artifacts.
-7. Prove the modern target hook replaces the environment-carried LLVM host
+   reloaded DSO symbols to be C-host artifacts rather than LLVM artifacts, and
+   require its C source to contain both GEMM and ALU static initializer calls
+   rather than direct entry-function micro-op recording.
+8. Prove the modern target hook replaces the environment-carried LLVM host
    with the requested C host on every routed PrimFunc.
-8. Require C output to contain no unsupported fixed-length vector aliases and
+9. Require C output to contain no unsupported fixed-length vector aliases and
    require VTA runtime address arguments to use the opaque handle ABI.
-9. Reject missing hosts, unsupported hosts, packed/raw function host mismatch,
+10. Reject missing hosts, unsupported hosts, packed/raw function host mismatch,
    wrong target kinds, malformed calls, duplicate symbols, and partial invalid
    modules before either builder is called.
-10. Keep all existing LLVM-only codegen, export-without-FSIM, lowering, runtime,
+11. Keep all existing LLVM-only codegen, export-without-FSIM, lowering, runtime,
     and aggregate tests green.
 
 ## Code Style
@@ -276,6 +314,8 @@ bash scripts/test_vta_byoc.sh
   regression tests.
 - Use `TVM_WEAK` for non-AoT Graph module-context definitions and prove standard
   multi-module linkage.
+- Preserve capture-free `coproc_uop_scope` through unique C static handles and
+  callbacks, and reject captured scopes before emitting runnable source.
 - Use only the standard `tir.disable_vectorize` pass option for C scalarization;
   leave LLVM vectorization unchanged.
 
@@ -287,6 +327,8 @@ bash scripts/test_vta_byoc.sh
 - Modify pinned TVM files outside the approved C host backend and focused-test
   allowlist.
 - Change the strong/weak module-context contract for existing AoT output.
+- Add C closure packing for captured `coproc_uop_scope` bodies rather than the
+  approved capture-free support.
 - Add custom compiler/linker flags or replace TVM's standard `export_library`
   path.
 
@@ -316,9 +358,12 @@ bash scripts/test_vta_byoc.sh
    actionable diagnostic.
 6. Standard C export supports Graph runtime context and `TGlobalSymbol`
    declarations, including collision-free linkage of multiple C source modules.
-7. C output contains no unsupported vector aliases, while LLVM behavior and
+7. Capture-free C `coproc_uop_scope` bodies execute only through unique static
+   callbacks registered by their requested initializer; captured scopes fail at
+   code generation and LLVM static initialization remains unchanged.
+8. C output contains no unsupported vector aliases, while LLVM behavior and
    vectorization remain unchanged.
-8. Focused and aggregate tests pass with pinned TVM changes confined exactly to
+9. Focused and aggregate tests pass with pinned TVM changes confined exactly to
    the approved C host backend and focused-test files.
 
 ## Open Questions

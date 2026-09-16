@@ -24,9 +24,9 @@ remain deferred.
    only final on-disk files.
 2. **Standard TVM host codegen only.** LLVM and C both pass through the pinned
    `codegen::Build` and `export_library` paths. The TVM patch is confined to C
-   host Graph module context and external-symbol declarations. No
-   generated-code translator, custom runtime module, Makefile, or alternate
-   executor is introduced.
+   host Graph module context, external-symbol declarations, and capture-free
+   `coproc_uop_scope` static initialization. No generated-code translator,
+   custom runtime module, Makefile, or alternate executor is introduced.
 3. **Requested target is authoritative.** The modern VTA Relay target hook uses
    its active `Target::Current()` host, rebinding lowered VTA functions so a C
    request cannot silently retain the environment's LLVM host.
@@ -75,6 +75,9 @@ VTA C ABI/scalarization + native TIRToRuntime
           |
           v
 one-region C Graph DSO proof
+          |
+          v
+TVM C static micro-op initialization
           |
           v
 ResNet8 LLVM/C FSIM matrix
@@ -155,6 +158,16 @@ contains every symbol and fingerprint check, standard export compiles a DSO,
 and reload exposes the symbol without importing a simulator. Rerun the complete
 LLVM codegen suite to guard against regression.
 
+After the full ResNet-8 C mixed bundle exposes the runtime-only limitation, add
+a tests-first recovery slice in the same approved TVM C host backend. Preserve
+capture-free `coproc_uop_scope` bodies as uniquely named static callbacks and
+handles, invoke the attribute-selected initializer before later VTA commands,
+and reject captured scopes at C code generation. Add focused C host source
+regressions and a VTA partitioned-source regression covering GEMM and ALU
+initializers. Do not modify LLVM static initialization, add C closure packing,
+or change the VTA runtime ABI. Rebuild TVM and VTA and independently review this
+recovery slice before resuming the partially implemented FSIM matrix.
+
 #### Checkpoint B
 
 - Requested LLVM/C host reaches every routed VTA PrimFunc unchanged in kind.
@@ -166,6 +179,19 @@ LLVM codegen suite to guard against regression.
   declarations; LLVM vectorization remains unchanged.
 - VTA runtime calls, public symbols, and fingerprint ordering are preserved.
 - TVM changes are confined to the approved C host backend and focused tests.
+
+#### Checkpoint B2
+
+- Every capture-free C `coproc_uop_scope` has its own static handle and callback.
+- Scope bodies occur only in callbacks; entry functions call the requested
+  initializer and propagate failure before subsequent VTA commands.
+- Multiple GEMM/ALU scopes are deterministic and collision-free, while a
+  captured scope fails with an actionable C codegen diagnostic.
+- A partitioned VTA C source contains both GEMM and ALU initialization calls;
+  LLVM source and existing C Graph contracts remain green.
+- TVM and VTA native libraries are rebuilt, the focused suites pass, and the
+  recovery commits receive an independent Review Pass before Checkpoint C
+  resumes.
 
 ### Phase 3: Complete ResNet8 FSIM Matrix
 
@@ -243,7 +269,7 @@ Implementation uses tests-first vertical slices and stops at each checkpoint
 before broadening scope. Required verification layers are:
 
 1. TVM C host module-context, external-declaration, multi-module-link, and
-   existing C backend regressions.
+   static micro-op initialization regressions plus existing C backend tests.
 2. Artifact helper unit tests using fake factories/modules and failure injection.
 3. Real LLVM/C source, export, reload, and target-hook tests.
 4. TVM then VTA native library rebuild and existing codegen/lowering regressions.
@@ -263,9 +289,11 @@ smoke test, or one-layer VTA test never substitutes for full model execution.
 - Commit approved lifecycle artifacts in the parent immediately before the first
   implementation dispatch and pass the exact paths and commit OID downstream.
 - Commit the focused TVM C backend correction and tests before rebuilding and
-  committing the dependent VTA C host work. Use small VTA commits aligned with
-  artifact bundle, C host codegen, FSIM, and TSIM checkpoints. Do not mix
-  generated output into commits.
+  committing the dependent VTA C host work. Commit and review the later static
+  micro-op recovery as a separate TVM commit and dependent VTA test commit
+  before resuming the pending FSIM application candidate. Use small VTA commits
+  aligned with artifact bundle, C host codegen, FSIM, and TSIM checkpoints. Do
+  not mix generated output into commits.
 - Update parent TVM and VTA gitlinks only to verified, reviewed submodule
   commits; keep any parent aggregate-script change in an attributable parent
   commit.
@@ -281,6 +309,7 @@ smoke test, or one-layer VTA test never substitutes for full model execution.
 | C Graph Executor host codegen exposes a pinned-TVM limitation only at full-model build | High | Prove native one-region C export/reload in Phase 2, then build the C reference and mixed ResNet bundles before touching simulator logic; escalate rather than falling back to LLVM |
 | Weak Graph module context behaves differently across platform linkers | High | Keep the definition in the TVM C host backend, preserve strong AoT behavior, test multiple C source modules in one DSO, and require actual reload through TVM's loader |
 | C DSO resolution of VTA extern symbols differs by platform linker | High | Use only TVM's standard `export_library`, normalize VTA address operands before source generation, test actual DSO reload, and add no custom compiler/linker flags |
+| C source flattens `coproc_uop_scope` and reaches `VTAUopPush` without a recording kernel | High | Generate unique capture-free static callbacks and handles in the TVM C host backend, require GEMM/ALU initializer calls in partitioned source, reject captured scopes, and prove the real first C-mixed sample executes |
 | Disabling C vectorization leaks into LLVM builds | High | Apply `tir.disable_vectorize` only in the explicit C build context and assert LLVM source/runtime regressions remain unchanged |
 | LLVM and C pure-host floating operators differ bitwise | High | Test cross-host references before accelerator execution; inspect generated operations if they differ and fix semantics without loosening the approved exact-equality rule |
 | Atomic directory replacement is not rollback-safe across platforms | Medium | Use a sibling staging directory, validate before publication, test failure injection against an existing completed bundle, and constrain all operations below the resolved output root |

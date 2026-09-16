@@ -302,6 +302,61 @@ exports/reloads a DSO, and exposes its symbol without simulator initialization.
   rebuilds.
 - [ ] No simulator was needed for code-generation acceptance.
 
+## Task 7A: Preserve static VTA micro-op initialization in C source
+
+**Owner:** Default.
+
+**Description:** Extend only the pinned TVM C host backend so capture-free
+`coproc_uop_scope` bodies become uniquely named static callbacks registered by
+the attribute-selected initializer instead of being flattened into the VTA
+entry function. Reject captured scopes explicitly and leave LLVM unchanged.
+
+**Acceptance criteria:**
+
+- [ ] Each capture-free scope emits a distinct module-local null handle and
+  `int32_t(void*)` callback; the callback contains the scope body and returns
+  zero.
+- [ ] The entry function calls the requested initializer with the handle,
+  callback, null signature, and zero signature bytes, and propagates nonzero
+  return before later VTA commands.
+- [ ] Multiple scopes using GEMM or ALU initializers are deterministic and
+  collision-free; their bodies do not also execute directly in the entry
+  function.
+- [ ] A scope with undefined captured values fails C code generation with an
+  actionable `coproc_uop_scope` diagnostic.
+- [ ] Existing Graph weak context, AoT strong context, multi-C linkage,
+  `TGlobalSymbol`, and LLVM static-initialization contracts remain unchanged.
+
+**Verification:**
+
+- [ ] Add focused source tests for one and multiple capture-free scopes,
+  initializer declarations/calls, unique handles/callbacks, body placement,
+  deterministic output, failure propagation, and captured-scope rejection.
+- [ ] Rebuild TVM, run the complete `test_target_codegen_c_host.py` suite, and
+  rerun `test_target_codegen_static_init.py` for the unchanged LLVM path.
+- [ ] Rebuild VTA and rerun the existing VTA codegen/lowering/runtime suites
+  before the application candidate resumes.
+
+**Dependencies:** Checkpoint B.
+
+**Files likely touched:**
+
+- `tvm/src/target/source/codegen_c_host.cc`
+- `tvm/src/target/source/codegen_c_host.h`
+- `tvm/tests/python/codegen/test_target_codegen_c_host.py`
+
+**Estimated scope:** Medium (3 files)
+
+## Checkpoint B2: C static micro-op initialization recovery
+
+- [ ] Task 7A meets all acceptance criteria.
+- [ ] The Default agent commits one focused TVM recovery slice with an exact
+  three-path allowlist and stable candidate fingerprint.
+- [ ] TVM/VTA rebuilds and C/LLVM regression suites pass without modifying the
+  VTA runtime ABI or loading a simulator.
+- [ ] An independent Reviewer passes the recovery before the pending FSIM
+  application candidate is completed and committed.
+
 ## Task 8: Build the four LLVM/C FSIM bundles
 
 **Owner:** Default.
@@ -317,14 +372,19 @@ identity so one prepared model builds LLVM/C reference and mixed bundles under
 - [ ] Four bundles contain their own graph, params, DSO, manifest, matching
   source format, and reference/mixed symbol contract.
 - [ ] A matrix build calls model preparation once and does not load FSIM.
+- [ ] Reloaded C mixed source contains both `VTAPushGEMMOp` and
+  `VTAPushALUOp` static initializer calls, unique callback/handle evidence, and
+  no entry-function flattening of their recording bodies.
 
 **Verification:**
 
 - [ ] Run focused target, build-order, source-format, and bundle-layout tests.
 - [ ] Build the real four ResNet-8 factories and reload all four DSOs.
 - [ ] Confirm exact eight-symbol manifests for both mixed bundles.
+- [ ] Inspect the real C mixed source for the static micro-op initialization
+  contract before importing FSIM.
 
-**Dependencies:** Checkpoint B.
+**Dependencies:** Checkpoint B2.
 
 **Files likely touched:**
 
@@ -357,6 +417,8 @@ entry point, CLI selection, and user documentation.
 - [ ] Run the real `run.py --host-codegen all` command and require exit zero.
 - [ ] Inspect four FSIM bundles and record ten comparisons plus positive
   counters for each mixed host.
+- [ ] Require the first C mixed sample to execute without an uninitialized VTA
+  recording kernel before accepting the remaining comparisons.
 
 **Dependencies:** Task 8.
 
