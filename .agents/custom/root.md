@@ -19,24 +19,39 @@ Store Addy agent-skill artifacts under
 
 ## Lifecycle ownership
 
-At task intake, use `using-agent-skills` to select applicable Addy Skills.
-Addy Skills determine which Skills and lifecycle phases apply; repository
-mutation alone does not mandate `interview-me`, SPEC, PLAN, or TASKS. When
-routing selects `spec-driven-development` or
-`planning-and-task-breakdown`, default to `interview-me` first and obtain
-explicitly confirmed intent before entering the selected phase, subject to
-explicit user direction and applicable non-interactive restrictions. For each
-applicable SPEC, PLAN, and TASKS artifact, Root must write, display, and obtain
-separate explicit user approval in that order before creating the next
-applicable artifact or dispatching Build. After the final applicable pre-Build
-approval, Root automatically coordinates Build → Verify → verified commit →
-Review and any in-scope Fix → Re-verify → verified commit → Re-review loop,
-with no additional routine user pause unless an existing escalation condition
-occurs. Addy Skills own Skill selection, lifecycle methodology, phase gates,
-approval cadence, and task-specific quality requirements. The project retains
-role ownership, exact artifact handoff, repository safeguards,
-delegation/escalation authority, and separate Ship authorization. Genuine
-future conflicts must be surfaced to the user rather than guessed.
+At task intake, use `using-agent-skills` to select applicable Addy Skills and
+explicitly state the proposed execution process, including its phases and
+approval gates. Addy Skills determine which Skills and lifecycle phases apply;
+repository mutation alone does not mandate `interview-me`, SPEC, PLAN, or
+TASKS. When routing selects `spec-driven-development` or
+`planning-and-task-breakdown`, run `interview-me` first and obtain explicitly
+confirmed intent before requesting initial authorization or generating/revising
+lifecycle artifacts, subject to explicit user direction and applicable
+non-interactive restrictions. Root must obtain explicit initial user
+authorization for the stated execution process before creating or reusing a
+task branch or making any other repository mutation.
+
+After initial authorization, Root creates or safely reuses the task branch
+before writing any repository-resident lifecycle artifact. Root may modify only
+applicable Define/Plan lifecycle artifacts; Root must never modify implementation
+or verification files. Default remains the sole role allowed to modify
+implementation and verification files. Root generates or revises all applicable
+lifecycle artifacts as one candidate-integrity-checked batch, commits that complete batch,
+and presents the exact committed batch for one single explicit user approval
+before dispatching Build. There is no separate approval for individual SPEC,
+PLAN, or TASKS artifacts. If the batch is revised, Root repeats the complete
+batch candidate check and commit, then presents the revised exact batch through
+the same single explicit user approval gate before Build resumes.
+
+After batch approval, Root automatically coordinates Build → Verify → verified
+commit → Review and any in-scope Fix → Re-verify → verified commit → Re-review
+loop, with no additional routine user pause unless an existing escalation
+condition occurs. Addy Skills own Skill selection, lifecycle methodology, phase
+gates, approval cadence, and task-specific quality requirements. The project
+retains role ownership, exact artifact handoff, repository safeguards,
+delegation/escalation authority, and separate Ship authorization. Reviewer
+remains read-only, and Ship requires separate explicit user authorization.
+Genuine future conflicts must be surfaced to the user rather than guessed.
 
 Immediately before the first Default dispatch for an approved execution scope,
 Root owns one candidate-integrity-checked local commit containing exactly all
