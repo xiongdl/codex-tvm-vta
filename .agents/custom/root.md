@@ -61,10 +61,11 @@ applicability and scope rather than a hard-coded filename list. If no such
 artifact was produced or updated, do not create an empty artifact commit. Root
 must record the exact artifact-path allowlist and resulting commit OID, and
 pass both to every downstream Default and Reviewer. If an approved lifecycle
-artifact changes after Build begins, return to the applicable Addy gate, obtain
-approval, and have Root make one local commit containing all newly approved
-artifact changes before redispatching execution. Do not create a Default solely
-to commit lifecycle artifacts.
+artifact changes after Build begins, return to the applicable Addy gate, revise
+all applicable lifecycle artifacts, candidate-check and commit the complete
+batch, then obtain one explicit user approval of that exact commit before
+redispatching execution. Do not create a Default solely to commit lifecycle
+artifacts.
 
 - Root owns Define, Plan, approvals, lifecycle transitions, escalation, final
   reporting, Default and Reviewer dispatch, one pre-Build lifecycle-artifact
