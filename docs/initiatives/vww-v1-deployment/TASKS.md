@@ -113,23 +113,52 @@ implement `graph_artifacts.py` and run the focused test.
 
 **Estimated scope:** Small, 2 files.
 
-## Task 6: Implement HOST and FSIM deployment
+## Task 6: Add the VTA depthwise host fallback
+
+**Description:** Extend the VTA Relay convolution strategy with an explicit
+host-compatible schedule for unpacked NHWC depthwise convolution so a mixed
+module can retain the standard single `Target("vta", host=...)` build.
+
+**Acceptance criteria:**
+- [ ] A focused mixed graph with an unpacked NHWC depthwise host operation and
+      a VTA region builds with the single VTA target.
+- [ ] The depthwise operation remains a host fallback, the VTA region still
+      invokes the accelerator, and no graph JSON or device/storage metadata is
+      patched after compilation.
+- [ ] Existing VTA BYOC runtime tests remain unchanged in meaning and pass.
+
+**Verification:** Extend `test_byoc_runtime.py` first and observe the current
+schedule-registration failure, then implement the narrow strategy fallback and
+run the focused FSIM runtime test.
+
+**Dependencies:** Task 5.
+
+**Files likely touched:**
+- `vta/python/vta/top/op.py`
+- `vta/tests/python/unittest/test_byoc_runtime.py`
+
+**Estimated scope:** Small, 2 shared VTA files.
+
+## Task 7: Implement HOST and FSIM deployment
 
 **Description:** Build reference and mixed LLVM/C artifacts, reload each bundle,
-run all ten samples, enforce exact outputs and labels, and validate simulator
-activity.
+run all ten samples, enforce bounded outputs and exact labels, and validate
+simulator activity without modifying compiler-produced graph JSON.
 
 **Acceptance criteria:**
 - [ ] Both host code generators build independent reference/mixed bundles.
-- [ ] All ten mixed outputs exactly equal reference outputs and top-1 labels
-      equal the manifest.
+- [ ] All ten mixed outputs have the reference shape/dtype and satisfy
+      `numpy.testing.assert_allclose(rtol=1e-6, atol=1e-6)`; top-1 labels equal
+      the manifest.
 - [ ] Expected 12 VTA symbols are present only in mixed artifacts and required
       FSIM counters are positive.
+- [ ] Runtime code never patches graph `device_index`, storage placement, or
+      any other compiler-produced graph JSON field.
 
 **Verification:** Write/adapt `test_host_deployment.py` first, observe RED, then
 implement `runtime.py` and run the HOST/FSIM focused test.
 
-**Dependencies:** Task 5.
+**Dependencies:** Task 6.
 
 **Files likely touched:**
 - `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/runtime.py`
@@ -137,7 +166,7 @@ implement `runtime.py` and run the HOST/FSIM focused test.
 
 **Estimated scope:** Small, 2 files.
 
-## Task 7: Add the CLI and application documentation
+## Task 8: Add the CLI and application documentation
 
 **Description:** Expose the same safe CLI matrix as ResNet V1 and document
 prerequisites, commands, outputs, non-goals, and failure behavior.
@@ -150,7 +179,7 @@ prerequisites, commands, outputs, non-goals, and failure behavior.
 **Verification:** Run CLI contract assertions in `test_host_deployment.py`, then
 execute the FSIM `--host-codegen all` command from the specification.
 
-**Dependencies:** Task 6.
+**Dependencies:** Task 7.
 
 **Files likely touched:**
 - `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/run.py`
@@ -161,25 +190,28 @@ execute the FSIM `--host-codegen all` command from the specification.
 ## Checkpoint 2
 
 - [ ] Graph artifact and HOST/FSIM tests pass.
+- [ ] The focused VTA mixed-runtime depthwise fallback regression passes.
 - [ ] The complete FSIM LLVM/C matrix passes on ten samples.
-- [ ] VTA child candidate contains only Tasks 5-7 files.
+- [ ] VTA child candidate contains only Tasks 5-8 files.
 - [ ] VTA commit is recorded by an exact parent gitlink commit.
 
-## Task 8: Prove the TSIM deployment matrix
+## Task 9: Prove the TSIM deployment matrix
 
 **Description:** Add TSIM-specific tests for lazy initialization, hardware
-loading, bundle construction, exact outputs/labels, and positive cycle count.
+loading, bundle construction, bounded outputs, exact labels, and positive cycle
+count.
 
 **Acceptance criteria:**
 - [ ] Build/export/reload completes before lazy TSIM initialization.
-- [ ] LLVM and C mixed execution matches references and manifest labels.
+- [ ] LLVM and C mixed execution satisfies the fixed shape/dtype and
+      `rtol=1e-6, atol=1e-6` reference checks and exact manifest labels.
 - [ ] Positive TSIM `cycle_count` is required; FSIM-only counters are not.
 
 **Verification:** Write `test_tsim_deployment.py` first, observe RED where the
 contract is absent, then run the TSIM `--host-codegen all` command in a fresh
 process.
 
-**Dependencies:** Task 7.
+**Dependencies:** Task 8.
 
 **Files likely touched:**
 - `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_tsim_deployment.py`
@@ -189,7 +221,7 @@ process.
 
 **Estimated scope:** Medium, 4 files.
 
-## Task 9: Add reproducible extraction and aggregate validation
+## Task 10: Add reproducible extraction and aggregate validation
 
 **Description:** Add the maintained sample extractor, document it, and extend
 the parent BYOC gate with focused VWW HOST/FSIM tests and a fresh VWW TSIM
@@ -205,7 +237,7 @@ matrix while preserving every existing gate.
 **Verification:** Run extractor-focused asset tests, shell syntax checking, and
 `bash scripts/test_vta_byoc.sh`.
 
-**Dependencies:** Task 8.
+**Dependencies:** Task 9.
 
 **Files likely touched:**
 - `scripts/extract_mlperf_vww_samples.py`

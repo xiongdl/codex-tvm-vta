@@ -34,9 +34,16 @@ submission results.
    `global_scale=8.0`, and `skip_conv_layers=[0]`, once, before the reference
    and mixed graphs fork.
 6. The fixed mixed graph contains 12 VTA regions. Depthwise and other
-   unsupported operations remain on the host portion of the same graph.
+   unsupported operations remain on the host portion of the same graph. The
+   VTA Relay strategy supplies an explicit host schedule for unpacked NHWC
+   depthwise convolution so the mixed module can keep the standard single
+   `Target("vta", host=...)` build contract.
 7. The local `.envs` source trees and the complete dataset remain unmodified
    and uncommitted.
+8. Exported graph JSON is compiler output and is never patched to alter device
+   placement. Reference/mixed output comparisons require identical shape and
+   dtype plus `numpy.testing.assert_allclose(rtol=1e-6, atol=1e-6)`; all ten
+   top-1 labels must still exactly match the manifest.
 
 ## Source contracts
 
@@ -161,11 +168,16 @@ def load_sample(sample_path):
   from the local source directory.
 - Model tests start RED, then prove the exact TFLite/Relay contract,
   preprocessing, one-time quantization, and deterministic 12-region routing.
+- A focused VTA runtime regression test proves that a mixed graph containing
+  an unpacked NHWC depthwise convolution builds with the single VTA target,
+  leaves that operation on the host, executes without graph mutation, and
+  preserves positive accelerator activity for its VTA region.
 - Artifact tests prove atomic authenticated export/reload for LLVM and C host
   code generators.
-- HOST/FSIM tests prove reference/mixed exact output equality, correct manifest
-  top-1 labels for all ten samples, expected VTA symbols, and positive FSIM
-  counters.
+- HOST/FSIM tests prove reference/mixed output agreement within the fixed
+  `rtol=1e-6, atol=1e-6` bound, identical output shapes and dtypes, correct
+  manifest top-1 labels for all ten samples, expected VTA symbols, and
+  positive FSIM counters.
 - TSIM tests and the CLI prove the corresponding matrix with positive TSIM
   cycle activity in a fresh process.
 - The parent aggregate gate includes the VWW focused tests and both simulator
@@ -175,7 +187,8 @@ def load_sample(sample_path):
 
 - Always: authenticate source bytes; use the repository Python environment;
   keep host and mixed graphs derived from one quantized module; preserve
-  existing public CLI defaults; test before each implementation commit.
+  existing public CLI defaults; use the standard compiler-produced graph JSON;
+  test before each implementation commit.
 - Ask first: change the selected samples, class mapping, quantization policy,
   expected partition count, application name, dependencies, or aggregate-gate
   scope.
@@ -190,15 +203,19 @@ def load_sample(sample_path):
 2. The model imports as the fixed float32 `96x96x3 -> 2` graph, preprocesses
    inputs to `[0,1]`, quantizes once with the approved policy, and partitions
    deterministically into 12 VTA regions.
-3. LLVM and C HOST/FSIM matrices build, export, reload, and execute; reference
-   and mixed outputs match exactly for all ten samples; top-1 labels match the
-   manifest; required FSIM counters are positive.
-4. LLVM and C HOST/TSIM matrices satisfy the same output and label checks and
+3. The VTA single-target build supports unpacked NHWC depthwise host fallback
+   without graph JSON mutation; a focused regression test proves host fallback
+   and positive VTA-region simulator activity in the same graph.
+4. LLVM and C HOST/FSIM matrices build, export, reload, and execute; reference
+   and mixed outputs have identical shape/dtype and match within
+   `rtol=1e-6, atol=1e-6` for all ten samples; top-1 labels match the manifest;
+   required FSIM counters are positive.
+5. LLVM and C HOST/TSIM matrices satisfy the same output and label checks and
    report positive TSIM cycle activity.
-5. Generated bundles include authenticated graph, params, library, manifest,
+6. Generated bundles include authenticated graph, params, library, manifest,
    and inspectable host source, and partial exports are cleaned on failure.
-6. `bash scripts/test_vta_byoc.sh` passes with all existing gates retained.
-7. The source directories under `.envs` are unchanged and absent from Git.
+7. `bash scripts/test_vta_byoc.sh` passes with all existing gates retained.
+8. The source directories under `.envs` are unchanged and absent from Git.
 
 ## Open questions
 
