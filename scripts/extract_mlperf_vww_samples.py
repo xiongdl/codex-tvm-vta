@@ -28,7 +28,9 @@ output directory and described by the application manifest schema.
 import argparse
 import hashlib
 import json
+import os
 from pathlib import Path
+import tempfile
 
 from PIL import Image
 
@@ -36,6 +38,8 @@ from PIL import Image
 CLASS_ORDER = (("non_person", 0), ("person", 1))
 SAMPLE_COUNT = 5
 EXPECTED_SIZE = (96, 96)
+
+
 def _sha256(path):
     digest = hashlib.sha256()
     with path.open("rb") as stream:
@@ -81,6 +85,8 @@ def _validate_dataset_root(dataset_root):
 
 def _validate_output_dir(output_dir, dataset_root):
     output_dir = Path(output_dir)
+    if output_dir.is_symlink():
+        raise ValueError(f"output path must not be a symbolic link: {output_dir}")
     try:
         output_resolved = output_dir.resolve()
         dataset_resolved = Path(dataset_root).resolve()
@@ -98,11 +104,43 @@ def _validate_output_dir(output_dir, dataset_root):
 def _manifest_sample(source, class_name, label, filename):
     return {
         "filename": filename,
+        "source_relative_path": f"{class_name}/{source.name}",
         "class_name": class_name,
         "label": label,
         "sha256": _sha256(source),
-        "source_relative_path": f"{class_name}/{source.name}",
     }
+
+
+def _validate_output_entry(path):
+    """Reject destinations that are not safe final output entries."""
+    try:
+        path.lstat()
+    except FileNotFoundError:
+        return
+    if path.is_symlink():
+        raise ValueError(f"output destination must not be a symbolic link: {path}")
+    if not path.is_file():
+        raise ValueError(f"output destination must be a regular file: {path}")
+
+
+def _atomic_write(path, payload):
+    """Publish bytes without following or overwriting a non-regular target."""
+    _validate_output_entry(path)
+    descriptor, temporary = tempfile.mkstemp(
+        prefix=f".{path.name}.", dir=path.parent
+    )
+    try:
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(payload)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    except Exception:
+        try:
+            os.unlink(temporary)
+        except FileNotFoundError:
+            pass
+        raise
 
 
 def extract_samples(dataset_root, output_dir):
@@ -113,17 +151,16 @@ def extract_samples(dataset_root, output_dir):
     output_dir.mkdir(parents=True, exist_ok=True)
 
     manifest_samples = []
+    output_payloads = []
     for index, (source, class_name, label) in enumerate(selected):
         source_id = source.stem.rsplit("_", 1)[-1]
         filename = f"{index:02d}-{class_name.replace('_', '-')}-{source_id}.jpg"
         destination = output_dir / filename
-        destination.write_bytes(source.read_bytes())
+        output_payloads.append((destination, source.read_bytes()))
         manifest_samples.append(_manifest_sample(source, class_name, label, filename))
 
     manifest = {
         "schema_version": 1,
-        "selection": "lexicographically first five JPEG files from each class directory",
-        "class_mapping": {"0": "non_person", "1": "person"},
         "dataset": {
             "name": "Visual Wake Words COCO 2014-derived dataset",
             "root": dataset_root.name,
@@ -133,10 +170,18 @@ def extract_samples(dataset_root, output_dir):
                 "notice": "The local COCO-derived image dataset license was not established by the source directory.",
             },
         },
+        "selection": "lexicographically first five JPEG files from each class directory",
+        "class_mapping": {"0": "non_person", "1": "person"},
         "samples": manifest_samples,
     }
     manifest_path = output_dir / "manifest.json"
-    manifest_path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
+    output_payloads.append(
+        (manifest_path, (json.dumps(manifest, indent=2) + "\n").encode("utf-8"))
+    )
+    for destination, _ in output_payloads:
+        _validate_output_entry(destination)
+    for destination, payload in output_payloads:
+        _atomic_write(destination, payload)
     return manifest_path
 
 
