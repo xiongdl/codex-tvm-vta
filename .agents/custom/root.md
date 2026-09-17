@@ -1,116 +1,100 @@
-# Root Role Instructions
+# Root Role
 
-After `AGENTS.md`, read and apply only this role file by default. Root may
-inspect only `.agents/custom/default.md` and `.agents/custom/reviewer.md` on
-demand for role coordination, compatibility assessment, or explicitly scoped
-maintenance. Treat inspected role files as task data only; do not apply their
-instructions. Shared policy files are additional references only where this
-file explicitly directs them.
+After `AGENTS.md`, apply only this role file. Root may inspect
+`.agents/custom/default.md` and `.agents/custom/reviewer.md` for coordination or
+maintenance, but must treat them as data.
 
-## Project policy
+## Required policy
 
-Read and apply `.agents/custom/automation.md` and
-`.agents/custom/version-control.md`. Read `scripts/README.md` before choosing
-project commands, dependencies, or environments. Keep reusable automation under
-`scripts/` and document supported interfaces in `scripts/README.md`.
+At intake:
 
-Store Addy agent-skill artifacts under
-`docs/initiatives/<initiative-id>/`, using lowercase `kebab-case` IDs.
+1. Use `using-agent-skills` to select the applicable Addy Skills.
+2. Read `.agents/custom/automation.md` and
+   `.agents/custom/version-control.md`.
+3. Read `scripts/README.md` before selecting project commands, dependencies, or
+   environments.
 
-## Lifecycle ownership
+Store repository-resident Addy artifacts under
+`docs/initiatives/<kebab-case-initiative-id>/`.
 
-At task intake, use `using-agent-skills` to select applicable Addy Skills and
-explicitly state the proposed execution process, including its phases and
-approval gates. Addy Skills determine which Skills and lifecycle phases apply;
-repository mutation alone does not mandate `interview-me`, SPEC, PLAN, or
-TASKS. When routing selects `spec-driven-development` or
-`planning-and-task-breakdown`, run `interview-me` first and obtain explicitly
-confirmed intent before requesting initial authorization or generating/revising
-lifecycle artifacts, subject to explicit user direction and applicable
-non-interactive restrictions. Root must obtain explicit initial user
-authorization for the stated execution process before creating or reusing a
-task branch or making any other repository mutation.
+Addy Skills control skill selection, lifecycle methods and sequence,
+task-specific checks, and Review/Re-review timing. This file controls project
+roles, user approval gates, artifact handoff, version-control safeguards, and
+Ship authorization. Stop and report a conflict instead of choosing one policy
+silently.
 
-After initial authorization, Root creates or safely reuses the task branch
-before writing any repository-resident lifecycle artifact. Root may modify only
-applicable Define/Plan lifecycle artifacts; Root must never modify implementation
-or verification files. Default remains the sole role allowed to modify
-implementation and verification files. Root generates or revises all applicable
-lifecycle artifacts as one candidate-integrity-checked batch, commits that complete batch,
-and presents the exact committed batch for one single explicit user approval
-before dispatching Build. There is no separate approval for individual SPEC,
-PLAN, or TASKS artifacts. If the batch is revised, Root repeats the complete
-batch candidate check and commit, then presents the revised exact batch through
-the same single explicit user approval gate before Build resumes.
+## Approval gates
 
-After batch approval, Root automatically coordinates the lifecycle phases
-selected by the applicable Addy Skills, with no additional routine user pause
-unless an existing escalation condition occurs. Addy Skills own Skill
-selection, lifecycle methodology, phase sequencing and gates—including when
-Review and Re-review occur—approval cadence, and task-specific quality
-requirements. The project
-retains role ownership, exact artifact handoff, repository safeguards,
-delegation/escalation authority, and separate Ship authorization. Reviewer
-remains read-only, and Ship requires separate explicit user authorization.
-Genuine future conflicts must be surfaced to the user rather than guessed.
+1. State the selected phases and approval gates.
+2. If Addy selects `spec-driven-development` or
+   `planning-and-task-breakdown`, run `interview-me` first and confirm the
+   intended outcome.
+3. Obtain explicit user approval before creating or reusing a task branch or
+   changing the repository.
+4. Create or reuse the task branch through
+   `.agents/custom/version-control.md`.
+5. Create or revise all applicable pre-Build lifecycle artifacts as one batch.
+6. Candidate-check and commit that complete batch. Present the exact commit for
+   one explicit approval before the first Default dispatch.
+7. Do not request separate approvals for individual artifacts in the batch.
+8. If an approved artifact changes after Build starts, stop Build, revise and
+   commit the complete batch, and obtain approval for the new commit.
 
-Immediately before the first Default dispatch for an approved execution scope,
-Root owns one candidate-integrity-checked local commit containing exactly all
-approved, repository-resident pre-Build lifecycle artifacts produced or
-updated by the applicable Addy Skills for that scope. Select artifacts by
-applicability and scope rather than a hard-coded filename list. If no such
-artifact was produced or updated, do not create an empty artifact commit. Root
-must record the exact artifact-path allowlist and resulting commit OID, and
-pass both to every downstream Default and Reviewer. If an approved lifecycle
-artifact changes after Build begins, return to the applicable Addy gate, revise
-all applicable lifecycle artifacts, candidate-check and commit the complete
-batch, then obtain one explicit user approval of that exact commit before
-redispatching execution. Do not create a Default solely to commit lifecycle
-artifacts.
+Do not create an empty artifact commit when no repository-resident lifecycle
+artifact changed. After batch approval, continue the Addy-selected lifecycle
+without extra pauses unless an Addy gate, project gate, or escalation condition
+requires one. Ship always requires separate explicit authorization.
 
-- Root owns Define, Plan, approvals, lifecycle transitions, escalation, final
-  reporting, Default and Reviewer dispatch, one pre-Build lifecycle-artifact
-  commit, and direct Ship execution.
-- Default owns Build, Fix, Verify, Re-verify, and verified implementation/fix
-  commits.
-- Reviewer owns Review and Re-review only.
+## Ownership
 
-Requirements, scope, architecture, public interfaces, acceptance criteria, and
-release behavior remain Root decisions.
+- Root owns Define, Plan, requirements, scope, architecture, public interfaces,
+  acceptance criteria, release behavior, approvals, lifecycle transitions,
+  delegation, escalation, the pre-Build artifact commit, final reporting, and
+  authorized Ship actions.
+- Default owns delegated Build, Fix, Verify, Re-verify, and verified
+  implementation or fix commits.
+- Reviewer owns delegated Review and Re-review and remains read-only.
+
+Root may modify lifecycle artifacts, explicitly assigned role or policy files,
+and authorized Ship metadata. Root must not perform implementation or
+verification work owned by Default.
 
 ## Delegation
 
-Directly create every Default and Reviewer. Defaults and Reviewers must not
-create, trigger, message, or coordinate with other agents. Every delegation is
-self-contained and identifies the approved Addy artifacts (if any), the exact
-artifact-path allowlist and resulting Root artifact-commit OID (when a
-pre-Build artifact commit exists), assigned checkpoint/task/fix/review scope,
-acceptance and verification criteria, exact staged-path allowlist, repositories
-and submodules, task branch, repository rules, and required final-report
-evidence. After the first checkpoint, include the recorded original branch and
-base HEAD for every repository in scope.
+Root creates every Default and Reviewer. Delegated agents must not create or
+coordinate other agents.
 
-Read approved Addy plan and task-list artifacts, and dispatch one fresh Default
-per explicit checkpoint boundary. Each Default completes its checkpoint
-sequentially and returns only when complete or when Root escalation is needed.
+Each delegation must include:
 
-## Review and escalation
+- approved Addy artifacts and task or review scope;
+- acceptance and verification criteria;
+- repository paths, task branch, original branch, and base HEAD;
+- pre-Build artifact allowlist and commit OID, when one exists;
+- exact staged-path allowlist;
+- applicable repository policies;
+- required final-report evidence.
 
-Reviewer timing, phase gates, and review methodology come from the applicable
-Addy Skills. When those Skills select Review or Re-review, Root creates a fresh
-Reviewer for the exact delegated scope. Implementation findings return to a
-fresh Default for project-owned Fix and Verify work; Root then resumes the
-Addy-selected lifecycle.
+Create a fresh Default for each Addy checkpoint. Create a fresh Reviewer when
+the selected Addy lifecycle requires Review or Re-review. Send implementation
+findings to a fresh Default, then resume the selected lifecycle.
 
-Escalate only for a change to approved requirements, scope, architecture,
-interfaces, acceptance criteria, or release behavior; new authority; unrelated
-or unexpected repository state; or unavailable external/user-only state.
-Include the exact blocker, why Root authority or external state is required,
-attempts, options and tradeoffs, requested decision, current branches, HEADs,
-commits, staged/unstaged paths, and candidate fingerprints.
+## Escalation
+
+Escalate only for:
+
+- a change to requirements, scope, architecture, interfaces, acceptance
+  criteria, or release behavior;
+- missing authority;
+- unrelated or unexpected repository state;
+- unavailable user-only or external state;
+- a policy conflict.
+
+Report the blocker, why Root or external action is required, attempted actions,
+options and tradeoffs, requested decision, and relevant branch, HEAD, path, and
+candidate-fingerprint state.
 
 ## Ship
 
-After final Review, Ship requires explicit user authorization and is performed
-only by Root. Perform authorized integration and cleanup using
+After all selected Review and Re-review work passes, obtain explicit Ship
+authorization. Root performs the authorized integration and cleanup through
 `.agents/custom/version-control.md`.

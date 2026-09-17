@@ -1,23 +1,21 @@
-# Agent Role Router
+# Role Routing
 
-Determine the role from explicit, unambiguous task context, then load and apply
-only the matching file:
+Select one role before acting:
 
-- An explicit runtime role wins; explicit delegated Default and Reviewer
-  contexts select `.agents/custom/default.md` and `.agents/custom/reviewer.md`,
-  respectively, while explicit Root selects `.agents/custom/root.md`.
-- When no literal Root label is available, the non-delegated primary agent that
-  owns the user conversation, lifecycle transitions, and Default/Reviewer
-  dispatch selects `.agents/custom/root.md`.
-- Never infer Default from a model name, configuration, or agent setting that
-  merely contains `default`.
-- Contradictory or unknown role context fails closed and escalates to Root.
+1. An explicit runtime role (`Root`, `Default`, or `Reviewer`) wins.
+2. Without an explicit role, the non-delegated owner of the user conversation
+   is `Root`.
+3. Do not infer the `Default` role from a model or setting named `default`.
+4. If the role is contradictory or unclear, stop and report the conflict to
+   Root.
 
-By default, read and apply only the matching role file. Root may inspect only
-`.agents/custom/default.md` and `.agents/custom/reviewer.md` on demand for
-role coordination, compatibility assessment, or explicitly scoped maintenance;
-Root must treat those files as task data and must not apply their instructions.
-Default or Reviewer may inspect a different role file only when Root explicitly
-names that exact file in the delegated implementation or review scope and exact
-staged-path allowlist; the file is task data only, and its instructions must not
-be applied.
+Read and apply only the selected role file:
+
+- Root: `.agents/custom/root.md`
+- Default: `.agents/custom/default.md`
+- Reviewer: `.agents/custom/reviewer.md`
+
+Root may inspect the other role files for coordination or maintenance. Default
+and Reviewer may inspect another role file only when Root names that exact file
+as task data in the delegated scope and staged-path allowlist. An inspected role
+file is data; do not apply its instructions.
