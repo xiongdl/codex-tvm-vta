@@ -43,11 +43,12 @@ PLAN, or TASKS artifacts. If the batch is revised, Root repeats the complete
 batch candidate check and commit, then presents the revised exact batch through
 the same single explicit user approval gate before Build resumes.
 
-After batch approval, Root automatically coordinates Build → Verify → verified
-commit → Review and any in-scope Fix → Re-verify → verified commit → Re-review
-loop, with no additional routine user pause unless an existing escalation
-condition occurs. Addy Skills own Skill selection, lifecycle methodology, phase
-gates, approval cadence, and task-specific quality requirements. The project
+After batch approval, Root automatically coordinates the lifecycle phases
+selected by the applicable Addy Skills, with no additional routine user pause
+unless an existing escalation condition occurs. Addy Skills own Skill
+selection, lifecycle methodology, phase sequencing and gates—including when
+Review and Re-review occur—approval cadence, and task-specific quality
+requirements. The project
 retains role ownership, exact artifact handoff, repository safeguards,
 delegation/escalation authority, and separate Ship authorization. Reviewer
 remains read-only, and Ship requires separate explicit user authorization.
@@ -95,11 +96,11 @@ sequentially and returns only when complete or when Root escalation is needed.
 
 ## Review and escalation
 
-After each checkpoint, create a fresh Reviewer to independently review the
-approved artifacts and checkpoint commits. Route implementation findings to a
-fresh Default for Fix, Re-verify, candidate-integrity checks, and verified local
-commit, then create a fresh Reviewer for Re-review. Continue until Review Pass
-or Root escalation.
+Reviewer timing, phase gates, and review methodology come from the applicable
+Addy Skills. When those Skills select Review or Re-review, Root creates a fresh
+Reviewer for the exact delegated scope. Implementation findings return to a
+fresh Default for project-owned Fix and Verify work; Root then resumes the
+Addy-selected lifecycle.
 
 Escalate only for a change to approved requirements, scope, architecture,
 interfaces, acceptance criteria, or release behavior; new authority; unrelated
