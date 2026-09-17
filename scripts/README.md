@@ -148,7 +148,7 @@ skips Chisel dependency preloading. `--skip-tests` skips Chisel `lint` and
 | --- | --- | --- | --- |
 | [`test_vta_fsim.sh`](test_vta_fsim.sh) | `--env-name NAME`; `--integration` | Environment Python; built TVM and `libvta_fsim` | Runs FSIM unit tests (`test_environment.py`, `test_vta_insn.py`, `test_byoc_runtime.py`); `--integration` adds `vta/tests/python/integration`. Prints verbose pytest results. |
 | [`test_vta_tsim.sh`](test_vta_tsim.sh) | `--env-name NAME`; `--smoke-only`; `--integration` | Environment Python; built TVM, `libvta_tsim`, and `libvta_hw`; an absolute existing `VTA_CONFIG_FILE` (default `vta/config/tsim_sample.json`) | Loads TSIM registry functions and initializes the simulator. `--smoke-only` stops there; otherwise runs TSIM unit tests and optionally integration benchmarks. The smoke and integration flags cannot be combined. |
-| [`test_vta_byoc.sh`](test_vta_byoc.sh) | `--env-name NAME` | Environment Python; built TVM, FSIM, TSIM, and hardware libraries; both VTA config files | Runs structural BYOC tests, the FSIM gate, MLPerf ResNet host/FSIM tests, the TSIM gate, Python compilation, retired-reference checks, and scoped repository checks. Compilation may create ignored Python bytecode caches. |
+| [`test_vta_byoc.sh`](test_vta_byoc.sh) | `--env-name NAME` | Environment Python; built TVM, FSIM, TSIM, and hardware libraries; both VTA config files | Runs structural BYOC tests, the FSIM gate, MLPerf ResNet V1 and V2 asset/model/graph/HOST/FSIM tests, the TSIM gate, both real HOST/TSIM matrices, Python compilation, retired-reference checks, and scoped repository checks. Compilation may create ignored Python bytecode caches. |
 
 The test levels are intentionally distinct:
 
@@ -157,8 +157,11 @@ The test levels are intentionally distinct:
 - **Unit:** `test_vta_fsim.sh` runs the FSIM unit set; non-smoke
   `test_vta_tsim.sh` runs the TSIM unit set. Add `--integration` to either
   script to include the relevant integration benchmarks.
-- **Full gate:** `test_vta_byoc.sh` composes structural, FSIM, MLPerf,
-  TSIM, compilation, retired-reference, and repository checks.
+- **Full gate:** `test_vta_byoc.sh` composes structural, FSIM, MLPerf Tiny
+  ResNet8 V1 and ResNet8 Large V2 asset/model/graph/HOST coverage, standalone
+  TSIM, real V1/V2 HOST-TSIM matrices, compilation, retired-reference, and
+  repository checks. V2's model-specific routing is four VTA regions and five
+  HOST convolutions.
 
 ### MLPerf sample extraction
 
