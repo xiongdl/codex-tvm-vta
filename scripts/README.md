@@ -134,6 +134,23 @@ The script authenticates the bytes before unpickling, validates the 10,000
 records, and writes the first sample for labels 0 through 9 as ten PNG files
 plus `manifest.json`. NumPy is required even for `--help`.
 
+### `extract_mlperf_vww_samples.py`
+
+```bash
+.envs/tvm-vta-env/bin/python scripts/extract_mlperf_vww_samples.py \
+  --dataset-root <vw_coco2014_96-directory> \
+  --output-dir <output-directory>
+```
+
+Both arguments are required. The input must contain `non_person/` and
+`person/` directories with at least five readable 96x96 RGB JPEGs each. The
+script selects the first five JPEG filenames in lexical order from each class,
+copies their bytes to the output directory, and writes the VWW `manifest.json`
+with class labels, source-relative paths, and SHA-256 hashes. The output must
+not be the dataset directory or any path below `.envs`; the source dataset is
+never modified. Invalid roots, class directories, image files, or output
+locations fail before any output is created.
+
 ## Environment overrides
 
 | Variable | Used by | Default or constraint |

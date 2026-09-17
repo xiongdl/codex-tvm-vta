@@ -107,6 +107,13 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_model_pipeline.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_host_deployment.py"
 
+echo "==> MLPerf VWW V1 HOST/FSIM gate"
+VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_assets.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_model_pipeline.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_graph_artifacts.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_host_deployment.py"
+
 echo "==> MLPerf ResNet V2 HOST/FSIM gate"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_assets.py" \
@@ -120,6 +127,11 @@ VTA_CONFIG_FILE="${tsim_config}" "${script_dir}/test_vta_tsim.sh" --env-name "${
 echo "==> MLPerf ResNet V1 HOST/TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/run.py" \
+    --simulator tsim --host-codegen all
+
+echo "==> MLPerf VWW V1 HOST/TSIM gate"
+VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/run.py" \
     --simulator tsim --host-codegen all
 
 echo "==> MLPerf ResNet V2 HOST/TSIM gate"
