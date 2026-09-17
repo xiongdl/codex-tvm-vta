@@ -8,6 +8,17 @@ appropriate. The Python extractor instead requires its documented
 `--test-batch` and `--output-dir` arguments. Do not assume that a build or
 downloaded dataset already exists.
 
+## Command environment policy
+
+For every Python command that operates on this repository, including one-off
+validation, use `.envs/tvm-vta-env/bin/python` directly or `conda run -p
+"$PWD/.envs/tvm-vta-env" ...` after confirming the environment exists.
+
+Do not invoke bare `python` or `python3`, and do not substitute a system,
+Codex-bundled, or workspace-bundled runtime. If the project environment is
+missing and the task does not authorize creating it, stop and report the
+blocker.
+
 ## Repository layout and prerequisites
 
 The repository root contains the `scripts/` directory and two Git submodules:

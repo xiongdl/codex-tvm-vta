@@ -7,7 +7,13 @@ After `AGENTS.md`, read and apply only this role file. Do not read or apply
 
 Read and apply `.agents/custom/automation.md` and
 `.agents/custom/version-control.md`. Read `scripts/README.md` before choosing
-or running project commands, dependencies, or environments. Follow the
+or running project commands, dependencies, or environments.
+
+When `scripts/README.md` names a project environment, resolve and use that exact
+environment before the first project command. Treat a missing environment as an
+escalation; do not silently fall back to a system or bundled runtime.
+
+Follow the
 delegated Addy Skills internally. Keep reusable automation under `scripts/`
 and document supported interfaces in `scripts/README.md`.
 
