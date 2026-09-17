@@ -166,7 +166,7 @@ The test levels are intentionally distinct:
 two required arguments:
 
 ```bash
-python scripts/extract_mlperf_resnet_samples.py \
+.envs/tvm-vta-env/bin/python scripts/extract_mlperf_resnet_samples.py \
   --test-batch <path-to-cifar-10-batches-py/test_batch> \
   --output-dir <output-directory>
 ```
