@@ -113,40 +113,52 @@ implement `graph_artifacts.py` and run the focused test.
 
 **Estimated scope:** Small, 2 files.
 
-## Task 6: Add the VTA depthwise host fallback
+## Task 6: Add explicit CPU/VTA device planning
 
-**Description:** Extend the VTA Relay convolution strategy with an explicit
-host-compatible schedule for unpacked NHWC depthwise convolution so a mixed
-module can retain the standard single `Target("vta", host=...)` build.
+**Description:** Add a narrow, additive VTA Relay interface that validates a
+typed partitioned module and returns an immutable plan with explicit CPU/VTA
+placement and canonical heterogeneous build targets. Remove the rejected
+single-target CPU-strategy bridge.
 
 **Acceptance criteria:**
-- [ ] A focused mixed graph with an unpacked NHWC depthwise host operation and
-      a VTA region builds with the single VTA target.
-- [ ] The depthwise operation remains a host fallback, the VTA region still
-      invokes the accelerator, and no graph JSON or device/storage metadata is
-      patched after compilation.
-- [ ] Existing VTA BYOC runtime tests remain unchanged in meaning and pass.
+- [ ] The interface accepts only a typed IRModule with validated outlined VTA
+      functions and an explicit valid host target; failures are deterministic.
+- [ ] The returned plan is immutable, preserves existing partition symbols,
+      assigns host computation to CPU and VTA call sites to `ext_dev`, and
+      supplies canonical CPU/VTA build targets without modifying its input.
+- [ ] A focused graph containing CPU unpacked-NHWC depthwise plus a VTA region
+      compiles without graph JSON mutation, exposes both device types and
+      device-copy boundaries, matches its host reference, and produces positive
+      accelerator activity.
+- [ ] The temporary global CPU-strategy override is removed and existing
+      ResNet/BYOC single-target behavior remains passing.
 
-**Verification:** Extend `test_byoc_runtime.py` first and observe the current
-schedule-registration failure, then implement the narrow strategy fallback and
-run the focused FSIM runtime test.
+**Verification:** Strengthen `test_byoc_runtime.py` first and observe the
+single-target placement/output failure, then implement the planner and run the
+focused device-contract and FSIM mixed-runtime tests.
 
 **Dependencies:** Task 5.
 
 **Files likely touched:**
+- `vta/python/vta/relay/device_plan.py`
+- `vta/python/vta/relay/__init__.py`
 - `vta/python/vta/top/op.py`
 - `vta/tests/python/unittest/test_byoc_runtime.py`
 
-**Estimated scope:** Small, 2 shared VTA files.
+**Estimated scope:** Medium, 4 shared VTA files.
 
 ## Task 7: Implement HOST and FSIM deployment
 
-**Description:** Build reference and mixed LLVM/C artifacts, reload each bundle,
-run all ten samples, enforce bounded outputs and exact labels, and validate
-simulator activity without modifying compiler-produced graph JSON.
+**Description:** Adopt the shared CPU/VTA plan, build reference and mixed
+LLVM/C artifacts, reload each bundle, run all ten samples, enforce bounded
+outputs and exact labels, and validate simulator activity without modifying
+compiler-produced graph JSON.
 
 **Acceptance criteria:**
 - [ ] Both host code generators build independent reference/mixed bundles.
+- [ ] Mixed builds consume the device-plan module and heterogeneous targets;
+      compiled graphs contain CPU and `ext_dev` placements plus compiler-made
+      copy boundaries, with all thirteen depthwise convolutions on CPU.
 - [ ] All ten mixed outputs have the reference shape/dtype and satisfy
       `numpy.testing.assert_allclose(rtol=1e-6, atol=1e-6)`; top-1 labels equal
       the manifest.
@@ -161,10 +173,12 @@ implement `runtime.py` and run the HOST/FSIM focused test.
 **Dependencies:** Task 6.
 
 **Files likely touched:**
+- `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/model_pipeline.py`
 - `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/runtime.py`
+- `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_model_pipeline.py`
 - `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_host_deployment.py`
 
-**Estimated scope:** Small, 2 files.
+**Estimated scope:** Medium, 4 files.
 
 ## Task 8: Add the CLI and application documentation
 
@@ -190,7 +204,8 @@ execute the FSIM `--host-codegen all` command from the specification.
 ## Checkpoint 2
 
 - [ ] Graph artifact and HOST/FSIM tests pass.
-- [ ] The focused VTA mixed-runtime depthwise fallback regression passes.
+- [ ] The focused VTA device-plan and CPU-depthwise/VTA mixed-runtime
+      regressions pass.
 - [ ] The complete FSIM LLVM/C matrix passes on ten samples.
 - [ ] VTA child candidate contains only Tasks 5-8 files.
 - [ ] VTA commit is recorded by an exact parent gitlink commit.
@@ -230,6 +245,9 @@ matrix while preserving every existing gate.
 **Acceptance criteria:**
 - [ ] Extractor recreates the exact ten committed JPEG bytes and manifest from
       an explicit dataset root and refuses invalid inputs.
+- [ ] Existing JPEG/manifest symlinks and non-regular destinations are rejected
+      without following or modifying them; an external `.envs` sentinel remains
+      byte-for-byte unchanged.
 - [ ] Script documentation lists inputs, prerequisites, outputs, and side effects.
 - [ ] Aggregate gate includes VWW assets, model, artifacts, HOST/FSIM, and TSIM
       without altering existing ResNet coverage.
@@ -243,9 +261,11 @@ matrix while preserving every existing gate.
 - `scripts/extract_mlperf_vww_samples.py`
 - `scripts/README.md`
 - `scripts/test_vta_byoc.sh`
+- `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_assets.py`
 - Parent `vta` gitlink
 
-**Estimated scope:** Medium, 4 parent paths.
+**Estimated scope:** Medium, 4 implementation/test paths plus the parent
+gitlink.
 
 ## Checkpoint 3
 

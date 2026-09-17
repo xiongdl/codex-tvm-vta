@@ -34,16 +34,23 @@ submission results.
    `global_scale=8.0`, and `skip_conv_layers=[0]`, once, before the reference
    and mixed graphs fork.
 6. The fixed mixed graph contains 12 VTA regions. Depthwise and other
-   unsupported operations remain on the host portion of the same graph. The
-   VTA Relay strategy supplies an explicit host schedule for unpacked NHWC
-   depthwise convolution so the mixed module can keep the standard single
-   `Target("vta", host=...)` build contract.
+   unsupported operations remain on the CPU portion of the same graph. A
+   narrow additive `vta.relay` device-planning interface accepts a typed,
+   partitioned module plus an explicit host target and returns an immutable
+   plan containing the annotated module and canonical CPU/VTA build targets.
+   VTA external call sites are constrained to `ext_dev`; all remaining Relay
+   computation is constrained to CPU.
 7. The local `.envs` source trees and the complete dataset remain unmodified
    and uncommitted.
 8. Exported graph JSON is compiler output and is never patched to alter device
    placement. Reference/mixed output comparisons require identical shape and
    dtype plus `numpy.testing.assert_allclose(rtol=1e-6, atol=1e-6)`; all ten
    top-1 labels must still exactly match the manifest.
+9. Mixed builds use an explicit heterogeneous target set: the requested LLVM
+   or C host target for CPU computation and the VTA target for `ext_dev`
+   computation. Relay device planning must insert the required CPU/VTA copies;
+   the graph must expose both device types instead of assigning host fallback
+   operations to `ext_dev`.
 
 ## Source contracts
 
@@ -90,6 +97,26 @@ MLPerf Tiny Apache license as an image-data license.
 No TensorFlow, `tflite-runtime`, AutoTVM, legacy graph packing, or network
 download is introduced.
 
+## Device-planning interface
+
+The additive shared interface is `vta.relay.plan_devices_for_vta(module,
+host_target) -> VTADevicePlan`. `VTADevicePlan` is a frozen dataclass with two
+public fields: `module`, a newly annotated typed IRModule, and `targets`, an
+ordered immutable pair containing the canonical CPU host target followed by
+the VTA target. The input module is not modified. Existing
+`partition_for_vta` callers are unaffected.
+
+```python
+plan = vta.relay.plan_devices_for_vta(prepared.mixed_module, host_target)
+with vta.build_config():
+    mixed_factory = relay.build(plan.module, target=plan.targets)
+```
+
+The function raises `TypeError` for a non-IRModule or non-target input and
+`ValueError` for an untyped module, a missing/invalid outlined VTA function, or
+an invalid host/device combination. It never accepts runtime devices or graph
+JSON, keeping compilation policy separate from execution state.
+
 ## Commands
 
 Focused asset/model verification:
@@ -134,6 +161,8 @@ bash scripts/test_vta_byoc.sh
 scripts/
   extract_mlperf_vww_samples.py       deterministic local sample extractor
   test_vta_byoc.sh                    aggregate HOST/FSIM/TSIM gate
+vta/python/vta/relay/
+  device_plan.py                      typed CPU/VTA placement contract
 vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/
   README.md                           usage and behavior
   LICENSE.mlperf-tiny                 source-model license text
@@ -165,13 +194,18 @@ def load_sample(sample_path):
 
 - Asset tests authenticate the model, license, manifest, and every JPEG byte;
   validate dimensions and class balance; and optionally reproduce the samples
-  from the local source directory.
+  from the local source directory. Extractor security tests reject existing
+  JPEG or manifest symlinks/non-regular destinations and prove external
+  sentinel bytes remain unchanged.
 - Model tests start RED, then prove the exact TFLite/Relay contract,
   preprocessing, one-time quantization, and deterministic 12-region routing.
-- A focused VTA runtime regression test proves that a mixed graph containing
-  an unpacked NHWC depthwise convolution builds with the single VTA target,
-  leaves that operation on the host, executes without graph mutation, and
-  preserves positive accelerator activity for its VTA region.
+- Focused VTA device-planning tests prove the additive public interface rejects
+  invalid or untyped input, preserves outlined VTA functions, assigns host
+  depthwise computation to CPU and VTA calls to `ext_dev`, and inserts explicit
+  device-copy boundaries without graph mutation.
+- A focused mixed-runtime regression executes one graph containing an unpacked
+  NHWC CPU depthwise operation and a VTA region, matches its host reference,
+  and requires positive accelerator activity.
 - Artifact tests prove atomic authenticated export/reload for LLVM and C host
   code generators.
 - HOST/FSIM tests prove reference/mixed output agreement within the fixed
@@ -203,19 +237,24 @@ def load_sample(sample_path):
 2. The model imports as the fixed float32 `96x96x3 -> 2` graph, preprocesses
    inputs to `[0,1]`, quantizes once with the approved policy, and partitions
    deterministically into 12 VTA regions.
-3. The VTA single-target build supports unpacked NHWC depthwise host fallback
-   without graph JSON mutation; a focused regression test proves host fallback
-   and positive VTA-region simulator activity in the same graph.
+3. The additive VTA Relay device-planning interface returns a validated,
+   immutable CPU/VTA plan for a typed partitioned module. The planned Relay
+   contains explicit CPU/VTA boundaries, the compiled graph uses both CPU and
+   `ext_dev`, and no graph JSON mutation is used.
 4. LLVM and C HOST/FSIM matrices build, export, reload, and execute; reference
    and mixed outputs have identical shape/dtype and match within
    `rtol=1e-6, atol=1e-6` for all ten samples; top-1 labels match the manifest;
-   required FSIM counters are positive.
+   required FSIM counters are positive. A focused mixed graph independently
+   proves CPU depthwise execution and positive VTA-region activity.
 5. LLVM and C HOST/TSIM matrices satisfy the same output and label checks and
    report positive TSIM cycle activity.
 6. Generated bundles include authenticated graph, params, library, manifest,
    and inspectable host source, and partial exports are cleaned on failure.
 7. `bash scripts/test_vta_byoc.sh` passes with all existing gates retained.
 8. The source directories under `.envs` are unchanged and absent from Git.
+9. The extractor refuses symlink and non-regular final destinations, never
+   follows them, leaves external targets unchanged, and still reproduces the
+   exact ten-image manifest for a valid output directory.
 
 ## Open questions
 
