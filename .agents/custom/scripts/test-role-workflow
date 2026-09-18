@@ -23,7 +23,6 @@ require_text() {
 ROOT="$CUSTOM_DIR/root.md"
 DEFAULT="$CUSTOM_DIR/default.md"
 REVIEWER="$CUSTOM_DIR/reviewer.md"
-VERSION_CONTROL="$CUSTOM_DIR/version-control.md"
 
 require_text "$ROOT" 'skills/interview-me/SKILL.md'
 require_text "$ROOT" 'skills/spec-driven-development/SKILL.md'
@@ -39,6 +38,5 @@ require_text "$DEFAULT" '`git-workflow commit -m <message>`'
 
 require_text "$REVIEWER" 'skills/code-review-and-quality/SKILL.md'
 require_text "$REVIEWER" '`Pass` ends the development lifecycle'
-require_text "$VERSION_CONTROL" 'User: optional `merge <task>`'
 
 printf 'OK role workflow contract\n'

@@ -6,21 +6,9 @@ Run every Git mutation from the repository root through:
 ./.agents/custom/scripts/git-workflow <command> ...
 ```
 
-The applicable role policy defines authorization and ownership. Direct `git`
+The applicable policy defines authorization and ownership. Direct `git`
 commands are read-only only. Every handoff uses an exact commit OID, never
 working-tree, index, or patch state.
-
-Command ownership in the workflow is:
-
-- Root: `status`, `create`, and the pre-Build artifact `commit`;
-- Default: `status` and the delegated task or fix `commit`;
-- Reviewer: `status` only;
-- User: optional `merge <task>` after Reviewer returns `Pass`.
-
-Reviewer `Pass` completes the lifecycle. The user-owned merge is the only
-post-review integration operation. `pull`, `push`, and `delete` are
-administrative commands available only under a separate explicit user
-request.
 
 ## Commands
 
@@ -28,6 +16,11 @@ request.
   - Use before a mutating command or whenever repository state is uncertain.
   - Read-only. Succeeds only when all discovered repositories and gitlinks are
     clean and consistent, then prints their paths, branches, and commit OIDs.
+
+- `pull`
+  - Use only with explicit authorization, on clean managed repositories with
+    configured upstreams, and before creating a task branch.
+  - Pulls each managed repository with `--ff-only --prune`.
 
 - `create <task>`
   - Use after task-branch and change approval, from clean managed repositories.
@@ -43,25 +36,18 @@ request.
     If it fails, fix the reported cause and retry; working-tree content and any
     child commit already created are preserved.
 
-- `merge <task>`
-  - Available to the user after Reviewer `Pass`. Requires all managed
-    repositories to be clean and on the task branch, the original branches
-    not to have moved, and every update to be fast-forwardable.
-  - Fast-forwards the recorded original branches to the task commits, deepest
-    repository first, then leaves the repository set clean on the original
-    branches.
-
-## Administrative commands
-
-- `pull`
-  - Use only with explicit authorization, on clean managed repositories with
-    configured upstreams, and before creating a task branch.
-  - Pulls each managed repository with `--ff-only --prune`.
-
 - `push`
   - Use only with explicit authorization and clean managed repositories.
   - Pushes each managed branch to its upstream, or sets `origin/<branch>` as the
     upstream when none exists.
+
+- `merge <task>`
+  - Use only with explicit authorization when all managed repositories are clean
+    and on the task branch, the original branches have not moved, and every
+    update is fast-forwardable.
+  - Fast-forwards the recorded original branches to the task commits, deepest
+    repository first, then leaves the repository set clean on the original
+    branches.
 
 - `delete <task>`
   - Use only with explicit authorization, a task-begin snapshot, existing
@@ -76,10 +62,4 @@ Run the isolated regression suite with:
 
 ```bash
 bash .agents/custom/scripts/test-git-workflow
-```
-
-Validate the fixed role workflow contract with:
-
-```bash
-bash .agents/custom/scripts/test-role-workflow
 ```
