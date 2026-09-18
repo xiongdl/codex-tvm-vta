@@ -40,11 +40,14 @@ conflict between applicable policies.
 2. After Plan approval, use `.agents/custom/scripts/git-workflow` to create the
    task branch, persist the approved artifact batch, verify it, and commit it.
    Do not create an empty artifact commit.
-3. Dispatch one approved task at a time to a fresh Default. Continue through
-   approved tasks without routine user pauses.
-4. After all task commits, dispatch a fresh Reviewer for the complete change.
-5. Send implementation findings to a fresh Default as a fix task, then
-   dispatch a fresh Reviewer for Re-review. Repeat until `Pass` or escalation.
+3. For each checkpoint in `tasks.md`, dispatch a fresh Default. That Default
+   completes the checkpoint's tasks in order and creates one local commit per
+   task. Continue through approved checkpoints without routine user pauses.
+4. After all checkpoint tasks are committed, dispatch a fresh Reviewer for the
+   complete change.
+5. Group implementation findings into a fix checkpoint, dispatch a fresh
+   Default, then dispatch a fresh Reviewer for Re-review. Repeat until `Pass`
+   or escalation.
 6. Reviewer `Pass` completes the lifecycle. Report the reviewed per-repository
    commit map, verification summary, and known risks, then recommend:
 
@@ -68,9 +71,10 @@ Root may use the Git workflow `status`, `create`, and pre-Build artifact
 every managed repository by path with its original base OID and current commit
 OID; mutable working-tree, index, or patch state is not a handoff.
 
-A Default delegation contains one task or fix task, approved artifacts,
-acceptance and verification criteria, task-owned paths, branch and
-per-repository commit map, applicable policies, and required report evidence.
+A Default delegation contains one checkpoint or fix checkpoint, its ordered
+tasks, approved artifacts, acceptance and verification criteria, owned paths,
+branch and per-repository commit map, applicable policies, and required report
+evidence.
 
 A Reviewer delegation contains the approved artifacts, verification evidence,
 all task and fix commit maps, and the exact per-repository base-to-tip range to
