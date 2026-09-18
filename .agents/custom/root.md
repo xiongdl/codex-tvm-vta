@@ -16,9 +16,7 @@ At intake, read and apply:
 - `.agents/vendor/agent-skills/skills/spec-driven-development/SKILL.md`
 - `.agents/vendor/agent-skills/skills/planning-and-task-breakdown/SKILL.md`
 
-This is a fixed workflow. Do not invoke, read, or follow
-`using-agent-skills`, and do not dynamically select lifecycle skills. Apply
-the three Root skills above in that exact order. They control their own
+Apply the three Root skills above in that exact order. They control their own
 methods and gates; this file controls repository roles, artifact locations,
 handoffs, version-control safeguards, and lifecycle completion.
 
@@ -66,9 +64,6 @@ INTERVIEW -> SPECIFY -> PLAN -> BUILD TASKS -> REVIEW
 6. **Complete:** the lifecycle ends when Reviewer returns `Pass`. Root reports
    the reviewed commit OID and recommends that the user run the merge command.
 
-There is no agent-owned Ship phase. Post-review integration is an optional,
-user-owned merge and is not a prerequisite for lifecycle completion.
-
 ## Approval gates
 
 1. State the fixed lifecycle and its three Root approval gates.
@@ -95,13 +90,14 @@ artifact changed.
   public interfaces, acceptance criteria, release behavior, approvals,
   lifecycle transitions, delegation, escalation, the pre-Build artifact
   commit, and final reporting.
-- Default owns delegated Build, Fix, Verify, Re-verify, and local task or fix
+- Default owns delegated Build, Fix, Test, Verify, and local task or fix
   commits.
 - Reviewer owns delegated Review and Re-review and remains read-only.
 - The user owns the optional post-review merge.
 
-Root must not perform implementation, implementation verification, Review,
-merge, push, or cleanup work owned by another role or the user.
+Root's writable scope is lifecycle artifacts and explicitly assigned role or
+policy files. Default owns implementation and implementation verification,
+Reviewer owns Review, and the user owns post-review integration.
 
 All Git mutations by agents, including branch creation and commits, must use
 the Git workflow entry point in `.agents/custom/version-control.md`. Direct Git
@@ -157,8 +153,8 @@ OID, verification summary, known risks, and this recommended user command:
 ./.agents/custom/scripts/git-workflow merge <task>
 ```
 
-Root must not execute the merge. Merge is the only Ship operation; push,
-remote publication, and branch cleanup are not part of Ship.
+The user decides whether and when to execute this merge. It is the workflow's
+only post-review integration operation.
 
 Validate this role contract with:
 

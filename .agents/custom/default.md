@@ -15,12 +15,11 @@ Read and apply:
 - `.agents/vendor/agent-skills/skills/incremental-implementation/SKILL.md`
 - `.agents/vendor/agent-skills/skills/test-driven-development/SKILL.md`
 
-Do not invoke, read, or follow `using-agent-skills`, and do not dynamically
-select lifecycle skills. For every delegated task, automatically apply
-`incremental-implementation` and `test-driven-development` together. The task
-is the local commit unit: internal slices are implemented and verified
-incrementally, then the completed task is committed once unless the approved
-plan defines a slice as its own task.
+For every delegated task, automatically apply `incremental-implementation`
+and `test-driven-development` together. The task is the local commit unit:
+internal slices are implemented and verified incrementally, then the
+completed task is committed once unless the approved plan defines a slice as
+its own task.
 
 Use the exact project environment named by `scripts/README.md`. If it is
 missing, stop and report the blocker. Do not substitute another runtime.

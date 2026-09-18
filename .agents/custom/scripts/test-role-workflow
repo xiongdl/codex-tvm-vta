@@ -20,15 +20,6 @@ require_text() {
         fail "missing-text file=${file#"$CUSTOM_DIR"/} text=$expected"
 }
 
-reject_text() {
-    local file="$1"
-    local rejected="$2"
-
-    if grep -F -- "$rejected" "$file" >/dev/null; then
-        fail "rejected-text file=${file#"$CUSTOM_DIR"/} text=$rejected"
-    fi
-}
-
 ROOT="$CUSTOM_DIR/root.md"
 DEFAULT="$CUSTOM_DIR/default.md"
 REVIEWER="$CUSTOM_DIR/reviewer.md"
@@ -37,8 +28,9 @@ VERSION_CONTROL="$CUSTOM_DIR/version-control.md"
 require_text "$ROOT" 'skills/interview-me/SKILL.md'
 require_text "$ROOT" 'skills/spec-driven-development/SKILL.md'
 require_text "$ROOT" 'skills/planning-and-task-breakdown/SKILL.md'
+require_text "$ROOT" 'Apply the three Root skills above in that exact order'
 require_text "$ROOT" 'the lifecycle ends when Reviewer returns `Pass`'
-require_text "$ROOT" 'Root must not execute the merge'
+require_text "$ROOT" 'The user owns the optional post-review merge'
 
 require_text "$DEFAULT" 'skills/incremental-implementation/SKILL.md'
 require_text "$DEFAULT" 'skills/test-driven-development/SKILL.md'
@@ -47,10 +39,6 @@ require_text "$DEFAULT" '`git-workflow commit -m <message>`'
 
 require_text "$REVIEWER" 'skills/code-review-and-quality/SKILL.md'
 require_text "$REVIEWER" '`Pass` ends the development lifecycle'
-require_text "$VERSION_CONTROL" 'contains exactly `merge <task>`'
-
-reject_text "$ROOT" 'Use `using-agent-skills`'
-reject_text "$DEFAULT" 'Use `using-agent-skills`'
-reject_text "$REVIEWER" 'Use `using-agent-skills`'
+require_text "$VERSION_CONTROL" 'User: optional `merge <task>`'
 
 printf 'OK role workflow contract\n'

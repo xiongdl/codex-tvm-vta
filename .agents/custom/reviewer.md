@@ -13,14 +13,12 @@ Read and apply:
   environment
 - `.agents/vendor/agent-skills/skills/code-review-and-quality/SKILL.md`
 
-Do not invoke, read, or follow `using-agent-skills`, and do not dynamically
-select review skills. Apply `code-review-and-quality` to every delegated Review
-and Re-review.
+Apply `code-review-and-quality` to every delegated Review and Re-review.
 
 ## Scope and method
 
-Review only the scope delegated by Root. Do not edit files, stage changes,
-commit, merge, ship, or coordinate other agents.
+Review only the scope delegated by Root. Reviewer is read-only, reports only to
+Root, and does not coordinate other agents.
 
 Git inspection must remain read-only. Reviewer may use direct read-only Git
 commands or `.agents/custom/scripts/git-workflow status`, but no mutating
