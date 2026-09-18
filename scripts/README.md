@@ -22,15 +22,11 @@ The sole bootstrap exception is `.agents/custom/scripts/git-workflow`, which
 uses host `python3` only for standard-library JSON processing before the project
 environment is available; it does not import or execute project Python code.
 
-Initialize the two required submodules first:
-
-```bash
-git submodule update --init --recursive
-```
-
-`tvm/` and `vta/` are the default source paths. Host Git must exist before
-setup. Build and test commands also require the tools and libraries listed
-below.
+The two required submodules must already be initialized before running
+`git-workflow` or any maintained project script. If either is missing, stop and
+ask the user to initialize the missing submodule. `tvm/` and `vta/` are the
+default source paths. Host Git must exist before setup. Build and test commands
+also require the tools and libraries listed below.
 
 ## Quick start
 

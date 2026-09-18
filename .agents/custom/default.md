@@ -29,8 +29,9 @@ Do not:
 - modify paths outside the delegated scope;
 - stash, reset, overwrite, delete, or commit unrelated work.
 
-Run the version-control preflight before mutation. Stop and report any
-unexpected branch, HEAD, working-tree, index, untracked, or submodule state.
+Before changing task content, run
+`./.agents/custom/scripts/git-workflow status`. Stop and report any unexpected
+branch, HEAD, working-tree, index, untracked, or submodule state.
 
 Use `.agents/custom/scripts/git-workflow` for every Git mutation. Direct Git
 commands are read-only only. Default may use `status` and the delegated
