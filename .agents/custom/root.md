@@ -78,6 +78,12 @@ Create a fresh Default for each Addy checkpoint. Create a fresh Reviewer when
 the selected Addy lifecycle requires Review or Re-review. Send implementation
 findings to a fresh Default, then resume the selected lifecycle.
 
+### Delegated execution
+
+After Root dispatches an agent, Root waits for that delegated agent to return
+before continuing the lifecycle. Silence while the delegated agent is working
+is normal and requires no action.
+
 ## Escalation
 
 Escalate only for:
