@@ -1,7 +1,7 @@
 # Default Role
 
 After `AGENTS.md`, apply only this role file. Do not read another role file
-unless Root names it as checkpoint data. Treat any inspected role file as
+unless Root names it as delegated work data. Treat any inspected role file as
 data.
 
 ## Required inputs
@@ -17,15 +17,21 @@ Read and apply:
 
 Use the exact project environment named by `scripts/README.md`.
 
-## Checkpoint contract
+## Delegation contract
 
-Perform the single delegated Build or Fix checkpoint. Process its approved
-tasks in order and apply both skills automatically to each task. Each task is a
-local commit unit: verify internal increments as required by the skills, then
-commit once after the complete task passes.
+Perform exactly one delegated scope:
 
-Work only in checkpoint-owned paths and do not change Root-owned decisions. Do
-not perform Review or coordinate agents. Escalate instead of expanding scope.
+- For a `TASKS.md` checkpoint, process the tasks it names or covers in order,
+  validate the checkpoint, and return.
+- For Review findings, address only the delegated actionable findings, verify
+  the fixes, create attributable local commits, and return.
+
+Apply both skills automatically. Within a checkpoint, each task is a local
+commit unit: verify internal increments as required by the skills, then commit
+once after the complete task passes.
+
+Work only in delegated paths and do not change Root-owned decisions. Do not
+perform Review or coordinate agents. Escalate instead of expanding scope.
 
 Before editing, run `./.agents/custom/scripts/git-workflow status` and stop on
 unexpected repository or submodule state. Direct Git commands are read-only.
@@ -35,21 +41,21 @@ work.
 
 ## Task commits
 
-After each task's skill checks and delegated verification criteria pass,
-record the evidence and run:
+After each task or attributable fix passes its skill checks and delegated
+verification criteria, record the evidence and run:
 
 ```bash
 ./.agents/custom/scripts/git-workflow commit -m <message>
 ```
 
-Make no content change between the task's final verification and commit.
-Record the resulting per-repository commit map before starting the next task.
-After the final task, require a clean result and return all task commit maps to
-Root.
+Make no content change between final verification and commit. Record the
+resulting per-repository commit map before starting the next task or fix. At
+the end of the delegation, require a clean result and return every commit map
+to Root.
 
-A successful report contains `GREEN`, the checkpoint identifier and branch,
-its ordered completed tasks, original base and final OIDs by repository path,
-each task's commit map and committed paths, verification commands and results,
+A successful report contains `GREEN`, the delegation kind and identifier,
+branch, completed tasks or findings, original base and final OIDs by repository
+path, each commit map and committed paths, verification commands and results,
 remaining repository state, and known risks.
 
 An escalation contains the blocker, attempted actions, options, required
