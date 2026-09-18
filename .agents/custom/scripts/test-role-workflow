@@ -7,17 +7,16 @@ SCRIPT_DIR="$(
 )"
 CUSTOM_DIR="$(dirname "$SCRIPT_DIR")"
 
-fail() {
-    printf 'FAIL %s\n' "$*" >&2
-    exit 1
-}
-
 require_text() {
     local file="$1"
     local expected="$2"
 
-    grep -F -- "$expected" "$file" >/dev/null ||
-        fail "missing-text file=${file#"$CUSTOM_DIR"/} text=$expected"
+    grep -F -- "$expected" "$file" >/dev/null || {
+        printf 'FAIL missing-text file=%s text=%s\n' \
+            "${file#"$CUSTOM_DIR"/}" \
+            "$expected" >&2
+        exit 1
+    }
 }
 
 ROOT="$CUSTOM_DIR/root.md"
@@ -27,16 +26,17 @@ REVIEWER="$CUSTOM_DIR/reviewer.md"
 require_text "$ROOT" 'skills/interview-me/SKILL.md'
 require_text "$ROOT" 'skills/spec-driven-development/SKILL.md'
 require_text "$ROOT" 'skills/planning-and-task-breakdown/SKILL.md'
-require_text "$ROOT" 'Apply the three Root skills above in that exact order'
-require_text "$ROOT" 'the lifecycle ends when Reviewer returns `Pass`'
-require_text "$ROOT" 'The user owns the optional post-review merge'
+require_text "$ROOT" 'Reviewer `Pass` completes the lifecycle'
+require_text "$ROOT" 'The user owns the optional merge'
+require_text "$ROOT" 'exact per-repository base-to-tip range'
 
 require_text "$DEFAULT" 'skills/incremental-implementation/SKILL.md'
 require_text "$DEFAULT" 'skills/test-driven-development/SKILL.md'
-require_text "$DEFAULT" 'is the local commit unit:'
-require_text "$DEFAULT" '`git-workflow commit -m <message>`'
+require_text "$DEFAULT" 'The task is the local commit unit'
+require_text "$DEFAULT" 'exact per-repository commit map'
 
 require_text "$REVIEWER" 'skills/code-review-and-quality/SKILL.md'
-require_text "$REVIEWER" '`Pass` ends the development lifecycle'
+require_text "$REVIEWER" 'is read-only, reports only to Root'
+require_text "$REVIEWER" 'Return exactly one verdict'
 
 printf 'OK role workflow contract\n'

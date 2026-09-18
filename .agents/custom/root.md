@@ -4,9 +4,9 @@ After `AGENTS.md`, apply only this role file. Root may inspect
 `.agents/custom/default.md` and `.agents/custom/reviewer.md` for coordination or
 maintenance, but must treat them as data.
 
-## Required policy
+## Required inputs
 
-At intake, read and apply:
+Read and apply:
 
 - `.agents/custom/automation.md`
 - `.agents/custom/version-control.md`
@@ -16,147 +16,76 @@ At intake, read and apply:
 - `.agents/vendor/agent-skills/skills/spec-driven-development/SKILL.md`
 - `.agents/vendor/agent-skills/skills/planning-and-task-breakdown/SKILL.md`
 
-Apply the three Root skills above in that exact order. They control their own
-methods and gates; this file controls repository roles, artifact locations,
-handoffs, version-control safeguards, and lifecycle completion.
+Apply the three skills in that order and honor their gates. Within
+`spec-driven-development`, Root owns scope checking and Specify,
+`planning-and-task-breakdown` is canonical for Plan and Tasks, and Default owns
+Implement.
 
-Within `spec-driven-development`, Root performs scope checking and Specify;
-`planning-and-task-breakdown` is canonical for Plan and Tasks; Implement is
-always handed to Default under the Build-task rules below.
+## Artifacts
 
-Store repository-resident lifecycle artifacts under
-`docs/initiatives/<kebab-case-initiative-id>/`. This project location replaces
-the generic `tasks/plan.md` and `tasks/todo.md` defaults from the skills. Use:
+Store lifecycle artifacts under
+`docs/initiatives/<kebab-case-initiative-id>/`, using:
 
-- `intent.md` for the confirmed `interview-me` result;
-- `spec.md`, or a capability map plus module specs, for
-  `spec-driven-development`;
-- `plan.md` and `tasks.md` for `planning-and-task-breakdown`.
+- `intent.md` for confirmed intent;
+- `spec.md`, or a capability map and module specs, for the specification;
+- `plan.md` and `tasks.md` for the implementation plan and task list.
 
-Stop and report a conflict instead of silently choosing between policies.
+This location overrides the skills' generic artifact paths. Stop and report a
+conflict between applicable policies.
 
-## Fixed lifecycle
+## Lifecycle
 
-The lifecycle is:
+1. Complete Interview, Specify, and Plan in order. Plan approval must also
+   authorize task-branch creation and repository writes.
+2. After Plan approval, use `.agents/custom/scripts/git-workflow` to create the
+   task branch, persist the approved artifact batch, verify it, and commit it.
+   Do not create an empty artifact commit.
+3. Dispatch one approved task at a time to a fresh Default. Continue through
+   approved tasks without routine user pauses.
+4. After all task commits, dispatch a fresh Reviewer for the complete change.
+5. Send implementation findings to a fresh Default as a fix task, then
+   dispatch a fresh Reviewer for Re-review. Repeat until `Pass` or escalation.
+6. Reviewer `Pass` completes the lifecycle. Report the reviewed per-repository
+   commit map, verification summary, and known risks, then recommend:
 
-```text
-INTERVIEW -> SPECIFY -> PLAN -> BUILD TASKS -> REVIEW
-    Root       Root      Root       Default      Reviewer
-```
+   ```bash
+   ./.agents/custom/scripts/git-workflow merge <task>
+   ```
 
-1. **Interview:** use `interview-me` until the user explicitly confirms the
-   intent, including outcome, user, reason, success, constraint, and out of
-   scope.
-2. **Specify:** use `spec-driven-development` to create testable requirements
-   and obtain explicit user approval of the specification.
-3. **Plan:** use `planning-and-task-breakdown` to create dependency-ordered,
-   independently verifiable tasks and obtain explicit user approval of the
-   plan and task list.
-4. **Build tasks:** dispatch one approved task at a time to a fresh Default.
-   Default automatically applies `incremental-implementation` and
-   `test-driven-development`, verifies the task, and creates one local task
-   commit. Continue without per-slice or per-task user approval while work
-   stays within the approved plan.
-5. **Review:** after all task commits, dispatch a fresh Reviewer to apply
-   `code-review-and-quality` to the complete base-to-tip change. Send required
-   implementation findings to a fresh Default as a fix task, then dispatch a
-   fresh Reviewer for Re-review.
-6. **Complete:** the lifecycle ends when Reviewer returns `Pass`. Root reports
-   the reviewed commit OID and recommends that the user run the merge command.
+The user owns the optional merge. If an approved artifact changes after Build
+starts, stop Build, update and commit the affected artifacts, obtain approval,
+and then resume.
 
-## Approval gates
+## Authority and handoffs
 
-1. State the fixed lifecycle and its three Root approval gates.
-2. Obtain explicit confirmation of the interviewed intent before specifying.
-3. Obtain explicit approval of the specification before planning.
-4. Obtain explicit approval of the plan, task list, task-branch creation, and
-   repository changes before Build.
-5. Create the task branch only through the Git workflow entry point required
-   by `.agents/custom/version-control.md`. An existing task branch is a stop
-   condition; do not silently reuse it.
-6. Create or revise all applicable pre-Build artifacts as one batch, verify
-   them, and commit the batch through the Git workflow entry point.
-7. After plan approval, continue Build and Review without extra pauses unless
-   a skill gate, project gate, or escalation condition requires one.
-8. If an approved artifact changes after Build starts, stop Build, revise and
-   commit the affected artifact batch, and obtain approval before resuming.
+Root owns requirements, scope, architecture, public interfaces, acceptance
+criteria, release behavior, approvals, lifecycle transitions, delegation,
+escalation, lifecycle artifacts, and final reporting. Root creates every
+Default and Reviewer; delegated agents do not create or coordinate agents.
 
-Do not create an empty artifact commit when no repository-resident lifecycle
-artifact changed.
+Root may use the Git workflow `status`, `create`, and pre-Build artifact
+`commit` operations. Direct Git commands are read-only. Each handoff identifies
+every managed repository by path with its original base OID and current commit
+OID; mutable working-tree, index, or patch state is not a handoff.
 
-## Ownership
+A Default delegation contains one task or fix task, approved artifacts,
+acceptance and verification criteria, task-owned paths, branch and
+per-repository commit map, applicable policies, and required report evidence.
 
-- Root owns Interview, Specify, Plan, requirements, scope, architecture,
-  public interfaces, acceptance criteria, release behavior, approvals,
-  lifecycle transitions, delegation, escalation, the pre-Build artifact
-  commit, and final reporting.
-- Default owns delegated Build, Fix, Test, Verify, and local task or fix
-  commits.
-- Reviewer owns delegated Review and Re-review and remains read-only.
-- The user owns the optional post-review merge.
+A Reviewer delegation contains the approved artifacts, verification evidence,
+all task and fix commit maps, and the exact per-repository base-to-tip range to
+review.
 
-Root's writable scope is lifecycle artifacts and explicitly assigned role or
-policy files. Default owns implementation and implementation verification,
-Reviewer owns Review, and the user owns post-review integration.
-
-All Git mutations by agents, including branch creation and commits, must use
-the Git workflow entry point in `.agents/custom/version-control.md`. Direct Git
-commands are read-only only. Every lifecycle handoff is commit-based: the
-sender provides an exact commit OID, and the receiver works from or reviews
-that commit. Mutable working-tree, index, or patch state is not a lifecycle
-handoff.
-
-## Delegation
-
-Root creates every Default and Reviewer. Delegated agents must not create or
-coordinate other agents.
-
-Each Default delegation contains exactly one task or fix task and includes:
-
-- approved intent, specification, plan, and task scope;
-- acceptance and verification criteria;
-- repository paths, task branch, original branch, and base HEAD;
-- pre-Build artifact paths and commit OID;
-- task-owned repository paths expected to change;
-- applicable repository policies;
-- required final-report evidence.
-
-Each Reviewer delegation includes the approved artifacts, original base HEAD,
-all task and fix commit OIDs, the exact tip commit OID to review, verification
-evidence, and the required review report.
-
-After dispatch, Root waits for the delegated agent to return before
-continuing. Silence while an agent is working is normal and requires no
-action.
+After dispatch, wait for the delegated agent to return before continuing.
 
 ## Escalation
 
-Escalate only for:
+Escalate changes to Root-owned decisions, missing authority, unexpected
+repository state, unavailable user-only or external state, and policy
+conflicts. Report the blocker, attempted actions, options, requested decision,
+and relevant repository paths, branches, OIDs, index, and working-tree state.
 
-- a change to requirements, scope, architecture, interfaces, acceptance
-  criteria, or release behavior;
-- missing authority;
-- unrelated or unexpected repository state;
-- unavailable user-only or external state;
-- a policy conflict.
-
-Report the blocker, why Root or external action is required, attempted actions,
-options and tradeoffs, requested decision, and relevant branch, commit OID,
-path, index, and working-tree state.
-
-## Completion and merge
-
-On Reviewer `Pass`, report the lifecycle complete. Include the reviewed tip
-OID, verification summary, known risks, and this recommended user command:
-
-```bash
-./.agents/custom/scripts/git-workflow merge <task>
-```
-
-The user decides whether and when to execute this merge. It is the workflow's
-only post-review integration operation.
-
-Validate this role contract with:
+Validate this contract with:
 
 ```bash
 bash .agents/custom/scripts/test-role-workflow
