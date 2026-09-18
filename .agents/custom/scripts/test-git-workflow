@@ -45,41 +45,33 @@ test_happy_path() {
         cd "$repo"
         "$WORKFLOW" status >/dev/null
         "$WORKFLOW" create happy-task
-        touch policy.md
-        "$WORKFLOW" commit \
-            -m "test: policy" \
-            -- policy.md
+        touch policy.md notes.md
+        "$WORKFLOW" commit -m "test: policy"
+        test "$(git ls-tree --name-only HEAD -- policy.md notes.md | wc -l | tr -d ' ')" -eq 2
         "$WORKFLOW" merge happy-task
         "$WORKFLOW" delete happy-task
         "$WORKFLOW" status >/dev/null
     )
 }
 
-test_rejected_commit_is_retryable() {
-    local repo="$TEST_ROOT/retry"
+test_unmerged_task_can_be_deleted() {
+    local repo="$TEST_ROOT/delete-unmerged"
 
     init_repo "$repo"
     git -C "$repo" commit --allow-empty -m baseline
 
     (
         cd "$repo"
-        "$WORKFLOW" create retry-task
-        touch allowed.md unexpected.md
+        "$WORKFLOW" create discard-task
+        touch discarded.md
+        "$WORKFLOW" commit -m "test: discarded task"
+        "$WORKFLOW" delete discard-task
 
-        if "$WORKFLOW" commit \
-            -m "test: reject unexpected" \
-            -- allowed.md
-        then
-            printf 'Expected unexpected path rejection\n' >&2
+        test "$(git branch --show-current)" = dev
+        if git show-ref --verify --quiet refs/heads/codex/discard-task; then
+            printf 'Expected unmerged task branch deletion\n' >&2
             return 1
         fi
-
-        test -z "$(git diff --cached --name-only)"
-        rm -- unexpected.md
-
-        "$WORKFLOW" commit \
-            -m "test: retry" \
-            -- allowed.md
     )
 }
 
@@ -108,9 +100,7 @@ test_submodule_parent_commit_retry() {
         printf '#!/bin/sh\nexit 1\n' >"$parent_hook"
         chmod +x "$parent_hook"
 
-        if "$WORKFLOW" commit \
-            -m "test: child retry" \
-            -- child/change.txt
+        if "$WORKFLOW" commit -m "test: child retry"
         then
             printf 'Expected parent commit-hook failure\n' >&2
             return 1
@@ -125,38 +115,14 @@ test_submodule_parent_commit_retry() {
 
         rm -- "$parent_hook"
 
-        "$WORKFLOW" commit \
-            -m "test: child retry" \
-            -- child/change.txt
+        "$WORKFLOW" commit -m "test: child retry"
         "$WORKFLOW" merge submodule-task
         "$WORKFLOW" delete submodule-task
     )
 }
 
-test_broad_allowlist_rejected() {
-    local repo="$TEST_ROOT/broad"
-
-    init_repo "$repo"
-    git -C "$repo" commit --allow-empty -m baseline
-
-    (
-        cd "$repo"
-        "$WORKFLOW" create broad-task
-        touch file.md
-
-        if "$WORKFLOW" commit \
-            -m "test: reject broad path" \
-            -- .
-        then
-            printf 'Expected broad path rejection\n' >&2
-            return 1
-        fi
-    )
-}
-
 test_happy_path
-test_rejected_commit_is_retryable
+test_unmerged_task_can_be_deleted
 test_submodule_parent_commit_retry
-test_broad_allowlist_rejected
 
 printf 'OK git-workflow tests\n'

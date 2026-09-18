@@ -15,7 +15,7 @@ Usage:
   $PROGRAM pull
   $PROGRAM push
   $PROGRAM create <task>
-  $PROGRAM commit -m <message> -- <path>...
+  $PROGRAM commit -m <message>
   $PROGRAM merge <task>
   $PROGRAM delete <task>
 EOF
@@ -967,173 +967,6 @@ repo_relative_path() {
     fi
 }
 
-validate_allowlisted_path() {
-    local path="$1"
-
-    [[ -n "$path" ]] ||
-        die "empty-allowlisted-path"
-
-    [[ "$path" != /* ]] ||
-        die "absolute-allowlisted-path path=$path"
-
-    [[ "$path" != "." && "$path" != ".." ]] ||
-        die "broad-allowlisted-path path=$path"
-
-    [[ "$path" != ../* && "$path" != */../* && "$path" != */.. ]] ||
-        die "parent-allowlisted-path path=$path"
-
-    [[ "$path" != *$'\n'* && "$path" != *$'\t'* ]] ||
-        die "unsupported-allowlisted-path path=$path"
-
-    [[ "$path" != .git && "$path" != .git/* ]] ||
-        die "git-metadata-allowlisted path=$path"
-}
-
-owner_for_path() {
-    local inventory="$1"
-    local requested="$2"
-    local owner="."
-    local owner_depth=0
-
-    while IFS=$'\t' read -r \
-        path depth managed checkout current_branch_name commit
-    do
-        [[ "$managed" == "true" ]] || continue
-        [[ "$path" != "." ]] || continue
-
-        if [[ "$requested" == "$path" ]]; then
-            die "submodule-root-cannot-be-explicitly-allowlisted path=$requested"
-        fi
-
-        if [[ "$requested" == "$path/"* ]] &&
-           (( depth > owner_depth ))
-        then
-            owner="$path"
-            owner_depth="$depth"
-        fi
-
-    done <"$inventory"
-
-    printf '%s\n' "$owner"
-}
-
-build_commit_allowlist() {
-    local root="$1"
-    local inventory="$2"
-    local requested="$3"
-    local mapped="$4"
-
-    : >"$mapped"
-
-    while IFS= read -r path; do
-        validate_allowlisted_path "$path"
-
-        local owner
-        local repo
-        local relative
-
-        owner="$(owner_for_path "$inventory" "$path")"
-        repo="$(repo_abs "$root" "$owner")"
-        relative="$(repo_relative_path "$owner" "$path")"
-
-        [[ ! -d "$root/$path" ]] ||
-            die "directory-cannot-be-allowlisted path=$path"
-
-        if [[ ! -e "$root/$path" ]] &&
-           ! git_repo "$repo" ls-files \
-                --error-unmatch \
-                -- "$relative" \
-                >/dev/null 2>&1
-        then
-            die "allowlisted-path-not-found path=$path"
-        fi
-
-        printf '%s\t%s\n' \
-            "$owner" \
-            "$relative" >>"$mapped"
-
-    done <"$requested"
-
-    if [[ "$(sort -u "$requested" | wc -l | tr -d ' ')" != \
-          "$(wc -l <"$requested" | tr -d ' ')" ]]
-    then
-        die "duplicate-allowlisted-path"
-    fi
-}
-
-write_expected_paths() {
-    local inventory="$1"
-    local mapped="$2"
-    local committed="$3"
-    local repo_path="$4"
-    local output="$5"
-
-    awk -F'\t' \
-        -v repo="$repo_path" \
-        '$1 == repo {print $2}' \
-        "$mapped" >"$output"
-
-    while IFS= read -r child; do
-        [[ -n "$child" ]] || continue
-        [[ "$child" != "." ]] || continue
-
-        local parent
-        parent="$(parent_managed_repo_for "$inventory" "$child")"
-
-        [[ "$parent" == "$repo_path" ]] || continue
-
-        repo_relative_path \
-            "$repo_path" \
-            "$child" >>"$output"
-
-    done <"$committed"
-
-    sort -u -o "$output" "$output"
-}
-
-require_exact_staged_paths() {
-    local repo="$1"
-    local expected="$2"
-    local actual="$3"
-    local unexpected="$4"
-
-    git_repo "$repo" diff \
-        --cached \
-        --name-only >"$actual"
-    sort -u -o "$actual" "$actual"
-
-    cmp -s "$expected" "$actual" || {
-        printf 'ERROR staged-path-mismatch repo=%s\n' "$repo" >&2
-        printf 'EXPECTED\n' >&2
-        sed 's/^/  /' "$expected" >&2
-        printf 'ACTUAL\n' >&2
-        sed 's/^/  /' "$actual" >&2
-        return 1
-    }
-
-    git_repo "$repo" diff \
-        --quiet \
-        --ignore-submodules=dirty \
-        -- || {
-            printf 'ERROR unstaged-tracked-change repo=%s\n' "$repo" >&2
-            return 1
-        }
-
-    git_repo "$repo" ls-files \
-        --others \
-        --exclude-standard >"$unexpected"
-
-    if [[ -s "$unexpected" ]]; then
-        printf 'ERROR unexpected-untracked-path repo=%s\n' "$repo" >&2
-        sed 's/^/  /' "$unexpected" >&2
-        return 1
-    fi
-
-    git_repo "$repo" diff \
-        --cached \
-        --check
-}
-
 clear_commit_index() {
     local repo="$1"
 
@@ -1147,9 +980,6 @@ clear_commit_index() {
 
 cmd_commit() {
     local message=""
-    local requested
-
-    requested="$(mktemp)"
 
     while (($#)); do
         case "$1" in
@@ -1163,21 +993,9 @@ cmd_commit() {
                 shift
                 ;;
 
-            --)
-                shift
-
-                (($#)) ||
-                    die "allowlisted-path-required"
-
-                while (($#)); do
-                    printf '%s\n' "$1" >>"$requested"
-                    shift
-                done
-                ;;
-
             *)
                 die \
-                    "unexpected-commit-argument argument=$1"
+                    "commit-does-not-accept-paths argument=$1"
                 ;;
         esac
     done
@@ -1185,20 +1003,15 @@ cmd_commit() {
     [[ -n "$message" ]] ||
         die "commit-message-required"
 
-    [[ -s "$requested" ]] ||
-        die "allowlisted-path-required"
-
     local root
     local inventory
     local errors
     local committed
-    local mapped
 
     root="$(root_dir)"
     inventory="$(mktemp)"
     errors="$(mktemp)"
     committed="$(mktemp)"
-    mapped="$(mktemp)"
 
     : >"$committed"
 
@@ -1215,20 +1028,12 @@ cmd_commit() {
         cat "$errors" >&2
 
         cleanup_files \
-            "$requested" \
             "$inventory" \
             "$errors" \
-            "$committed" \
-            "$mapped"
+            "$committed"
 
         return 1
     fi
-
-    build_commit_allowlist \
-        "$root" \
-        "$inventory" \
-        "$requested" \
-        "$mapped"
 
     # A previous deepest-first transaction may already have committed a
     # managed child before a parent commit failed. Preserve that progress
@@ -1247,20 +1052,6 @@ cmd_commit() {
 
         [[ "$managed" == "true" ]] || continue
 
-        if ! awk -F'\t' \
-            -v repo="$child" \
-            '$1 == repo {found = 1} END {exit !found}' \
-            "$mapped"
-        then
-            cleanup_files \
-                "$requested" \
-                "$inventory" \
-                "$errors" \
-                "$committed" \
-                "$mapped"
-            die "managed-child-ahead-without-allowlist repo=$child"
-        fi
-
         printf '%s\n' "$child" >>"$committed"
     done < <(list_submodules "$root")
 
@@ -1273,11 +1064,9 @@ cmd_commit() {
 
     [[ "$task_branch_name" == codex/* ]] || {
         cleanup_files \
-            "$requested" \
             "$inventory" \
             "$errors" \
-            "$committed" \
-            "$mapped"
+            "$committed"
 
         die "not-on-task-branch branch=$task_branch_name"
     }
@@ -1291,21 +1080,8 @@ cmd_commit() {
         path depth managed checkout current_branch_name commit
     do
         local repo
-        local expected
-        local actual
-        local unexpected
 
         repo="$(repo_abs "$root" "$path")"
-        expected="$(mktemp)"
-        actual="$(mktemp)"
-        unexpected="$(mktemp)"
-
-        write_expected_paths \
-            "$inventory" \
-            "$mapped" \
-            "$committed" \
-            "$path" \
-            "$expected"
 
         printf \
             '\n==> COMMIT repo=%s branch=%s\n' \
@@ -1313,13 +1089,26 @@ cmd_commit() {
             "$current_branch_name"
 
         #
-        # Stage only the exact explicit allowlist plus direct
-        # managed child gitlinks committed by this transaction.
+        # The project was clean when the task branch was created, so all
+        # Git-visible changes on that branch belong to the current task.
         #
-        while IFS= read -r allowed; do
-            [[ -n "$allowed" ]] || continue
-            git_repo "$repo" add -- "$allowed"
-        done <"$expected"
+        git_repo "$repo" add -A -- .
+
+        # Explicitly stage direct managed child gitlinks committed earlier
+        # in this transaction or left by an interrupted prior transaction.
+        while IFS= read -r child; do
+            [[ -n "$child" ]] || continue
+            [[ "$child" != "." ]] || continue
+
+            local parent
+            parent="$(parent_managed_repo_for "$inventory" "$child")"
+
+            [[ "$parent" == "$path" ]] || continue
+
+            git_repo "$repo" add -- \
+                "$(repo_relative_path "$path" "$child")"
+
+        done <"$committed"
 
         if git_repo "$repo" diff \
             --cached \
@@ -1327,24 +1116,11 @@ cmd_commit() {
             --
         then
             printf '    no changes\n'
-            cleanup_files \
-                "$expected" \
-                "$actual" \
-                "$unexpected"
             continue
         fi
 
-        if ! require_exact_staged_paths \
-                "$repo" \
-                "$expected" \
-                "$actual" \
-                "$unexpected"
-        then
+        if ! git_repo "$repo" diff --cached --check; then
             clear_commit_index "$repo"
-            cleanup_files \
-                "$expected" \
-                "$actual" \
-                "$unexpected"
             return 1
         fi
 
@@ -1352,10 +1128,6 @@ cmd_commit() {
                 -m "$message"
         then
             clear_commit_index "$repo"
-            cleanup_files \
-                "$expected" \
-                "$actual" \
-                "$unexpected"
             return 1
         fi
 
@@ -1367,11 +1139,6 @@ cmd_commit() {
 
         ((committed_count += 1))
 
-        cleanup_files \
-            "$expected" \
-            "$actual" \
-            "$unexpected"
-
     done < <(
         managed_inventory "$inventory" |
             sort -t$'\t' -k2,2nr
@@ -1379,22 +1146,18 @@ cmd_commit() {
 
     if (( committed_count == 0 )); then
         cleanup_files \
-            "$requested" \
             "$inventory" \
             "$errors" \
-            "$committed" \
-            "$mapped"
+            "$committed"
 
         die "nothing-to-commit"
     fi
 
     if ! require_clean_project "$root" "$inventory"; then
         cleanup_files \
-            "$requested" \
             "$inventory" \
             "$errors" \
-            "$committed" \
-            "$mapped"
+            "$committed"
         return 1
     fi
 
@@ -1404,11 +1167,9 @@ cmd_commit() {
         "$committed_count"
 
     cleanup_files \
-        "$requested" \
         "$inventory" \
         "$errors" \
-        "$committed" \
-        "$mapped"
+        "$committed"
 }
 
 #
@@ -1733,6 +1494,10 @@ cmd_merge() {
 #
 # Supported flows:
 #
+#   create -> delete
+#
+#   create -> commit -> delete
+#
 #   create -> commit -> merge -> delete
 #
 # delete restores the recorded original branches, but DOES NOT
@@ -1912,9 +1677,8 @@ PY
     #
     # Delete task branches deepest first.
     #
-    # Safe deletion only. Unmerged task abandonment is intentionally
-    # outside this workflow and requires a separately authorized manual
-    # operation.
+    # -D is intentional: invoking delete explicitly authorizes abandoning
+    # an unmerged task branch after the clean-state preflight succeeds.
     #
     while IFS=$'\t' read -r \
         depth \
@@ -1942,7 +1706,7 @@ PY
             "$task_branch_name"
 
         git_repo "$repo" branch \
-            --delete \
+            -D \
             "$task_branch_name"
 
         ((deleted += 1))

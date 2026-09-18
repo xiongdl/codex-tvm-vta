@@ -78,8 +78,8 @@ Each delegation must include:
 - approved Addy artifacts and task or review scope;
 - acceptance and verification criteria;
 - repository paths, task branch, original branch, and base HEAD;
-- pre-Build artifact allowlist and commit OID, when one exists;
-- exact staged-path allowlist;
+- pre-Build artifact paths and commit OID, when one exists;
+- task-owned repository paths expected to change;
 - applicable repository policies;
 - required final-report evidence.
 

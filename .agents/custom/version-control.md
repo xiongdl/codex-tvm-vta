@@ -45,11 +45,11 @@ in scope:
 - repository path;
 - task name and derived branch `codex/<kebab-case-task>`;
 - original branch and exact base commit;
-- exact root-relative staged-path allowlist;
+- delegated task scope and expected affected paths;
 - every required verification command.
 
 Missing input for the current operation is a stop condition. Do not infer
-permission, merge strategy, paths, or verification commands.
+permission, merge strategy, scope, or verification commands.
 
 ## Commands and ownership
 
@@ -59,10 +59,9 @@ permission, merge strategy, paths, or verification commands.
   It requires a clean project, snapshots every managed repository, rejects an
   existing task branch, and creates the same task branch in each managed
   repository.
-- `commit -m <message> -- <path>...` is Default-owned after delegated Test and
-  Verify complete, and Root-owned only for verified policy or lifecycle
-  artifacts. Paths are exact, root-relative allowlist entries; broad paths such
-  as `.` and parent traversal are rejected.
+- `commit -m <message>` is Default-owned after delegated Test and Verify
+  complete, and Root-owned only for verified policy or lifecycle artifacts. It
+  commits all Git-visible changes made on the clean task branch.
 - `pull` changes local refs and worktrees from remotes and therefore requires
   explicit Root authorization. Do not pull after a task snapshot is created.
 - `push` publishes every managed repository and is Root-only with separate
@@ -70,10 +69,9 @@ permission, merge strategy, paths, or verification commands.
 - `merge <task>` is Root-only after Review/Re-review passes and explicit Ship
   authorization. Its only strategy is fast-forward-only, deepest repository
   first.
-- `delete <task>` is Root-only after authorized integration. It restores the
-  original branches and uses safe branch deletion only. Abandoning an unmerged
-  task is intentionally unsupported and requires separate explicit authority
-  and a manual destructive-operation review.
+- `delete <task>` is Root-only with explicit authorization. It restores the
+  original branches and force-deletes the task branches, so it can clean up an
+  integrated task or explicitly abandon an unmerged task.
 
 ## Commit contract
 
@@ -82,12 +80,10 @@ The `commit` command must:
 1. require every managed repository to use the same `codex/<task>` branch and
    require every index to be initially empty;
 2. reject changes in detached dependency-only submodules;
-3. map each exact root-relative allowlisted path to its owning repository and
-   stage only those paths plus direct managed-child gitlinks produced by the
-   same transaction;
-4. require the sorted staged paths to equal the sorted commit allowlist,
-   reject unstaged tracked changes and unexpected untracked files, and run
-   `git diff --cached --check`;
+3. stage all Git-visible changes in each managed repository with
+   `git add -A -- .`, plus direct managed-child gitlinks produced by the same
+   or an interrupted transaction;
+4. run `git diff --cached --check` before each repository commit;
 5. commit deepest managed repositories first and propagate their gitlinks to
    their parents;
 6. finish with an entirely clean project and print every created commit OID for
@@ -101,8 +97,8 @@ the exact commit used for handoff.
 
 On a staging or commit failure, stop without destructive recovery. The entry
 point restores only the index entries it staged and preserves working-tree
-content. A retry uses the same exact allowlist and safely propagates any managed
-child commit already created by the interrupted transaction.
+content. A retry detects and propagates any managed child commit already
+created by the interrupted transaction.
 
 ## Handoff contract
 
@@ -117,6 +113,7 @@ managed repository. `merge` freezes the task tip, rejects moved refs or a
 non-fast-forward plan before mutation, integrates deepest repositories first,
 then restores dependency-only submodules from the integrated parent gitlinks.
 
-`delete` restores the recorded original branches and succeeds only when each
-task tip is already an ancestor of its original branch. Never use force delete,
-reset, stash, clean, or overwrite to pass a workflow check.
+`delete` restores the recorded original branches, then force-deletes the task
+branches. Because this may abandon unmerged commits, the exact delete command
+requires explicit Root authorization. Never reset, stash, clean, or overwrite
+to pass a workflow check.
