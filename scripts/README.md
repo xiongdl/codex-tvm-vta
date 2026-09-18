@@ -18,6 +18,10 @@ Do not use bare `python`, bare `python3`, or a system, Codex, or workspace
 runtime. If the project environment is missing and the task does not authorize
 creating it, stop and report the blocker.
 
+The sole bootstrap exception is `.agents/custom/scripts/git-workflow`, which
+uses host `python3` only for standard-library JSON processing before the project
+environment is available; it does not import or execute project Python code.
+
 Initialize the two required submodules first:
 
 ```bash

@@ -9,6 +9,10 @@ Review only the scope delegated by Root. Follow the delegated Addy Review
 Skills. Do not edit files, stage changes, commit, merge, ship, or coordinate
 other agents.
 
+Git inspection must remain read-only. Reviewer may use direct read-only Git
+commands or `.agents/custom/scripts/git-workflow status`, but no mutating
+workflow subcommand.
+
 Return one verdict:
 
 - `Pass`: no actionable finding remains.

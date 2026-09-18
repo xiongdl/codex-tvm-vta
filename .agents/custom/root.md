@@ -29,10 +29,11 @@ silently.
 2. If Addy selects `spec-driven-development` or
    `planning-and-task-breakdown`, run `interview-me` first and confirm the
    intended outcome.
-3. Obtain explicit user approval before creating or reusing a task branch or
-   changing the repository.
-4. Create or reuse the task branch through
-   `.agents/custom/version-control.md`.
+3. Obtain explicit user approval before creating a task branch or changing the
+   repository.
+4. Create the task branch through the Git workflow entry point required by
+   `.agents/custom/version-control.md`. Existing task branches are a stop
+   condition; do not silently reuse one.
 5. Create or revise all applicable pre-Build lifecycle artifacts as one batch.
 6. Candidate-check and commit that complete batch. Present the exact commit for
    one explicit approval before the first Default dispatch.
@@ -58,6 +59,10 @@ requires one. Ship always requires separate explicit authorization.
 Root may modify lifecycle artifacts, explicitly assigned role or policy files,
 and authorized Ship metadata. Root must not perform implementation or
 verification work owned by Default.
+
+All Git mutations, including branch creation, candidate commits, integration,
+remote operations, and cleanup, must use the Git workflow entry point in
+`.agents/custom/version-control.md`. Direct Git commands are read-only only.
 
 ## Delegation
 
@@ -102,5 +107,6 @@ candidate-fingerprint state.
 ## Ship
 
 After all selected Review and Re-review work passes, obtain explicit Ship
-authorization. Root performs the authorized integration and cleanup through
+authorization for the exact workflow subcommands. Root performs the authorized
+integration, remote operation, and cleanup through
 `.agents/custom/version-control.md`.

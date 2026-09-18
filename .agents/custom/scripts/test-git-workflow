@@ -1,0 +1,162 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(
+    cd "$(dirname "${BASH_SOURCE[0]}")"
+    pwd
+)"
+WORKFLOW="$SCRIPT_DIR/git-workflow"
+TEST_PARENT="${TMPDIR:-/tmp}"
+TEST_PARENT="${TEST_PARENT%/}"
+TEST_ROOT="$(mktemp -d "$TEST_PARENT/git-workflow-tests.XXXXXX")"
+
+cleanup() {
+    [[ -n "$TEST_ROOT" ]] || return
+
+    case "$TEST_ROOT" in
+        "$TEST_PARENT"/git-workflow-tests.*)
+            rm -rf -- "$TEST_ROOT"
+            ;;
+        *)
+            printf 'Refusing unsafe cleanup: %s\n' "$TEST_ROOT" >&2
+            return 1
+            ;;
+    esac
+}
+
+trap cleanup EXIT
+
+init_repo() {
+    local repo="$1"
+
+    mkdir -p "$repo"
+    git -C "$repo" init -b dev
+    git -C "$repo" config user.name Codex-Test
+    git -C "$repo" config user.email codex-test@example.invalid
+}
+
+test_happy_path() {
+    local repo="$TEST_ROOT/happy"
+
+    init_repo "$repo"
+    git -C "$repo" commit --allow-empty -m baseline
+
+    (
+        cd "$repo"
+        "$WORKFLOW" status >/dev/null
+        "$WORKFLOW" create happy-task
+        touch policy.md
+        "$WORKFLOW" commit \
+            -m "test: policy" \
+            --verify "test -f policy.md" \
+            -- policy.md
+        "$WORKFLOW" merge happy-task
+        "$WORKFLOW" delete happy-task
+        "$WORKFLOW" status >/dev/null
+    )
+}
+
+test_rejected_candidate_is_retryable() {
+    local repo="$TEST_ROOT/retry"
+
+    init_repo "$repo"
+    git -C "$repo" commit --allow-empty -m baseline
+
+    (
+        cd "$repo"
+        "$WORKFLOW" create retry-task
+        touch allowed.md unexpected.md
+
+        if "$WORKFLOW" commit \
+            -m "test: reject unexpected" \
+            --verify true \
+            -- allowed.md
+        then
+            printf 'Expected unexpected path rejection\n' >&2
+            return 1
+        fi
+
+        test -z "$(git diff --cached --name-only)"
+        rm -- unexpected.md
+
+        "$WORKFLOW" commit \
+            -m "test: retry" \
+            --verify "test -f allowed.md" \
+            -- allowed.md
+    )
+}
+
+test_submodule_parent_retry() {
+    local child_source="$TEST_ROOT/child-source"
+    local parent="$TEST_ROOT/parent"
+    local verifier_state="$TEST_ROOT/verifier-state"
+
+    init_repo "$child_source"
+    touch "$child_source/child.txt"
+    git -C "$child_source" add child.txt
+    git -C "$child_source" commit -m baseline
+
+    init_repo "$parent"
+    git -C "$parent" \
+        -c protocol.file.allow=always \
+        submodule add "$child_source" child
+    git -C "$parent" commit -m baseline
+
+    (
+        cd "$parent"
+        "$WORKFLOW" create submodule-task
+        touch child/change.txt
+
+        if "$WORKFLOW" commit \
+            -m "test: child retry" \
+            --verify "test ! -e \"$verifier_state\" && touch \"$verifier_state\"" \
+            -- child/change.txt
+        then
+            printf 'Expected parent verification failure\n' >&2
+            return 1
+        fi
+
+        test -z "$(git diff --cached --name-only)"
+        test "$(
+            git -C child rev-list \
+                --count \
+                dev..codex/submodule-task
+        )" -eq 1
+
+        "$WORKFLOW" commit \
+            -m "test: child retry" \
+            --verify true \
+            -- child/change.txt
+        "$WORKFLOW" merge submodule-task
+        "$WORKFLOW" delete submodule-task
+    )
+}
+
+test_broad_allowlist_rejected() {
+    local repo="$TEST_ROOT/broad"
+
+    init_repo "$repo"
+    git -C "$repo" commit --allow-empty -m baseline
+
+    (
+        cd "$repo"
+        "$WORKFLOW" create broad-task
+        touch file.md
+
+        if "$WORKFLOW" commit \
+            -m "test: reject broad path" \
+            --verify true \
+            -- .
+        then
+            printf 'Expected broad path rejection\n' >&2
+            return 1
+        fi
+    )
+}
+
+test_happy_path
+test_rejected_candidate_is_retryable
+test_submodule_parent_retry
+test_broad_allowlist_rejected
+
+printf 'OK git-workflow tests\n'

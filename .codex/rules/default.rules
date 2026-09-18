@@ -1,14 +1,8 @@
-# ~/.codex/rules/default.rules
+# Repository Git policy
 #
-# Policy:
-# - Normal task-level Git work should run autonomously.
-# - Broad staging, integration, remote, and destructive operations require
-#   explicit human approval.
-# - Force-push is forbidden for agents.
-
-# ------------------------------------------------------------
-# Read-only Git operations — AUTO
-# ------------------------------------------------------------
+# `.agents/custom/scripts/git-workflow` is the only write entry point.
+# Read-only Git stays autonomous. Direct mutations are gated so the script's
+# allowlist, snapshot, verification, and submodule checks cannot be bypassed.
 
 prefix_rule(
     pattern = ["git", ["status", "diff", "log", "show"]],
@@ -16,131 +10,44 @@ prefix_rule(
     justification = "Read-only Git operations are safe to run automatically.",
 )
 
-# ------------------------------------------------------------
-# Task-level staging — AUTO
-# ------------------------------------------------------------
-#
-# This allows explicit file staging, e.g.:
-#   git add src/foo.ts tests/foo.test.ts
-#
-# More specific rules below override broad staging for "." and "-A".
+# Workflow-local, non-publishing operations.
 
 prefix_rule(
-    pattern = ["git", "add"],
+    pattern = ["./.agents/custom/scripts/git-workflow", "status"],
     decision = "allow",
-    justification = "Allow staging files for the current task.",
-)
-
-# Broad staging requires human review.
-
-prefix_rule(
-    pattern = ["git", "add", "."],
-    decision = "prompt",
-    justification = "Broad staging may include changes unrelated to the current task.",
+    justification = "The workflow status command is read-only.",
 )
 
 prefix_rule(
-    pattern = ["git", "add", "-A"],
-    decision = "prompt",
-    justification = "Repository-wide staging may include unrelated changes.",
-)
-
-prefix_rule(
-    pattern = ["git", "add", "--all"],
-    decision = "prompt",
-    justification = "Repository-wide staging may include unrelated changes.",
-)
-
-# ------------------------------------------------------------
-# Task-level commits — AUTO
-# ------------------------------------------------------------
-
-prefix_rule(
-    pattern = ["git", "commit"],
+    pattern = ["./.agents/custom/scripts/git-workflow", "create"],
     decision = "allow",
-    justification = "Allow autonomous task-level local commits.",
+    justification = "The workflow validates clean state and creates only the approved task branch.",
 )
 
-# ------------------------------------------------------------
-# Normal local branch operations — AUTO
-# ------------------------------------------------------------
-
 prefix_rule(
-    pattern = ["git", "switch"],
+    pattern = ["./.agents/custom/scripts/git-workflow", "commit"],
     decision = "allow",
-    justification = "Allow normal local branch switching and creation.",
+    justification = "The workflow enforces exact paths, frozen fingerprints, verification, and clean state.",
 )
 
-prefix_rule(
-    pattern = ["git", "checkout"],
-    decision = "allow",
-    justification = "Allow normal local checkout operations.",
-)
+# Remote, integration, and cleanup operations retain explicit approval.
 
 prefix_rule(
-    pattern = ["git", "branch"],
-    decision = "allow",
-    justification = "Allow normal local branch management.",
-)
-
-# ------------------------------------------------------------
-# Integration / history changes — HUMAN APPROVAL
-# ------------------------------------------------------------
-
-prefix_rule(
-    pattern = ["git", "merge"],
+    pattern = ["./.agents/custom/scripts/git-workflow", ["pull", "push", "merge", "delete"]],
     decision = "prompt",
-    justification = "Branch integration requires explicit human approval.",
+    justification = "Remote updates, publication, integration, and branch cleanup require explicit Root authorization.",
 )
 
-prefix_rule(
-    pattern = ["git", "rebase"],
-    decision = "prompt",
-    justification = "History rewriting requires explicit human approval.",
-)
-
-# ------------------------------------------------------------
-# Remote operations — HUMAN APPROVAL
-# ------------------------------------------------------------
+# Direct mutations bypass the repository workflow and are forbidden.
 
 prefix_rule(
-    pattern = ["git", "push"],
-    decision = "prompt",
-    justification = "Publishing local changes to a remote requires explicit human approval.",
-)
-
-# Force-push — FORBIDDEN
-
-prefix_rule(
-    pattern = ["git", "push", "--force"],
+    pattern = ["git", ["add", "am", "apply", "branch", "checkout", "cherry-pick", "clean", "commit", "fetch", "merge", "mv", "notes", "pull", "push", "rebase", "reset", "restore", "revert", "rm", "stash", "switch", "tag", "update-ref", "worktree"]],
     decision = "forbidden",
-    justification = "Agents must never force-push automatically.",
+    justification = "Use ./.agents/custom/scripts/git-workflow instead of direct Git mutation commands.",
 )
 
 prefix_rule(
-    pattern = ["git", "push", "-f"],
+    pattern = ["git", "submodule", ["add", "deinit", "set-branch", "set-url", "sync", "update"]],
     decision = "forbidden",
-    justification = "Agents must never force-push automatically.",
-)
-
-prefix_rule(
-    pattern = ["git", "push", "--force-with-lease"],
-    decision = "forbidden",
-    justification = "Agents must not rewrite remote history.",
-)
-
-# ------------------------------------------------------------
-# Destructive local operations — HUMAN APPROVAL
-# ------------------------------------------------------------
-
-prefix_rule(
-    pattern = ["git", "reset", "--hard"],
-    decision = "prompt",
-    justification = "Hard reset can permanently discard local changes.",
-)
-
-prefix_rule(
-    pattern = ["git", "clean"],
-    decision = "prompt",
-    justification = "Git clean can permanently delete untracked files.",
+    justification = "Use ./.agents/custom/scripts/git-workflow instead of direct submodule mutations.",
 )

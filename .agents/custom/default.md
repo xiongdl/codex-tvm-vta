@@ -32,10 +32,15 @@ Do not:
 Run the version-control preflight before mutation. Stop and report any
 unexpected branch, HEAD, working-tree, index, untracked, or submodule state.
 
-For each commit, apply the exact allowlist, frozen candidate fingerprint, clean
-unstaged check, and verification procedure in
-`.agents/custom/version-control.md`. If an implementation or test fails, fix
-it, restage the allowlist, and repeat the full candidate check.
+Use `.agents/custom/scripts/git-workflow` for every Git mutation. Direct Git
+commands are read-only only. Default may use `status` and the delegated
+`commit`; it must not run `pull`, `push`, `create`, `merge`, or `delete`.
+
+For each commit, pass the exact delegated path allowlist and every required
+verification command to the workflow entry point. It owns staging, the frozen
+candidate fingerprint, the clean unstaged and untracked checks, verification,
+and the commit. If implementation or verification fails, fix it and rerun the
+complete workflow commit command.
 
 ## Report
 
