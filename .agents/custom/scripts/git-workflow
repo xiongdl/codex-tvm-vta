@@ -921,52 +921,6 @@ cmd_push() {
     cleanup_files "$inventory"
 }
 
-parent_managed_repo_for() {
-    local inventory="$1"
-    local child="$2"
-
-    [[ "$child" != "." ]] || return 1
-
-    local parent="."
-    local best=-1
-
-    while IFS=$'\t' read -r \
-        path depth managed checkout current_branch_name commit
-    do
-        [[ "$managed" == "true" ]] || continue
-        [[ "$path" != "$child" ]] || continue
-
-        if [[ "$path" == "." ]]; then
-            if (( best < 0 )); then
-                parent="."
-                best=0
-            fi
-            continue
-        fi
-
-        if [[ "$child" == "$path/"* ]] &&
-           (( depth > best ))
-        then
-            parent="$path"
-            best="$depth"
-        fi
-
-    done <"$inventory"
-
-    printf '%s\n' "$parent"
-}
-
-repo_relative_path() {
-    local repo="$1"
-    local path="$2"
-
-    if [[ "$repo" == "." ]]; then
-        printf '%s\n' "$path"
-    else
-        printf '%s\n' "${path#"$repo"/}"
-    fi
-}
-
 clear_commit_index() {
     local repo="$1"
 
@@ -1006,14 +960,10 @@ cmd_commit() {
     local root
     local inventory
     local errors
-    local committed
 
     root="$(root_dir)"
     inventory="$(mktemp)"
     errors="$(mktemp)"
-    committed="$(mktemp)"
-
-    : >"$committed"
 
     collect_commit_state \
         "$root" \
@@ -1029,31 +979,10 @@ cmd_commit() {
 
         cleanup_files \
             "$inventory" \
-            "$errors" \
-            "$committed"
+            "$errors"
 
         return 1
     fi
-
-    # A previous deepest-first transaction may already have committed a
-    # managed child before a parent commit failed. Preserve that progress
-    # so a retry propagates the child's gitlink instead of becoming stuck.
-    local managed
-
-    while IFS=$'\t' read -r prefix child; do
-        [[ "$prefix" == "+" ]] || continue
-
-        managed="$(
-            awk -F'\t' \
-                -v p="$child" \
-                '$1 == p {print $3}' \
-                "$inventory"
-        )"
-
-        [[ "$managed" == "true" ]] || continue
-
-        printf '%s\n' "$child" >>"$committed"
-    done < <(list_submodules "$root")
 
     local task_branch_name
 
@@ -1065,8 +994,7 @@ cmd_commit() {
     [[ "$task_branch_name" == codex/* ]] || {
         cleanup_files \
             "$inventory" \
-            "$errors" \
-            "$committed"
+            "$errors"
 
         die "not-on-task-branch branch=$task_branch_name"
     }
@@ -1094,22 +1022,6 @@ cmd_commit() {
         #
         git_repo "$repo" add -A -- .
 
-        # Explicitly stage direct managed child gitlinks committed earlier
-        # in this transaction or left by an interrupted prior transaction.
-        while IFS= read -r child; do
-            [[ -n "$child" ]] || continue
-            [[ "$child" != "." ]] || continue
-
-            local parent
-            parent="$(parent_managed_repo_for "$inventory" "$child")"
-
-            [[ "$parent" == "$path" ]] || continue
-
-            git_repo "$repo" add -- \
-                "$(repo_relative_path "$path" "$child")"
-
-        done <"$committed"
-
         if git_repo "$repo" diff \
             --cached \
             --quiet \
@@ -1135,8 +1047,6 @@ cmd_commit() {
             '    commit=%s\n' \
             "$(current_commit "$repo")"
 
-        printf '%s\n' "$path" >>"$committed"
-
         ((committed_count += 1))
 
     done < <(
@@ -1147,8 +1057,7 @@ cmd_commit() {
     if (( committed_count == 0 )); then
         cleanup_files \
             "$inventory" \
-            "$errors" \
-            "$committed"
+            "$errors"
 
         die "nothing-to-commit"
     fi
@@ -1156,8 +1065,7 @@ cmd_commit() {
     if ! require_clean_project "$root" "$inventory"; then
         cleanup_files \
             "$inventory" \
-            "$errors" \
-            "$committed"
+            "$errors"
         return 1
     fi
 
@@ -1168,8 +1076,7 @@ cmd_commit() {
 
     cleanup_files \
         "$inventory" \
-        "$errors" \
-        "$committed"
+        "$errors"
 }
 
 #

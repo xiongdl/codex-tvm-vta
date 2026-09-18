@@ -81,8 +81,8 @@ The `commit` command must:
    require every index to be initially empty;
 2. reject changes in detached dependency-only submodules;
 3. stage all Git-visible changes in each managed repository with
-   `git add -A -- .`, plus direct managed-child gitlinks produced by the same
-   or an interrupted transaction;
+   `git add -A -- .`; deepest-first ordering makes parent repositories capture
+   managed-child gitlinks;
 4. run `git diff --cached --check` before each repository commit;
 5. commit deepest managed repositories first and propagate their gitlinks to
    their parents;
@@ -97,8 +97,8 @@ the exact commit used for handoff.
 
 On a staging or commit failure, stop without destructive recovery. The entry
 point restores only the index entries it staged and preserves working-tree
-content. A retry detects and propagates any managed child commit already
-created by the interrupted transaction.
+content. On retry, `git add -A -- .` restages any managed-child gitlink left by
+an interrupted transaction.
 
 ## Handoff contract
 
