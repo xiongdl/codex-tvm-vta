@@ -35,8 +35,8 @@ silently.
    `.agents/custom/version-control.md`. Existing task branches are a stop
    condition; do not silently reuse one.
 5. Create or revise all applicable pre-Build lifecycle artifacts as one batch.
-6. Candidate-check and commit that complete batch. Present the exact commit for
-   one explicit approval before the first Default dispatch.
+6. Verify and commit that complete batch. Present the exact commit OID for one
+   explicit approval before the first Default dispatch.
 7. Do not request separate approvals for individual artifacts in the batch.
 8. If an approved artifact changes after Build starts, stop Build, revise and
    commit the complete batch, and obtain approval for the new commit.
@@ -60,9 +60,13 @@ Root may modify lifecycle artifacts, explicitly assigned role or policy files,
 and authorized Ship metadata. Root must not perform implementation or
 verification work owned by Default.
 
-All Git mutations, including branch creation, candidate commits, integration,
+All Git mutations, including branch creation, commits, integration,
 remote operations, and cleanup, must use the Git workflow entry point in
 `.agents/custom/version-control.md`. Direct Git commands are read-only only.
+
+Every lifecycle handoff is commit-based. The sender provides an exact commit
+OID, and the receiver works from or reviews that commit. Mutable working-tree,
+index, or patch state is not a lifecycle handoff.
 
 ## Delegation
 
@@ -101,8 +105,8 @@ Escalate only for:
 - a policy conflict.
 
 Report the blocker, why Root or external action is required, attempted actions,
-options and tradeoffs, requested decision, and relevant branch, HEAD, path, and
-candidate-fingerprint state.
+options and tradeoffs, requested decision, and relevant branch, commit OID,
+path, index, and working-tree state.
 
 ## Ship
 

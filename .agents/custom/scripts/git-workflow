@@ -15,7 +15,7 @@ Usage:
   $PROGRAM pull
   $PROGRAM push
   $PROGRAM create <task>
-  $PROGRAM commit -m <message> --verify <command> [--verify <command> ...] -- <path>...
+  $PROGRAM commit -m <message> -- <path>...
   $PROGRAM merge <task>
   $PROGRAM delete <task>
 EOF
@@ -1061,19 +1061,6 @@ build_commit_allowlist() {
     fi
 }
 
-candidate_fingerprint() {
-    local repo="$1"
-
-    {
-        set -o pipefail
-        git_repo "$repo" diff \
-            --cached \
-            --binary \
-            --full-index |
-            git hash-object --stdin
-    }
-}
-
 write_expected_paths() {
     local inventory="$1"
     local mapped="$2"
@@ -1104,7 +1091,7 @@ write_expected_paths() {
     sort -u -o "$output" "$output"
 }
 
-require_exact_candidate() {
+require_exact_staged_paths() {
     local repo="$1"
     local expected="$2"
     local actual="$3"
@@ -1147,7 +1134,7 @@ require_exact_candidate() {
         --check
 }
 
-clear_candidate_index() {
+clear_commit_index() {
     local repo="$1"
 
     # Commit preflight requires an initially empty index, so restoring the
@@ -1161,10 +1148,8 @@ clear_candidate_index() {
 cmd_commit() {
     local message=""
     local requested
-    local verifications
 
     requested="$(mktemp)"
-    verifications="$(mktemp)"
 
     while (($#)); do
         case "$1" in
@@ -1175,19 +1160,6 @@ cmd_commit() {
                     die "missing-commit-message"
 
                 message="$1"
-                shift
-                ;;
-
-            --verify)
-                shift
-
-                (($#)) ||
-                    die "missing-verification-command"
-
-                [[ -n "$1" ]] ||
-                    die "empty-verification-command"
-
-                printf '%s\n' "$1" >>"$verifications"
                 shift
                 ;;
 
@@ -1212,9 +1184,6 @@ cmd_commit() {
 
     [[ -n "$message" ]] ||
         die "commit-message-required"
-
-    [[ -s "$verifications" ]] ||
-        die "verification-command-required"
 
     [[ -s "$requested" ]] ||
         die "allowlisted-path-required"
@@ -1247,7 +1216,6 @@ cmd_commit() {
 
         cleanup_files \
             "$requested" \
-            "$verifications" \
             "$inventory" \
             "$errors" \
             "$committed" \
@@ -1263,7 +1231,7 @@ cmd_commit() {
         "$mapped"
 
     # A previous deepest-first transaction may already have committed a
-    # managed child before a parent candidate failed. Preserve that progress
+    # managed child before a parent commit failed. Preserve that progress
     # so a retry propagates the child's gitlink instead of becoming stuck.
     local managed
 
@@ -1286,7 +1254,6 @@ cmd_commit() {
         then
             cleanup_files \
                 "$requested" \
-                "$verifications" \
                 "$inventory" \
                 "$errors" \
                 "$committed" \
@@ -1307,7 +1274,6 @@ cmd_commit() {
     [[ "$task_branch_name" == codex/* ]] || {
         cleanup_files \
             "$requested" \
-            "$verifications" \
             "$inventory" \
             "$errors" \
             "$committed" \
@@ -1328,8 +1294,6 @@ cmd_commit() {
         local expected
         local actual
         local unexpected
-        local candidate_before
-        local candidate_after
 
         repo="$(repo_abs "$root" "$path")"
         expected="$(mktemp)"
@@ -1370,73 +1334,24 @@ cmd_commit() {
             continue
         fi
 
-        if ! require_exact_candidate \
+        if ! require_exact_staged_paths \
                 "$repo" \
                 "$expected" \
                 "$actual" \
                 "$unexpected"
         then
-            clear_candidate_index "$repo"
+            clear_commit_index "$repo"
             cleanup_files \
                 "$expected" \
                 "$actual" \
                 "$unexpected"
             return 1
         fi
-
-        candidate_before="$(candidate_fingerprint "$repo")"
-
-        while IFS= read -r verification; do
-            printf '    verify: %s\n' "$verification"
-
-            if ! (
-                    cd "$root"
-                    bash -lc "$verification"
-                )
-            then
-                clear_candidate_index "$repo"
-                cleanup_files \
-                    "$expected" \
-                    "$actual" \
-                    "$unexpected"
-                return 1
-            fi
-        done <"$verifications"
-
-        if ! require_exact_candidate \
-                "$repo" \
-                "$expected" \
-                "$actual" \
-                "$unexpected"
-        then
-            clear_candidate_index "$repo"
-            cleanup_files \
-                "$expected" \
-                "$actual" \
-                "$unexpected"
-            return 1
-        fi
-
-        candidate_after="$(candidate_fingerprint "$repo")"
-
-        [[ "$candidate_before" == "$candidate_after" ]] || {
-            clear_candidate_index "$repo"
-            cleanup_files \
-                "$expected" \
-                "$actual" \
-                "$unexpected"
-            die "candidate-changed-during-verification repo=$path"
-        }
-
-        printf \
-            '    candidate_before=%s\n    candidate_after=%s\n' \
-            "$candidate_before" \
-            "$candidate_after"
 
         if ! git_repo "$repo" commit \
                 -m "$message"
         then
-            clear_candidate_index "$repo"
+            clear_commit_index "$repo"
             cleanup_files \
                 "$expected" \
                 "$actual" \
@@ -1465,7 +1380,6 @@ cmd_commit() {
     if (( committed_count == 0 )); then
         cleanup_files \
             "$requested" \
-            "$verifications" \
             "$inventory" \
             "$errors" \
             "$committed" \
@@ -1477,7 +1391,6 @@ cmd_commit() {
     if ! require_clean_project "$root" "$inventory"; then
         cleanup_files \
             "$requested" \
-            "$verifications" \
             "$inventory" \
             "$errors" \
             "$committed" \
@@ -1492,7 +1405,6 @@ cmd_commit() {
 
     cleanup_files \
         "$requested" \
-        "$verifications" \
         "$inventory" \
         "$errors" \
         "$committed" \

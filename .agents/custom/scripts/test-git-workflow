@@ -48,7 +48,6 @@ test_happy_path() {
         touch policy.md
         "$WORKFLOW" commit \
             -m "test: policy" \
-            --verify "test -f policy.md" \
             -- policy.md
         "$WORKFLOW" merge happy-task
         "$WORKFLOW" delete happy-task
@@ -56,7 +55,7 @@ test_happy_path() {
     )
 }
 
-test_rejected_candidate_is_retryable() {
+test_rejected_commit_is_retryable() {
     local repo="$TEST_ROOT/retry"
 
     init_repo "$repo"
@@ -69,7 +68,6 @@ test_rejected_candidate_is_retryable() {
 
         if "$WORKFLOW" commit \
             -m "test: reject unexpected" \
-            --verify true \
             -- allowed.md
         then
             printf 'Expected unexpected path rejection\n' >&2
@@ -81,15 +79,14 @@ test_rejected_candidate_is_retryable() {
 
         "$WORKFLOW" commit \
             -m "test: retry" \
-            --verify "test -f allowed.md" \
             -- allowed.md
     )
 }
 
-test_submodule_parent_retry() {
+test_submodule_parent_commit_retry() {
     local child_source="$TEST_ROOT/child-source"
     local parent="$TEST_ROOT/parent"
-    local verifier_state="$TEST_ROOT/verifier-state"
+    local parent_hook
 
     init_repo "$child_source"
     touch "$child_source/child.txt"
@@ -107,12 +104,15 @@ test_submodule_parent_retry() {
         "$WORKFLOW" create submodule-task
         touch child/change.txt
 
+        parent_hook="$parent/.git/hooks/pre-commit"
+        printf '#!/bin/sh\nexit 1\n' >"$parent_hook"
+        chmod +x "$parent_hook"
+
         if "$WORKFLOW" commit \
             -m "test: child retry" \
-            --verify "test ! -e \"$verifier_state\" && touch \"$verifier_state\"" \
             -- child/change.txt
         then
-            printf 'Expected parent verification failure\n' >&2
+            printf 'Expected parent commit-hook failure\n' >&2
             return 1
         fi
 
@@ -123,9 +123,10 @@ test_submodule_parent_retry() {
                 dev..codex/submodule-task
         )" -eq 1
 
+        rm -- "$parent_hook"
+
         "$WORKFLOW" commit \
             -m "test: child retry" \
-            --verify true \
             -- child/change.txt
         "$WORKFLOW" merge submodule-task
         "$WORKFLOW" delete submodule-task
@@ -145,7 +146,6 @@ test_broad_allowlist_rejected() {
 
         if "$WORKFLOW" commit \
             -m "test: reject broad path" \
-            --verify true \
             -- .
         then
             printf 'Expected broad path rejection\n' >&2
@@ -155,8 +155,8 @@ test_broad_allowlist_rejected() {
 }
 
 test_happy_path
-test_rejected_candidate_is_retryable
-test_submodule_parent_retry
+test_rejected_commit_is_retryable
+test_submodule_parent_commit_retry
 test_broad_allowlist_rejected
 
 printf 'OK git-workflow tests\n'

@@ -36,11 +36,15 @@ Use `.agents/custom/scripts/git-workflow` for every Git mutation. Direct Git
 commands are read-only only. Default may use `status` and the delegated
 `commit`; it must not run `pull`, `push`, `create`, `merge`, or `delete`.
 
-For each commit, pass the exact delegated path allowlist and every required
-verification command to the workflow entry point. It owns staging, the frozen
-candidate fingerprint, the clean unstaged and untracked checks, verification,
-and the commit. If implementation or verification fails, fix it and rerun the
-complete workflow commit command.
+For each checkpoint, complete the delegated Implement, Test, and Verify work
+before committing. Record the verification commands and results, then invoke
+the workflow entry point with the exact delegated path allowlist without making
+another content change. The entry point owns exact staging, clean unstaged and
+untracked checks, submodule propagation, and the commit.
+
+Return only a real commit OID as the checkpoint handoff. Mutable working-tree,
+index, or patch state is not a checkpoint handoff. If implementation or
+verification fails, fix it before invoking the commit command.
 
 ## Report
 
@@ -51,10 +55,10 @@ A successful report contains:
 - `GREEN`, checkpoint, completed tasks, and task branch;
 - original branch and base HEAD for each repository;
 - commit IDs and committed paths;
-- required Addy verification evidence;
-- candidate fingerprints before and after verification;
+- required Addy verification commands and results tied to the handed-off
+  commit OID;
 - remaining staged, unstaged, and untracked paths;
 - known risks, or `None`.
 
 An escalation states the blocker, attempted actions, available options, needed
-decision, repository state, and current candidate fingerprint.
+decision, branch, current commit OID, index, and working-tree state.

@@ -2,7 +2,7 @@
 #
 # `.agents/custom/scripts/git-workflow` is the only write entry point.
 # Read-only Git stays autonomous. Direct mutations are gated so the script's
-# allowlist, snapshot, verification, and submodule checks cannot be bypassed.
+# allowlist, snapshot, clean-state, and submodule checks cannot be bypassed.
 
 prefix_rule(
     pattern = ["git", ["status", "diff", "log", "show"]],
@@ -27,7 +27,7 @@ prefix_rule(
 prefix_rule(
     pattern = ["./.agents/custom/scripts/git-workflow", "commit"],
     decision = "allow",
-    justification = "The workflow enforces exact paths, frozen fingerprints, verification, and clean state.",
+    justification = "The workflow enforces exact paths, submodule propagation, commit OIDs, and clean state.",
 )
 
 # Remote, integration, and cleanup operations retain explicit approval.

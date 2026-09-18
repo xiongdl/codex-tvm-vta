@@ -59,10 +59,10 @@ permission, merge strategy, paths, or verification commands.
   It requires a clean project, snapshots every managed repository, rejects an
   existing task branch, and creates the same task branch in each managed
   repository.
-- `commit -m <message> --verify <command>... -- <path>...` is Default-owned for
-  delegated implementation commits and Root-owned only for authorized policy
-  or lifecycle artifacts. Paths are exact, root-relative allowlist entries;
-  broad paths such as `.` and parent traversal are rejected.
+- `commit -m <message> -- <path>...` is Default-owned after delegated Test and
+  Verify complete, and Root-owned only for verified policy or lifecycle
+  artifacts. Paths are exact, root-relative allowlist entries; broad paths such
+  as `.` and parent traversal are rejected.
 - `pull` changes local refs and worktrees from remotes and therefore requires
   explicit Root authorization. Do not pull after a task snapshot is created.
 - `push` publishes every managed repository and is Root-only with separate
@@ -75,7 +75,7 @@ permission, merge strategy, paths, or verification commands.
   task is intentionally unsupported and requires separate explicit authority
   and a manual destructive-operation review.
 
-## Candidate commit contract
+## Commit contract
 
 The `commit` command must:
 
@@ -85,20 +85,30 @@ The `commit` command must:
 3. map each exact root-relative allowlisted path to its owning repository and
    stage only those paths plus direct managed-child gitlinks produced by the
    same transaction;
-4. require the sorted staged paths to equal the sorted candidate allowlist,
+4. require the sorted staged paths to equal the sorted commit allowlist,
    reject unstaged tracked changes and unexpected untracked files, and run
    `git diff --cached --check`;
-5. fingerprint the staged binary/full-index diff, run every supplied
-   verification command from the parent repository root, repeat the path and
-   cleanliness checks, and require the fingerprint to remain unchanged;
-6. commit deepest managed repositories first, propagate verified gitlinks to
-   their parents, and finish with an entirely clean project;
-7. print the before/after candidate fingerprints and created commit IDs for
+5. commit deepest managed repositories first and propagate their gitlinks to
+   their parents;
+6. finish with an entirely clean project and print every created commit OID for
    the delegated report.
 
-Verification must not edit tracked files or the index. On any failure, stop;
-fix the issue without destructive recovery, then rerun the complete commit
-command.
+The owning role runs required Test and Verify commands before invoking
+`commit`, records their commands and results, and makes no content change
+between successful verification and the commit invocation. The entry point
+does not run verification; it turns the already verified clean content into
+the exact commit used for handoff.
+
+On a staging or commit failure, stop without destructive recovery. The entry
+point restores only the index entries it staged and preserves working-tree
+content. A retry uses the same exact allowlist and safely propagates any managed
+child commit already created by the interrupted transaction.
+
+## Handoff contract
+
+Every Root, Default, and Reviewer lifecycle handoff names an exact commit OID.
+The receiver works from or reviews that commit. Working trees, indexes, and
+patches are never lifecycle handoff state.
 
 ## Integration and cleanup
 

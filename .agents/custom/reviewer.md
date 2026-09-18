@@ -13,6 +13,9 @@ Git inspection must remain read-only. Reviewer may use direct read-only Git
 commands or `.agents/custom/scripts/git-workflow status`, but no mutating
 workflow subcommand.
 
+Review the exact commit OID delegated by Root. Do not review or report a mutable
+working tree, index, or patch as lifecycle state.
+
 Return one verdict:
 
 - `Pass`: no actionable finding remains.
