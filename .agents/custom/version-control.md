@@ -3,43 +3,57 @@
 Run every Git mutation from the repository root through:
 
 ```bash
-./.agents/custom/scripts/git-workflow <subcommand> ...
+./.agents/custom/scripts/git-workflow <command> ...
 ```
 
-The applicable policy defines who may run each command and what approval is
-required. Direct `git` commands are read-only only, such as `status`, `diff`,
-`log`, `show`, `rev-parse`, `symbolic-ref`, `submodule status`, and `ls-files`.
+The applicable policy defines authorization and ownership. Direct `git`
+commands are read-only only. Every handoff uses an exact commit OID, never
+working-tree, index, or patch state.
 
-## Workflow
+## Commands
 
-1. Run `status`. Stop unless every managed repository is clean and on the
-   expected branch and commit.
-2. Run `pull` only with explicit authorization and only before creating the task
-   branch.
-3. After task-branch and change approval, run:
+- `status`
+  - Use before a mutating command or whenever repository state is uncertain.
+  - Read-only. Succeeds only when all discovered repositories and gitlinks are
+    clean and consistent, then prints their paths, branches, and commit OIDs.
 
-   ```bash
-   ./.agents/custom/scripts/git-workflow create <task>
-   ```
+- `pull`
+  - Use only with explicit authorization, on clean managed repositories with
+    configured upstreams, and before creating a task branch.
+  - Pulls each managed repository with `--ff-only --prune`.
 
-4. Make the scoped changes, complete the required Test and Verify work, then
-   make no further content change and run:
+- `create <task>`
+  - Use after task-branch and change approval, from clean managed repositories.
+    The derived `codex/<task>` branch and task-begin snapshot must not exist.
+  - Records each current branch and commit, then creates the same task branch in
+    every managed repository.
 
-   ```bash
-   ./.agents/custom/scripts/git-workflow commit -m "<message>"
-   ```
+- `commit -m <message>`
+  - Use on the common task branch after required Test and Verify work succeeds,
+    with empty indexes and no later content changes.
+  - Stages all Git-visible task changes, checks the staged diff, commits managed
+    repositories deepest first, requires a clean result, and prints commit OIDs.
+    If it fails, fix the reported cause and retry; working-tree content and any
+    child commit already created are preserved.
 
-   This commits all Git-visible task changes and returns the commit OIDs.
-5. Use an exact commit OID for every handoff. Never hand off working-tree,
-   index, or patch state.
-6. Run `push`, `merge <task>`, or `delete <task>` only with their required
-   explicit authorization. `merge` is fast-forward-only. `delete` restores the
-   recorded branches and force-deletes the task branches, so it may abandon
-   unmerged commits.
+- `push`
+  - Use only with explicit authorization and clean managed repositories.
+  - Pushes each managed branch to its upstream, or sets `origin/<branch>` as the
+    upstream when none exists.
 
-If `commit` fails, fix the reported cause and retry. The workflow preserves
-working-tree content, clears only the index entries it staged, and keeps any
-managed child commit already created.
+- `merge <task>`
+  - Use only with explicit authorization when all managed repositories are clean
+    and on the task branch, the original branches have not moved, and every
+    update is fast-forwardable.
+  - Fast-forwards the recorded original branches to the task commits, deepest
+    repository first, then leaves the repository set clean on the original
+    branches.
+
+- `delete <task>`
+  - Use only with explicit authorization, a task-begin snapshot, existing
+    original branches, and clean managed repositories.
+  - Restores the original branches and force-deletes the task branches. It can
+    delete an unmerged task and abandon its commits.
 
 Do not use direct Git mutations, reset, stash, clean, or overwrite to bypass a
 workflow check.
