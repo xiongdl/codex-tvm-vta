@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(
+    cd "$(dirname "${BASH_SOURCE[0]}")"
+    pwd
+)"
+CUSTOM_DIR="$(dirname "$SCRIPT_DIR")"
+
+fail() {
+    printf 'FAIL %s\n' "$*" >&2
+    exit 1
+}
+
+require_text() {
+    local file="$1"
+    local expected="$2"
+
+    grep -F -- "$expected" "$file" >/dev/null ||
+        fail "missing-text file=${file#"$CUSTOM_DIR"/} text=$expected"
+}
+
+reject_text() {
+    local file="$1"
+    local rejected="$2"
+
+    if grep -F -- "$rejected" "$file" >/dev/null; then
+        fail "rejected-text file=${file#"$CUSTOM_DIR"/} text=$rejected"
+    fi
+}
+
+ROOT="$CUSTOM_DIR/root.md"
+DEFAULT="$CUSTOM_DIR/default.md"
+REVIEWER="$CUSTOM_DIR/reviewer.md"
+VERSION_CONTROL="$CUSTOM_DIR/version-control.md"
+
+require_text "$ROOT" 'skills/interview-me/SKILL.md'
+require_text "$ROOT" 'skills/spec-driven-development/SKILL.md'
+require_text "$ROOT" 'skills/planning-and-task-breakdown/SKILL.md'
+require_text "$ROOT" 'the lifecycle ends when Reviewer returns `Pass`'
+require_text "$ROOT" 'Root must not execute the merge'
+
+require_text "$DEFAULT" 'skills/incremental-implementation/SKILL.md'
+require_text "$DEFAULT" 'skills/test-driven-development/SKILL.md'
+require_text "$DEFAULT" 'is the local commit unit:'
+require_text "$DEFAULT" '`git-workflow commit -m <message>`'
+
+require_text "$REVIEWER" 'skills/code-review-and-quality/SKILL.md'
+require_text "$REVIEWER" '`Pass` ends the development lifecycle'
+require_text "$VERSION_CONTROL" 'contains exactly `merge <task>`'
+
+reject_text "$ROOT" 'Use `using-agent-skills`'
+reject_text "$DEFAULT" 'Use `using-agent-skills`'
+reject_text "$REVIEWER" 'Use `using-agent-skills`'
+
+printf 'OK role workflow contract\n'

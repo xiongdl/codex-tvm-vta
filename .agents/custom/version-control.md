@@ -6,9 +6,16 @@ Run every Git mutation from the repository root through:
 ./.agents/custom/scripts/git-workflow <command> ...
 ```
 
-The applicable policy defines authorization and ownership. Direct `git`
+The applicable role policy defines authorization and ownership. Direct `git`
 commands are read-only only. Every handoff uses an exact commit OID, never
 working-tree, index, or patch state.
+
+The fixed lifecycle uses `status`, `create`, and `commit`. It completes when
+Reviewer returns `Pass`. Ship is an optional, user-owned post-review step that
+contains exactly `merge <task>`; Root, Default, and Reviewer must not execute
+it. `pull`, `push`, and `delete` remain administrative script capabilities,
+not lifecycle or Ship operations, and require a separate explicit user
+request.
 
 ## Commands
 
@@ -42,9 +49,10 @@ working-tree, index, or patch state.
     upstream when none exists.
 
 - `merge <task>`
-  - Use only with explicit authorization when all managed repositories are clean
-    and on the task branch, the original branches have not moved, and every
-    update is fast-forwardable.
+  - Recommended for the user after Reviewer `Pass`. Agents do not run it.
+    Requires all managed repositories to be clean and on the task branch, the
+    original branches not to have moved, and every update to be
+    fast-forwardable.
   - Fast-forwards the recorded original branches to the task commits, deepest
     repository first, then leaves the repository set clean on the original
     branches.
@@ -62,4 +70,10 @@ Run the isolated regression suite with:
 
 ```bash
 bash .agents/custom/scripts/test-git-workflow
+```
+
+Validate the fixed role workflow contract with:
+
+```bash
+bash .agents/custom/scripts/test-role-workflow
 ```
