@@ -1,5 +1,7 @@
 # docs
 docs/confidential/
+docs/initiatives/*/task_beg.json
+docs/initiatives/*/task_end.json
 
 # macOS
 .DS_Store

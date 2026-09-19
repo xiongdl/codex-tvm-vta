@@ -565,32 +565,6 @@ with open(dst, "w", encoding="utf-8") as f:
 PY
 }
 
-exclude_snapshot() {
-    local root="$1"
-    local file="$2"
-
-    local gitdir
-    local relative
-    local exclude
-
-    gitdir="$(
-        git_repo "$root" rev-parse --git-dir
-    )"
-
-    if [[ "$gitdir" != /* ]]; then
-        gitdir="$root/$gitdir"
-    fi
-
-    relative="${file#"$root"/}"
-    exclude="$gitdir/info/exclude"
-
-    mkdir -p "$(dirname "$exclude")"
-    touch "$exclude"
-
-    grep -Fxq "$relative" "$exclude" ||
-        printf '%s\n' "$relative" >>"$exclude"
-}
-
 cmd_status() {
     local root
     local inventory
@@ -673,14 +647,6 @@ cmd_create() {
     fi
 
     mkdir -p "$(dirname "$beg")"
-
-    exclude_snapshot \
-        "$root" \
-        "$beg"
-
-    exclude_snapshot \
-        "$root" \
-        "$(end_file "$root" "$task")"
 
     if [[ -e "$beg" ]]; then
         cleanup_files "$inventory" "$problems"
