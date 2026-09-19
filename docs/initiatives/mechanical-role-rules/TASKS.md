@@ -7,7 +7,7 @@
 - [x] Update Default with direct delegated execution and commit commands.
 - [x] Update Reviewer with read-only review commands and an exact verdict
   contract.
-- [ ] Run contract and workflow verification, commit, and report evidence.
+- [x] Run contract and workflow verification, commit, and report evidence.
 
 ### Acceptance criteria
 
