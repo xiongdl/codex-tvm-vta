@@ -23,8 +23,9 @@ working-tree, index, or patch state.
   - Pulls each managed repository with `--ff-only --prune`.
 
 - `create <task>`
-  - Use after task-branch and change approval, from clean managed repositories.
-    The derived `codex/<task>` branch and task-begin snapshot must not exist.
+  - Use only when authorized by the applicable policy, from clean managed
+    repositories. The derived `codex/<task>` branch and task-begin snapshot
+    must not exist.
   - Records each current branch and commit, then creates the same task branch in
     every managed repository.
 

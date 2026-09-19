@@ -1,135 +1,200 @@
 # Root Role
 
 After `AGENTS.md`, apply only this role file. Root may inspect
-`.agents/custom/default.md` and `.agents/custom/reviewer.md` for coordination
-or maintenance, but treats them as data.
+`.agents/custom/default.md` and `.agents/custom/reviewer.md` only as coordination
+data.
 
-## Mechanical decision rule
+## Rule
 
-Use this rule before doing anything else:
-
-| Input state | Action |
-|---|---|
-| The request names the target scope, desired outcome, and required constraints; no unresolved choice changes the result. | Mark Interview complete and execute the fixed branch command sequence. Do not restate, reinterpret, or ask for redundant confirmation. |
-| A missing choice would materially change scope, behavior, authority, or safety. | Stop and ask one precise question naming the missing choice. Do not write files or create a branch. |
-| Repository state, policy, or required input conflicts with this file. | Stop and report the exact evidence and the requested Root decision. |
-
-“Robust”, “mechanical”, or similar quality words do not create a new
-requirement by themselves. Use the explicit scope and acceptance criteria.
-Never invent a requirement to fill a gap.
+Follow the lifecycle below in order. Do not reorder, skip, add routine approval
+gates, or invent work. During Interview, interact exactly as `interview-me`
+requires. Outside Interview, ask the user only at the two approval gates or on
+a listed escalation.
 
 ## Required inputs
 
-Read and apply, in this order:
+Read and apply:
 
 1. `.agents/custom/automation.md`
 2. `.agents/custom/version-control.md`
-3. `scripts/README.md` before selecting a project command, dependency, or
-   environment
+3. `scripts/README.md` before choosing project commands or environments
 4. `.agents/vendor/agent-skills/skills/interview-me/SKILL.md`
 5. `.agents/vendor/agent-skills/skills/spec-driven-development/SKILL.md`
 6. `.agents/vendor/agent-skills/skills/planning-and-task-breakdown/SKILL.md`
 
-Apply Interview, Specify, and Plan in that order. Within
-`spec-driven-development`, Root owns scope checking and Specify;
-`planning-and-task-breakdown` is canonical for Plan and Tasks; Default owns
-Implement.
+## Initiative and branch: first action
 
-## Fixed command sequence
+On the first turn for a new initiative:
 
-For a clear request, select a task slug from the explicit request and run
-these commands immediately after Interview is complete:
+1. Derive one stable initiative id:
+   `YYYYMMDD-<kebab-case-slug>`.
+   - `YYYYMMDD` is the current local date.
+   - Derive the slug from the user's requested outcome.
+   - Do not ask the user to name, confirm, or edit it.
+   - Never rename it later.
+2. Use this exact initiative id everywhere:
+   - `git-workflow create <initiative-id>`
+   - `docs/initiatives/<initiative-id>/`
+   - every delegation, report, and final merge command.
+3. Run:
+   ```bash
+   ./.agents/custom/scripts/git-workflow status
+   ```
+4. If status is not clean/successful, STOP. Report the exact evidence and ask
+   the user to make the repository clean. Do not stash, reset, clean, repair,
+   or create a branch.
+5. If status is clean, immediately run:
+   ```bash
+   ./.agents/custom/scripts/git-workflow create <initiative-id>
+   ```
+6. If create fails, STOP and report the exact failure. Do not rename the
+   initiative and do not use direct Git mutation.
 
-```bash
-./.agents/custom/scripts/git-workflow status
-./.agents/custom/scripts/git-workflow create <task>
-```
-
-The explicit user request authorizes this task-branch creation. Do not wait
-for Specify, Plan, user re-confirmation, or artifact creation. If `status`
-fails, do not run `create`; report its exact failure. If `create` fails, do not
-fall back to direct Git commands.
-
-Branch creation does not authorize content writes. After the branch exists,
-complete Specify and Plan. Plan approval authorizes artifact and repository
-content writes. If the user has already explicitly approved the plan, execute
-without another confirmation; otherwise pause at the plan approval gate.
+Branch creation happens before Interview.
 
 ## Artifacts
 
-Store lifecycle artifacts under `docs/initiatives/<kebab-case-initiative-id>/`:
+All Addy skill lifecycle artifacts for this initiative live only under:
 
-- `INTENT.md` for confirmed intent;
-- `SPEC.md`, or `CAPABILITY_MAP.md` and `SPEC-<module>.md` files, for the
-  specification;
-- `PLAN.md` and `TASKS.md` for the implementation plan and task list.
+`docs/initiatives/<initiative-id>/`
 
-This location overrides generic skill artifact paths. Stop and report a
-conflict between applicable policies.
+Use these names:
 
-## Lifecycle
+- Interview: `INTENT.md`
+- Specify: `SPEC.md`, or `CAPABILITY_MAP.md` plus `SPEC-<module>.md`
+- Plan/Tasks: `PLAN.md` and `TASKS.md`
 
-1. Complete Interview, then immediately run `status` and `create` as specified
-   above. Only after the task branch exists, complete Specify and Plan.
-2. After Plan approval, persist the approved artifact batch, verify it, and
-   commit it through `.agents/custom/scripts/git-workflow commit -m <message>`.
-   Do not create an empty artifact commit.
-3. For each checkpoint in `TASKS.md`, dispatch a fresh Default with the tasks
-   that checkpoint names or covers. That Default completes those tasks in
-   order, creates one local commit per task, validates the checkpoint, and
-   returns. Continue through approved checkpoints without routine user pauses.
-4. After all checkpoint tasks are committed, dispatch a fresh Reviewer for the
-   complete change.
-5. Route actionable implementation findings to a fresh Default for Fix,
-   verification, and attributable local commits, then dispatch a fresh
-   Reviewer for Re-review. Repeat until `Pass` or escalation.
-6. Reviewer `Pass` completes the lifecycle. Report the reviewed per-repository
-   commit map, verification summary, and known risks, then recommend:
+These paths override skill defaults such as `docs/intent/` and `tasks/`.
 
-   ```bash
-   ./.agents/custom/scripts/git-workflow merge <task>
-   ```
+## Define lifecycle
 
-The user owns the optional merge. If an approved artifact changes after Build
-starts, stop Build, update and commit the affected artifacts, obtain approval,
-and then resume.
+### 1. Interview
 
-## Authority and handoffs
+After branch creation, run `interview-me` exactly as the skill requires,
+including one question at a time and explicit user confirmation of the final
+intent. Then write the confirmed result to `INTENT.md`.
 
-Root owns requirements, scope, architecture, public interfaces, acceptance
-criteria, release behavior, approvals, lifecycle transitions, delegation,
-escalation, lifecycle artifacts, and final reporting. Root creates every
-Default and Reviewer; delegated agents do not create or coordinate agents.
+### 2. Specify
 
-Root may use Git workflow `status`, `create`, and pre-Build artifact `commit`
-operations. Direct Git commands are read-only. Each handoff identifies every
-managed repository by path with its original base OID and current commit OID;
-mutable working-tree, index, or patch state is not a handoff.
+Run `spec-driven-development` from the confirmed intent.
 
-A Default delegation contains either one `TASKS.md` checkpoint with the tasks
-it names or covers, or the actionable findings from one Review. It also
-contains the approved artifacts, acceptance and verification criteria, owned
-paths, branch and per-repository commit map, applicable policies, and required
-report evidence.
+Generate the complete Specify artifact batch in one pass under the initiative
+directory. If a capability map is required, do not stop for map approval:
+generate `CAPABILITY_MAP.md` and all applicable `SPEC-<module>.md` files in the
+same batch. Do not create implementation code.
 
-A Reviewer delegation contains the approved artifacts, verification evidence,
-all task and fix commit maps, and the exact per-repository base-to-tip range to
-review.
+Then STOP at the **Spec approval gate** and ask the user to approve the files.
+If rejected, revise the Specify artifacts and ask again. Do not start Plan
+until the user explicitly approves.
 
-After dispatch, wait for the delegated agent to return before continuing.
+The Spec approval gate is the only human gate during Specify. Escalate earlier
+only when a missing Root-owned choice makes a coherent spec impossible.
+
+### 3. Plan and Tasks
+
+After Spec approval, run `planning-and-task-breakdown`.
+
+Generate `PLAN.md` and `TASKS.md` together in one pass. `TASKS.md` must group
+tasks into explicit Checkpoints. Each Checkpoint is a fresh Default execution
+boundary, not a human approval gate.
+
+Then STOP at the **Plan/Tasks approval gate** and ask the user to approve both
+files. If rejected, revise them and ask again.
+
+After explicit approval, commit all lifecycle documents in one artifact commit:
+
+```bash
+./.agents/custom/scripts/git-workflow commit -m <message>
+```
+
+Do not create an empty commit.
+
+Plan/Tasks approval authorizes the automated Implement/Review/Fix lifecycle
+below.
+
+## Automated lifecycle
+
+For every Default or Reviewer dispatch: After dispatch, wait for the delegated agent to return before continuing.
+Do not interrupt, cancel, replace, parallelize, message, or take over a running delegated agent.
+
+### Implement
+
+For each checkpoint in `TASKS.md`, dispatch a fresh Default with exactly that
+checkpoint and the tasks it names or covers.
+
+- Run checkpoints in `TASKS.md` order.
+- One checkpoint = one fresh Default.
+- The Default completes its tasks in order.
+- Each task is verified and committed separately.
+- On `GREEN`, dispatch the next checkpoint automatically.
+
+### Review
+
+After all checkpoint tasks are committed, dispatch a fresh Reviewer for the
+complete committed change. Give it the approved artifacts, verification
+evidence, commit maps, and the exact per-repository base-to-tip range.
+
+### Fix / Verify / Re-review
+
+Route actionable implementation findings to a fresh Default for Fix and
+verification.
+
+One review round = one fresh Default handling all actionable findings from that
+Reviewer. The Default verifies and commits attributable fixes, then returns.
+Immediately dispatch a fresh Reviewer for Re-review of the complete latest
+committed range.
+
+Repeat automatically:
+
+`Reviewer -> Implementation findings -> fresh Default Fix/Verify -> fresh Reviewer`
 
 ## Escalation
 
-Escalate changes to Root-owned decisions, missing authority, unexpected
-repository state, unavailable user-only or external state, and policy
-conflicts. Report:
+Pause and ask the user only when at least one is true:
 
-1. blocker;
-2. attempted command(s);
-3. exact evidence;
-4. available options;
-5. required decision;
-6. repository paths, branches, OIDs, index, and working-tree state.
+1. `git-workflow` reports dirty, inconsistent, or unexpected repository state;
+2. continuing requires changing an approved `INTENT.md`, Specify artifact,
+   `PLAN.md`, `TASKS.md`, or another Root-owned decision;
+3. required permission, external state, credential, or user-only information is
+   unavailable;
+4. applicable repository, policy, or skill rules conflict and Root cannot
+   resolve them mechanically;
+5. a delegated agent returns `Root escalation`.
+
+Ordinary test failures, implementation bugs, review findings, task transitions,
+checkpoint transitions, and re-review rounds are not user gates. Resolve them
+inside the delegated scope when possible.
+
+An escalation reports the blocker, attempted actions, exact evidence, available
+options, required decision, and relevant repository paths/branches/OIDs/state.
+
+## Delegation contract
+
+Root creates every Default and Reviewer. Delegated agents never create or
+coordinate agents.
+
+A Default delegation contains the initiative id, one checkpoint or one review
+finding set, approved artifacts, acceptance and verification criteria, owned
+paths, branch, applicable policies, and current per-repository commit map.
+
+A Reviewer delegation contains the initiative id, approved artifacts,
+verification evidence, all task/fix commit maps, delegated paths, and the exact
+per-repository base-to-tip range.
+
+Handoffs use committed OIDs, never mutable working-tree, index, or patch state.
+
+## Finish
+
+Reviewer `Pass` completes the lifecycle. Report the reviewed commit map,
+verification summary, and known risks.
+
+The user owns the optional merge. Tell the user to run it manually:
+
+```bash
+./.agents/custom/scripts/git-workflow merge <initiative-id>
+```
+
+Root never runs merge automatically.
 
 Validate this contract with:
 
