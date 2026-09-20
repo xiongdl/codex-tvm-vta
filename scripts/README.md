@@ -115,7 +115,8 @@ combined.
 
 The complete BYOC gate requires FSIM, TSIM, hardware, both VTA config files,
 Git, and `rg`. It runs structural BYOC tests; FSIM and TSIM gates; MLPerf Tiny
-ResNet V1 and V2 asset, model, graph, HOST, FSIM, and HOST/TSIM coverage;
+ResNet V1 and V2 plus anomaly detection V1 asset, model, graph, HOST, FSIM,
+and HOST/TSIM coverage;
 Python compilation; retired-reference checks; and scoped repository checks.
 Compilation may create ignored Python bytecode caches.
 
