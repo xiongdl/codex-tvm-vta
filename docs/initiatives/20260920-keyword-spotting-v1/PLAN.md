@@ -49,7 +49,7 @@ committed model + samples + manifest
    Relay routing + graph artifacts
              |
              v
- HOST build/reload/compare + FSIM execution
+ HOST build/reload/reference + FSIM reference/mixed comparison
              |
              v
  TSIM adaptor + CLI + documentation
@@ -74,7 +74,8 @@ Checkpoint exit criteria:
 
 - Task 3: Implement graph bundle export/reload validation and graph-structure
   checks; add graph artifact tests.
-- Task 4: Implement HOST and FSIM runtime execution, output equivalence,
+- Task 4: Implement HOST reference execution and FSIM reference/mixed output
+  equivalence,
   profiler validation, and matrix handling; add host deployment tests.
 
 Checkpoint exit criteria:

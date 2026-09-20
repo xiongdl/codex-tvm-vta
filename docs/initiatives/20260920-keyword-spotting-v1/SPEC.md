@@ -24,11 +24,12 @@
 ## Objective
 
 Create a fixed-purpose `keyword_spotting_v1` application that builds a CPU
-reference graph and a VTA-partitioned graph from the committed KWS model,
-executes the same twelve committed samples through both paths, compares output
-tensors, and proves accelerator activity on both FSIM and TSIM. This is a
-deployment and graph-execution example; it does not claim MLPerf accuracy,
-performance, energy, or submission results.
+reference graph and a VTA-partitioned graph from the committed KWS model. HOST
+executes the CPU reference for the same twelve committed samples; FSIM and TSIM
+execute both full-model Graph Executor paths and compare their output tensors
+exactly, proving accelerator activity. This is a deployment and graph-execution
+example; it does not claim MLPerf accuracy, performance, energy, or submission
+results.
 
 ## Tech Stack
 
@@ -131,8 +132,10 @@ The runtime must:
    `vta.relay.partition_for_vta()` exactly once.
 4. Build reference and mixed Graph Executor bundles containing graph JSON,
    parameters, host library, and an inspectable manifest/source artifact.
-5. Reload both bundles and compare reference and mixed output tensors for all
-   twelve samples, reporting sample names and top-1 indices.
+5. On HOST, reload and execute only the reference bundle for all twelve samples,
+   reporting reference top-1 indices. On FSIM and TSIM, reload and execute both
+   bundles for all twelve samples and compare outputs elementwise, reporting
+   sample names and top-1 indices.
 6. For FSIM, require positive accelerator profiler counters. For TSIM, require
    a positive `cycle_count` and validate the TSIM target/configuration before
    execution.
@@ -184,9 +187,9 @@ Tests use `pytest` and are colocated with the application.
   doubles where compiler libraries are not needed.
 - `test_graph_artifacts.py` verifies generated graph/source structure,
   partition symbols, and artifact manifest contents.
-- `test_host_deployment.py` verifies twelve output comparisons and deterministic
-  result summaries, using the real host path where available and focused
-  fakes for failure cases.
+- `test_host_deployment.py` verifies twelve HOST reference results with no mixed
+  execution, and deterministic FSIM result summaries, using the real host path
+  where available and focused fakes for failure cases.
 - `test_tsim_deployment.py` verifies simulator selection, fresh-process
   configuration, twelve-sample dispatch, and positive-activity checks; the
   real TSIM matrix is run explicitly by the documented command.
@@ -216,9 +219,11 @@ environment blockers rather than hidden by test skips.
    of the twelve model classes, with checksums and source provenance.
 3. The model pipeline imports the source model, produces the expected KWS
    tensor contract, and partitions VTA regions without duplicate partitioning.
-4. HOST execution compares twelve reference/mixed outputs successfully.
+4. HOST execution produces exactly twelve reference results with mixed unset and
+   without simulator initialization.
 5. FSIM execution succeeds with positive accelerator counters.
-6. TSIM execution succeeds in a fresh configured process with positive
+6. FSIM and TSIM compare reference and mixed outputs exactly for all twelve
+   samples; TSIM succeeds in a fresh configured process with positive
    `cycle_count`.
 7. README instructions are sufficient to reproduce the three deployment modes
    using only repository files and the documented environment.

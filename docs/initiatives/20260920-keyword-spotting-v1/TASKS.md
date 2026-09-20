@@ -116,17 +116,20 @@ checks, and cleanup on failed publication.
 
 ### Task 4: Implement HOST and FSIM runtime execution
 
-**Description:** Build both Graph Executor artifacts, reload each with its own
-parameters, execute all twelve samples, compare reference/mixed output
-tensors, and validate FSIM profiler counters. Keep simulator initialization
-lazy and support the LLVM/C matrix used by the reference deployments.
+**Description:** Build both Graph Executor artifacts and reload each with its
+own parameters. HOST executes only the CPU reference for all twelve samples;
+FSIM executes reference and mixed Graph Executor paths and compares their
+outputs exactly. Validate FSIM profiler counters, keep simulator initialization
+lazy, and support the LLVM/C matrix used by the reference deployments.
 
 **Acceptance criteria:**
 
-- [ ] HOST execution compares exactly twelve samples with deterministic top-1
-      records and no simulator initialization.
+- [ ] HOST execution runs exactly twelve reference samples, records deterministic
+      top-1 results, leaves mixed unset, and performs no simulator initialization
+      or mixed execution.
 - [ ] FSIM execution runs the mixed graph for all twelve samples and requires
-      positive GEMM, weight-load, and output-store counters.
+      exact reference/mixed output equality plus positive GEMM, weight-load, and
+      output-store counters.
 - [ ] Partial build failures, output mismatches, missing VTA symbols, and
       zero activity fail with actionable errors.
 
@@ -167,7 +170,8 @@ contract tests.
       `libvta_hw` build requirement when registries are absent.
 - [ ] TSIM resets to exactly zero before execution and requires a positive
       integer `cycle_count` afterward.
-- [ ] The real TSIM matrix compares all twelve samples for both host codegens
+- [ ] The real TSIM matrix executes reference and mixed Graph Executor paths,
+      compares outputs exactly for all twelve samples and both host codegens,
       in a fresh process.
 
 **Verification:**

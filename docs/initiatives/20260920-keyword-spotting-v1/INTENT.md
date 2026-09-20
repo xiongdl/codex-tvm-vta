@@ -22,10 +22,11 @@ examples.
 
 The deployment must expose the same practical flow as the reference examples:
 
-- build and execute a HOST reference and a VTA-partitioned deployment;
+- build and execute the CPU reference on HOST;
 - run the deployment on VTA FSIM;
 - run the deployment on VTA TSIM;
-- verify output comparisons and positive simulator activity;
+- verify twelve HOST reference results, plus exact reference/mixed output
+  comparisons and positive simulator activity on FSIM/TSIM;
 - provide focused tests for assets, model/pipeline contracts, graph artifacts,
   and deployment behavior.
 
