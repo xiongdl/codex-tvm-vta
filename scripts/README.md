@@ -44,6 +44,43 @@ bash scripts/test_vta_byoc.sh
 platform, build TVM separately into `$TVM_PATH/build`, then use the portable
 VTA scripts when their prerequisites are available.
 
+## Backend and geometry contract
+
+`vta/config/vta_64mac.json` is the shared geometry configuration for every
+simulator backend. It contains geometry only; backend selection is supplied at
+the command boundary:
+
+```bash
+bash scripts/build_vta_lib.sh \
+  --config "$PWD/vta/config/vta_64mac.json" \
+  --backend fsim
+
+bash scripts/build_vta_lib.sh \
+  --config "$PWD/vta/config/vta_64mac.json" \
+  --backend tsim
+```
+
+Runtime and test processes use the same absolute `VTA_CONFIG_FILE` and an
+explicit matching `VTA_BACKEND=fsim` or `VTA_BACKEND=tsim`. MLPerf runners
+currently expose `--simulator fsim|tsim` (and HOST where supported); that flag
+must match `VTA_BACKEND`. HOST is a CPU reference mode, not a third VTA
+backend. Use the project Python environment for runner commands:
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/run.py \
+  --simulator fsim --host-codegen all
+```
+
+The old `TARGET=sim` and `TARGET=tsim` configuration selectors are not
+supported. Configurations containing those simulator target fields are
+rejected with a migration error; set `VTA_BACKEND=fsim` or `VTA_BACKEND=tsim`
+instead. The old `--target libvta_*` build interface is also rejected; use
+`--config ABS_PATH --backend fsim|tsim|all`. FPGA backends such as `pynq` and
+`zcu104` are deferred and are not implemented by these scripts.
+
 ## Commands
 
 ### `setup_tvm_vta_env.sh`
@@ -100,7 +137,8 @@ requires no Verilator; `tsim` and `all` require Verilator for the TSIM shared
 library. Hardware generation additionally requires SBT, Java, Make, and C++;
 when those tools are unavailable, `tsim`/`all` build `libvta_tsim` and report
 hardware generation as skipped. `VTA_PATH` must resolve to this repository's
-`vta/` checkout. The old `--target libvta_*` interface is rejected.
+`vta/` checkout. The old `--target libvta_*` interface is rejected with a
+migration message.
 
 Outputs selected libraries under `vta/build/`: `libtvm-vta-ext` is always
 built, `fsim` adds `libvta_fsim`, and `tsim` adds `libvta_tsim`; available
@@ -120,14 +158,16 @@ it does not download datasets or commit generated build output.
 | `bash scripts/test_vta_tsim.sh` | TSIM loading, initialization, and unit tests | `--env-name NAME`, `--smoke-only`, `--integration` |
 | `bash scripts/test_vta_byoc.sh` | Complete BYOC validation gate | `--env-name NAME` |
 
-All test scripts require the selected environment, built TVM, and their VTA
-libraries. `test_vta_tsim.sh` also requires `libvta_hw` and an absolute,
-existing `VTA_CONFIG_FILE`; `--smoke-only` and `--integration` cannot be
-combined.
+All test scripts require the selected environment, built TVM, their VTA
+libraries, and an absolute, existing `VTA_CONFIG_FILE`. Set
+`VTA_BACKEND=fsim` for FSIM tests and `VTA_BACKEND=tsim` for TSIM tests.
+`test_vta_tsim.sh` also requires `libvta_hw`; `--smoke-only` and `--integration`
+cannot be combined.
 
-The complete BYOC gate requires FSIM, TSIM, hardware, both VTA config files,
-Git, and `rg`. It runs structural BYOC tests; FSIM and TSIM gates; MLPerf Tiny
-ResNet V1 and V2 plus anomaly detection V1 asset, model, graph, HOST, FSIM,
+The complete BYOC gate requires FSIM, TSIM, hardware, the shared geometry
+config, Git, and `rg`. It runs structural BYOC tests; FSIM and TSIM gates;
+MLPerf Tiny ResNet V1 and V2 plus anomaly detection V1 asset, model, graph,
+HOST, FSIM,
 and HOST/TSIM coverage;
 Python compilation; retired-reference checks; and scoped repository checks.
 Compilation may create ignored Python bytecode caches.
