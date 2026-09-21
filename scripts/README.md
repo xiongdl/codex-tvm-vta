@@ -34,7 +34,9 @@ also require the tools and libraries listed below.
 bash scripts/setup_tvm_vta_env.sh
 conda activate "$PWD/.envs/tvm-vta-env"
 bash scripts/build_tvm_lib_macos.sh
-bash scripts/build_vta_lib.sh --target all
+bash scripts/build_vta_lib.sh \
+  --config "$PWD/vta/config/vta_64mac.json" \
+  --backend all
 bash scripts/test_vta_byoc.sh
 ```
 
@@ -82,23 +84,33 @@ LLVM and disables CUDA, Metal, Vulkan, and OpenCL. Outputs:
 ### `build_vta_lib.sh`
 
 ```text
---target TARGET      libtvm-vta-ext | libvta_fsim | libvta_tsim | libvta_hw | all
---env-name NAME      default: tvm-vta-env
---build-type TYPE    default: Release
---jobs N             default: detected logical CPU count
---trace MODE         none | vcd | fst; hardware targets only; default: none
+--config ABS_PATH    required absolute path to one geometry JSON
+--backend BACKEND    fsim | tsim | all; default: all
+--env-name NAME      Conda environment under .envs/; default: tvm-vta-env
+--build-type TYPE    CMake build type; default: Release
+--jobs N             parallel CMake and Verilator jobs; default: detected
+--trace MODE         none | vcd | fst for hardware generation; default: none
 --skip-deps          skip Chisel dependency preload
 --skip-tests         skip Chisel lint and unit tests
 ```
 
-Requires initialized `tvm/` and `vta/`, built TVM libraries, CMake, and
-Verilator. Hardware targets also require SBT, Java, Make, and C++. `VTA_PATH`
-must resolve to this repository's `vta/` checkout.
+Requires initialized `tvm/` and `vta/`, the selected project environment,
+built TVM libraries, CMake, and an absolute existing geometry config. `fsim`
+requires no Verilator; `tsim` and `all` require Verilator for the TSIM shared
+library. Hardware generation additionally requires SBT, Java, Make, and C++;
+when those tools are unavailable, `tsim`/`all` build `libvta_tsim` and report
+hardware generation as skipped. `VTA_PATH` must resolve to this repository's
+`vta/` checkout. The old `--target libvta_*` interface is rejected.
 
-Outputs selected libraries under `vta/build/`. `all` builds `libvta_fsim`,
-`libvta_tsim`, and `libvta_hw`; it does not build `libtvm-vta-ext`. The
-`libvta_hw` target also builds `libvta_tsim`. Darwin outputs `.dylib`; other
-platforms output `.so`.
+Outputs selected libraries under `vta/build/`: `libtvm-vta-ext` is always
+built, `fsim` adds `libvta_fsim`, and `tsim` adds `libvta_tsim`; available
+hardware tools also produce `libvta_hw`. `all` selects both simulator
+libraries. Darwin outputs `.dylib`; other platforms output `.so`.
+
+The script configures the existing `vta/build/` directory, regenerates ignored
+CMake/ABI files, and may regenerate ignored Chisel/Verilator artifacts. It
+passes the same `--config` path to CMake and hardware validation/generation;
+it does not download datasets or commit generated build output.
 
 ### Test scripts
 
