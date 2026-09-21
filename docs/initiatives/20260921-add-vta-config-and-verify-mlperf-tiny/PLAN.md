@@ -1,57 +1,78 @@
-# Implementation Plan: VTA 64mac Configuration and MLPerf Tiny Verification
+# Implementation Plan: VTA Geometry and Backend Decoupling
 
 ## Overview
 
-Create `vta/config/vta_64mac.json` from the complete current
-`vta/config/vta_config.json` schema, changing only the five approved geometry
-values, then validate the configuration and run the six checked-in MLPerf Tiny
-benchmark suites and available deployment paths with that file selected.
+Introduce a canonical `VTA_BACKEND` selector and make the same geometry-only
+configuration usable for FSIM and TSIM. Remove legacy simulator target loading,
+update build/runtime selection layers, and verify that
+benchmark model/partition source remains unchanged.
 
 ## Architecture Decisions
 
-- Keep the new configuration as a separate JSON file; do not change the
-  existing default or sample configurations.
-- Preserve all existing fields and values except `LOG_BLOCK`,
-  `LOG_UOP_BUFF_SIZE`, `LOG_INP_BUFF_SIZE`, `LOG_WGT_BUFF_SIZE`, and
-  `LOG_ACC_BUFF_SIZE`.
-- Reuse the existing benchmark runners and test suites instead of adding a new
-  deployment framework or changing benchmark code.
-- Report unavailable HOST/FSIM/TSIM prerequisites explicitly; do not turn
-  environment failures into passing or skipped results.
+- Do not add `VTA_PLATFORM`; backend is the single selector namespace.
+- Keep backend selection outside the geometry JSON so one file can build both
+  FSIM and TSIM.
+- Reject `TARGET=sim`/`TARGET=tsim` at the boundary with an actionable
+  migration error; do not maintain compatibility aliases.
+- Pass one explicit config path into all CMake targets and hardware generation;
+  never hardcode separate FSIM/TSIM geometry files.
+- Keep benchmark and partition implementations unchanged.
+- Make `--backend fsim|tsim|all` the only documented and supported interface.
 
 ## Task List
 
-### Phase 1: Configuration
+### Phase 1: Backend contract and configuration normalization
 
-- Task 1: Add and validate the complete `vta_64mac.json` configuration.
+- Task 1: Define and test canonical backend normalization and geometry-only
+  config loading, including rejection of legacy target fields.
+- Task 2: Convert `vta_64mac.json` to the geometry-only canonical schema while
+  preserving all requested values and documenting the legacy-config rejection.
 
-### Checkpoint: Configuration
+### Checkpoint: Contract
 
-- The JSON parses and loads through the VTA configuration loader.
-- All five requested values match exactly.
-- A field-by-field comparison confirms only the five approved values differ
-  from `vta_config.json`.
+- Valid backends normalize deterministically.
+- Invalid backends fail at the boundary with one clear error.
+- Legacy `sim`/`tsim` inputs fail with a migration error.
+- Geometry ABI/fingerprint is identical regardless of selected backend.
 
-### Phase 2: Deployment Verification
+### Phase 2: Build and runtime selection
 
-- Task 2: Run all MLPerf Tiny focused suites and available deployment paths with
-  `vta_64mac.json`, and record the evidence.
+- Task 3: Update build scripts/CMake invocation to pass one config path and
+  select `fsim`, `tsim`, or `all` explicitly.
+- Task 4: Update benchmark/runtime backend selection and diagnostics without
+  changing model or partition behavior.
+
+### Checkpoint: Backend plumbing
+
+- Same config path is visible in FSIM and TSIM build commands.
+- FSIM and TSIM select different libraries/registries without target-value
+  coupling.
+- Unsupported legacy target flags fail clearly.
+
+### Phase 3: Verification and migration documentation
+
+- Task 5: Run focused backend/config tests and all available MLPerf Tiny
+  verification paths; record exact blockers and confirm no benchmark/partition
+  source changes.
+- Task 6: Update maintained script and benchmark documentation for the new
+  backend contract and explicit migration errors.
 
 ### Checkpoint: Complete
 
-- All six benchmark suites pass with the new configuration selected.
-- Every locally available documented deployment mode passes, or its missing
-  prerequisite is recorded precisely in the verification report.
-- No unrelated source, configuration, or generated build output is changed.
+- FSIM verification is green where prerequisites are present.
+- TSIM is green when its toolchain is present, otherwise explicitly blocked.
+- FPGA backends remain unchanged and clearly deferred.
+- All changes pass final review.
 
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| The smaller buffers are incompatible with one benchmark graph | High | Run every focused suite and deployment mode using the new config; stop on the first concrete failure and fix only within approved scope. |
-| Required TVM/VTA libraries or simulator tools are absent | Medium | Check prerequisites before execution and record exact blockers instead of masking them. |
-| A copied field is accidentally omitted or changed | High | Compare parsed JSON objects and assert the difference set is exactly the five approved keys. |
+| Removing `TARGET` breaks hidden consumers | High | Reject legacy fields with a clear migration error and update all in-repository callers. |
+| FSIM/TSIM accidentally use different geometry | High | Compare config paths and ABI fingerprints in build tests. |
+| Backend changes leak into model/partition behavior | High | Keep model/partition files out of the write set and run source-diff checks. |
+| TSIM remains unavailable due host toolchain | Medium | Separate plumbing tests from hardware execution and record JDK/Verilator blockers. |
 
 ## Open Questions
 
-None.
+None for the approved FSIM/TSIM phase.

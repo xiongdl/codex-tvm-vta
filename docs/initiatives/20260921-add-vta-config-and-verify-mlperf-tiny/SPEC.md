@@ -1,81 +1,40 @@
-# Spec: VTA 64mac Configuration and MLPerf Tiny Deployment Verification
+# Spec: VTA Geometry Configuration and Backend Decoupling
 
 ## Assumptions
 
-1. `vta_64mac.json` belongs under `vta/config/` beside the existing VTA JSON
-   configurations.
-2. The requested file is an exact field-preserving copy of `vta_config.json`,
-   except for the five requested geometry fields.
-3. “All MLPerf Tiny benchmarks” means the six currently checked-in benchmark
-   applications: anomaly detection v1, image classification v1 and v2,
-   keyword spotting v1, streaming wakeword v1, and visual wake words v1.
-4. Existing focused tests and documented HOST/FSIM/TSIM runners are the source
-   of truth for deployment verification; hardware-specific execution is only
-   possible when the documented libraries and tools are available.
+1. `vta_64mac.json` remains under `vta/config/` and contains geometry/data
+   parameters, not a simulator-specific target.
+2. `VTA_BACKEND` is the canonical external selector. Supported values in this
+   change are `fsim` and `tsim`; `pynq`, `zcu104`, and other FPGA values are
+   reserved for later backend migrations.
+3. `host` remains a benchmark execution mode for the CPU reference graph and
+   is not a VTA backend.
+4. `TARGET=sim` and `TARGET=tsim` are not supported by the new contract; old
+   configurations must fail clearly and instruct callers to use `VTA_BACKEND`.
+5. The six checked-in MLPerf Tiny applications remain verification consumers,
+   but their model and partition implementations are out of scope.
 
 ## Objective
 
-Add `vta/config/vta_64mac.json` without changing existing VTA configurations.
-The file must contain every field from `vta/config/vta_config.json`, with only
-the requested geometry changed: block size 3, UOP buffer size 12, input buffer
-size 13, weight buffer size 14, and accumulator buffer size 15. Use the file to
-verify each checked-in MLPerf Tiny benchmark through its existing deployment
-tests and documented runtime paths.
+Make VTA geometry reusable across FSIM and TSIM. Remove the current coupling in
+which `TARGET=sim`/`TARGET=tsim` is embedded in configuration files and build
+scripts choose different geometry files for the two simulator backends. The
+same `vta_64mac.json` must be selectable with `VTA_BACKEND=fsim` or
+`VTA_BACKEND=tsim`; backend-specific libraries and registries remain distinct.
 
-## Tech Stack
+## Contract
 
-- JSON configuration consumed by `vta.config.vta_config`.
-- Python from `.envs/tvm-vta-env/bin/python`.
-- Checked-out TVM and VTA Python packages under `tvm/python` and `vta/python`.
-- Existing MLPerf Tiny pytest suites and HOST/FSIM/TSIM deployment runners.
-
-## Commands
-
-Configuration validation:
-
-```bash
-PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
-  ./.envs/tvm-vta-env/bin/python -c \
-  'import json, pathlib; from vta.config import vta_config; p=pathlib.Path("vta/config/vta_64mac.json"); json.load(p.open()); env=vta_config.load_vta_config(str(p)); assert env.LOG_BLOCK == 3; assert env.LOG_UOP_BUFF_SIZE == 12; assert env.LOG_INP_BUFF_SIZE == 13; assert env.LOG_WGT_BUFF_SIZE == 14; assert env.LOG_ACC_BUFF_SIZE == 15'
-```
-
-Focused benchmark tests, with the new configuration selected where the test
-process reads `VTA_CONFIG_FILE`:
-
-```bash
-VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" \
-PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
-  ./.envs/tvm-vta-env/bin/python -m pytest \
-  vta/apps/mlperf_tiny_benchmark/*/tests
-```
-
-When the built libraries and toolchain are available, run each benchmark's
-documented HOST and FSIM deployment commands with
-`VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json"`; run TSIM similarly only
-after building `libvta_hw` and confirming the new configuration is compatible
-with the TSIM target.
-
-## Project Structure
+Canonical selection:
 
 ```text
-vta/config/vta_64mac.json
-docs/initiatives/20260921-add-vta-config-and-verify-mlperf-tiny/
-├── INTENT.md
-└── SPEC.md
-vta/apps/mlperf_tiny_benchmark/*/tests/
+VTA_CONFIG_FILE=/absolute/path/to/vta_64mac.json
+VTA_BACKEND=fsim|tsim
 ```
 
-Generated benchmark artifacts remain in each benchmark's ignored `build/`
-directory and must not be committed.
-
-## Code Style
-
-Follow the existing VTA configuration JSON layout, including uppercase field
-names and the repository's spacing style:
+The configuration file contains the geometry contract, including:
 
 ```json
 {
-  "TARGET" : "sim",
   "HW_VER" : "0.0.2",
   "LOG_INP_WIDTH" : 3,
   "LOG_WGT_WIDTH" : 3,
@@ -89,39 +48,130 @@ names and the repository's spacing style:
 }
 ```
 
-The final file must also retain the existing width and batch fields required by
-the loader.
+`TARGET` must not be used to distinguish FSIM from TSIM. Files containing
+`TARGET=sim` or `TARGET=tsim` are rejected by the new loader with a clear
+migration error directing callers to `VTA_BACKEND=fsim` or `VTA_BACKEND=tsim`.
+Legacy FPGA target values are outside this migration and remain untouched.
+
+## Backend behavior
+
+| Backend | Library/artifacts | Current scope |
+|---|---|---|
+| `fsim` | `libvta_fsim`, `tvm_vta_ext` | Implement and verify |
+| `tsim` | `libvta_tsim`, `libvta_hw`, Chisel/Verilator artifacts | Implement selection/build plumbing; verify when JDK/toolchain exists |
+| `pynq`, `zcu104`, ... | Existing FPGA drivers and bitstreams | Preserve for later migration |
+
+The backend is not included in the geometry ABI fingerprint. Two backend
+libraries built from the same geometry must use the same VTA geometry/ABI
+values while exposing backend-specific runtime registries.
+
+## Tech Stack
+
+- JSON configuration and Python VTA environment loader.
+- Bash/CMake build and test entry points.
+- Python MLPerf Tiny runners with existing `--simulator fsim|tsim` behavior
+  migrated to the canonical backend contract.
+- Existing C++ FSIM/TSIM runtimes and Verilator/Chisel hardware model.
+
+## Commands
+
+Canonical build interface:
+
+```bash
+bash scripts/build_vta_lib.sh \
+  --config "$PWD/vta/config/vta_64mac.json" \
+  --backend all
+```
+
+Selective build:
+
+```bash
+bash scripts/build_vta_lib.sh \
+  --config "$PWD/vta/config/vta_64mac.json" \
+  --backend fsim
+```
+
+Canonical runtime selection:
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" \
+VTA_BACKEND=fsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/run.py \
+  --simulator fsim --host-codegen all
+```
+
+The existing `--target libvta_fsim` style is removed from the active interface;
+documentation and tests use `--backend` and `fsim`.
+
+## Project Structure
+
+```text
+vta/config/vta_64mac.json
+vta/python/vta/environment.py
+vta/config/pkg_config.py
+scripts/build_vta_lib.sh
+scripts/test_vta_byoc.sh
+scripts/test_vta_tsim.sh
+vta/apps/mlperf_tiny_benchmark/*/runtime.py
+vta/apps/mlperf_tiny_benchmark/*/run.py
+```
+
+Generated build artifacts remain ignored and are not committed.
+
+## Code Style and interface rules
+
+- Use `fsim` consistently in public CLI, environment variables, artifact
+  directory names, diagnostics, and documentation.
+- Use one backend normalization function at the configuration/runtime boundary;
+  do not scatter `sim`/`tsim` aliases through benchmark code.
+- Validate `VTA_BACKEND` at process/build boundaries and report one consistent
+  error listing supported values.
+- Keep geometry fields and backend selection separate in fingerprints,
+  manifests, and cache keys.
+- Backend-specific runtime sessions may require different registries, but they
+  consume the same geometry environment.
 
 ## Testing Strategy
 
-- Parse the JSON and load it through the VTA configuration loader.
-- Assert all five requested values exactly and assert existing configurations
-  remain unchanged.
-- Run the six benchmark test directories with `pytest` using the new config.
-- If build prerequisites exist, run the documented HOST/FSIM deployment paths
-  for all six benchmarks and TSIM paths where the required hardware library is
-  available. Record any environment-only blocker precisely rather than hiding
-  it with a skip.
+- Unit-test backend normalization, invalid values, rejection of legacy target
+  fields, and the guarantee that backend choice does not change geometry/ABI
+  fingerprint.
+- Test build command selection: `fsim`, `tsim`, and `all` pass the same config
+  path; FPGA backend names are rejected or explicitly reported unsupported in
+  this phase.
+- Run focused configuration and backend tests before each implementation
+  commit.
+- Rebuild FSIM with `vta_64mac.json` and run all six benchmark suites/modes
+  that are available.
+- Run TSIM only after a usable JDK, Verilator, Chisel build, and matching
+  `libvta_tsim/libvta_hw` exist. Record blockers precisely.
+- Do not loosen benchmark/partition topology assertions or alter model graphs
+  to make this migration green.
 
 ## Boundaries
 
-- Always: preserve existing configs, use the project Python environment, run
-  focused validation before committing, and keep generated artifacts ignored.
-- Ask first: changing shared benchmark scripts, changing the default config,
-  adding dependencies, or changing benchmark behavior.
-- Never: edit TVM/VTA vendor source for this config-only request, weaken tests,
-  or commit local environments/generated build outputs.
+- Always: preserve geometry values, keep backend selection explicit, reject
+  legacy target fields clearly, test ABI consistency, and keep build outputs
+  ignored.
+- Ask first: implementing FPGA backends, adding dependencies, changing
+  model/partition logic, or changing CI policy.
+- Never: silently map an unknown backend, make TSIM use an FSIM library, or
+  report a blocked backend as passed.
 
 ## Success Criteria
 
-1. `vta/config/vta_64mac.json` exists and loads successfully.
-2. Its five requested numeric fields equal `3`, `12`, `13`, `14`, and `15`.
-3. Existing VTA configuration files are unchanged.
-4. All six MLPerf Tiny benchmark test suites pass with the new config selected.
-5. All deployment modes supported by the available local prerequisites pass,
-   with unavailable modes reported as explicit environment blockers.
+1. `vta_64mac.json` is geometry-only and retains the five requested values.
+2. `VTA_BACKEND=fsim` and `VTA_BACKEND=tsim` select backend behavior without
+   changing the geometry ABI.
+3. Default build selection can generate both FSIM and TSIM artifacts from the
+   same config path; selective backend builds work.
+4. `TARGET=sim`/`TARGET=tsim` are rejected with an actionable migration error.
+5. Benchmark/partition source is unchanged by this migration.
+6. Available FSIM verification passes; TSIM results are either passing with a
+   matching toolchain or explicitly blocked with actionable evidence.
 
 ## Open Questions
 
-None; the user requested the file be generated for inspection before further
-verification.
+None for the current FSIM/TSIM migration. FPGA backend semantics are deferred.
