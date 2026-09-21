@@ -128,6 +128,7 @@ expected_vta_path="$(cd "${project_dir}/vta" && pwd)"
 }
 
 cmake_bin="${CMAKE:-${env_dir}/bin/cmake}"
+python_bin="${PYTHON:-${env_dir}/bin/python}"
 sbt_bin="${SBT:-${env_dir}/bin/sbt}"
 verilator_bin="${VERILATOR:-${env_dir}/bin/verilator}"
 JAVA_HOME="${JAVA_HOME:-${env_dir}/lib/jvm}"
@@ -138,6 +139,7 @@ else
 fi
 
 [[ -x "${cmake_bin}" ]] || { echo "Error: required tool was not found: ${cmake_bin}" >&2; exit 1; }
+[[ -x "${python_bin}" ]] || { echo "Error: required tool was not found: ${python_bin}" >&2; exit 1; }
 if [[ "${backend}" != "fsim" ]]; then
     [[ -x "${verilator_bin}" ]] || { echo "Error: required tool was not found: ${verilator_bin}" >&2; exit 1; }
 fi
@@ -178,6 +180,7 @@ echo "  Parallel jobs:   ${jobs}"
     -DVTA_PATH="${VTA_PATH}" \
     -DVTA_CONFIG_FILE="${config_file}" \
     -DVTA_BACKEND="${backend}" \
+    -DPython3_EXECUTABLE="${python_bin}" \
     -DVERILATOR_ROOT="${verilator_root}" \
     -DCMAKE_BUILD_TYPE="${build_type}"
 "${cmake_bin}" --build "${vta_build_dir}" --target "${cmake_targets[@]}" --parallel "${jobs}"
@@ -202,6 +205,7 @@ if [[ "${backend}" == "tsim" || "${backend}" == "all" ]]; then
             "TVM_PATH=${TVM_PATH}"
             "VTA_PATH=${VTA_PATH}"
             "VTA_CONFIG_FILE=${config_file}"
+            "PYTHON=${python_bin}"
             "SBT=${sbt_bin}"
             "VERILATOR=${verilator_bin}"
             "VERILATOR_ROOT=${verilator_root}"
