@@ -170,7 +170,8 @@ locations fail before any output is created.
 | --- | --- | --- |
 | `TVM_PATH` | VTA build and all tests | `<repo>/tvm`; built TVM libraries must be under `build/` |
 | `VTA_PATH` | VTA build and all tests | `<repo>/vta`; the build script rejects another checkout |
-| `VTA_CONFIG_FILE` | TSIM test | `<VTA_PATH>/config/tsim_sample.json`; must be absolute and exist |
+| `VTA_CONFIG_FILE` | build and simulator tests | `<VTA_PATH>/config/vta_64mac.json`; must be absolute and exist |
+| `VTA_BACKEND` | runtime and simulator tests | `fsim` or `tsim`; explicit backend selector |
 | `CMAKE` | VTA build | `<env>/bin/cmake` |
 | `SBT` | VTA hardware build | `<env>/bin/sbt` |
 | `VERILATOR` | VTA build | `<env>/bin/verilator` |

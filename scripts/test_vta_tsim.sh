@@ -60,7 +60,7 @@ TVM_PATH="${TVM_PATH:-${project_dir}/tvm}"
 VTA_PATH="${VTA_PATH:-${project_dir}/vta}"
 TVM_PATH="$(cd "${TVM_PATH}" && pwd)"
 VTA_PATH="$(cd "${VTA_PATH}" && pwd)"
-VTA_CONFIG_FILE="${VTA_CONFIG_FILE:-${VTA_PATH}/config/tsim_sample.json}"
+VTA_CONFIG_FILE="${VTA_CONFIG_FILE:-${VTA_PATH}/config/vta_64mac.json}"
 
 [[ "${VTA_CONFIG_FILE}" = /* ]] || {
     echo "Error: VTA_CONFIG_FILE must be an absolute path." >&2
@@ -68,6 +68,7 @@ VTA_CONFIG_FILE="${VTA_CONFIG_FILE:-${VTA_PATH}/config/tsim_sample.json}"
 }
 
 export TVM_PATH VTA_PATH VTA_CONFIG_FILE
+export VTA_BACKEND="${VTA_BACKEND:-tsim}"
 export PYTHONPATH="${TVM_PATH}/python:${VTA_PATH}/python${PYTHONPATH:+:${PYTHONPATH}}"
 
 [[ -x "${python_bin}" ]] || {
@@ -128,6 +129,7 @@ if [[ "${smoke_only}" == true ]]; then
 fi
 
 test_paths=(
+    "${VTA_PATH}/tests/python/unittest/test_runtime_backend.py"
     "${VTA_PATH}/tests/python/unittest/test_environment.py"
     "${VTA_PATH}/tests/python/unittest/test_vta_insn.py"
 )

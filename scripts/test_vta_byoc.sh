@@ -46,8 +46,9 @@ TVM_PATH="${TVM_PATH:-${project_dir}/tvm}"
 VTA_PATH="${VTA_PATH:-${project_dir}/vta}"
 TVM_PATH="$(cd "${TVM_PATH}" && pwd)"
 VTA_PATH="$(cd "${VTA_PATH}" && pwd)"
-fsim_config="${VTA_PATH}/config/vta_config.json"
-tsim_config="${VTA_PATH}/config/tsim_sample.json"
+config_file="${VTA_CONFIG_FILE:-${VTA_PATH}/config/vta_64mac.json}"
+fsim_config="${config_file}"
+tsim_config="${config_file}"
 
 if [[ "$(uname -s)" == "Darwin" ]]; then
     library_suffix="dylib"
@@ -76,15 +77,16 @@ for library in \
     [[ -f "${library}" ]] || {
         echo "Error: required library was not found: ${library}" >&2
         case "${library}" in
-            *libvta_fsim*) echo "Run scripts/build_vta_lib.sh --target libvta_fsim first." >&2 ;;
-            *libvta_tsim*|*libvta_hw*) echo "Run scripts/build_vta_lib.sh --target libvta_hw first." >&2 ;;
+            *libvta_fsim*) echo "Run scripts/build_vta_lib.sh --config ${config_file} --backend fsim first." >&2 ;;
+            *libvta_tsim*|*libvta_hw*) echo "Run scripts/build_vta_lib.sh --config ${config_file} --backend tsim first." >&2 ;;
             *) echo "Build TVM before running this validation gate." >&2 ;;
         esac
         exit 1
     }
 done
 
-export TVM_PATH VTA_PATH
+export TVM_PATH VTA_PATH VTA_CONFIG_FILE="${config_file}"
+export VTA_BACKEND=fsim
 export PYTHONPATH="${TVM_PATH}/python:${VTA_PATH}/python${PYTHONPATH:+:${PYTHONPATH}}"
 
 echo "==> BYOC structural tests"
@@ -147,6 +149,7 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
     --simulator fsim --host-codegen all
 
 echo "==> TSIM gate"
+export VTA_BACKEND=tsim
 VTA_CONFIG_FILE="${tsim_config}" "${script_dir}/test_vta_tsim.sh" --env-name "${env_name}"
 
 echo "==> MLPerf ResNet V1 HOST/TSIM gate"

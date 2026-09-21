@@ -48,8 +48,10 @@ TVM_PATH="${TVM_PATH:-${project_dir}/tvm}"
 VTA_PATH="${VTA_PATH:-${project_dir}/vta}"
 tvm_build_dir="${TVM_PATH}/build"
 vta_build_dir="${VTA_PATH}/build"
+VTA_CONFIG_FILE="${VTA_CONFIG_FILE:-${VTA_PATH}/config/vta_64mac.json}"
 
-export TVM_PATH VTA_PATH
+export TVM_PATH VTA_PATH VTA_CONFIG_FILE
+export VTA_BACKEND="${VTA_BACKEND:-fsim}"
 
 if [[ ! -x "${python_bin}" ]]; then
     echo "Error: Python was not found in environment: ${python_bin}" >&2
@@ -75,6 +77,7 @@ echo "  VTA libraries:    ${vta_build_dir}"
 echo "  Environment:      ${env_dir}"
 
 test_paths=(
+    "${VTA_PATH}/tests/python/unittest/test_runtime_backend.py"
     "${VTA_PATH}/tests/python/unittest/test_environment.py"
     "${VTA_PATH}/tests/python/unittest/test_vta_insn.py"
     "${VTA_PATH}/tests/python/unittest/test_byoc_runtime.py"
