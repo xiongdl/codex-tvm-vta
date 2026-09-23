@@ -29,10 +29,11 @@ Fresh Default execution boundary. Complete each task in order and commit each ta
 
 Fresh Default execution boundary.
 
-- [ ] **Task 5 — Bound the GEMM accumulator tile**
+- [x] **Task 5 — Bound the GEMM accumulator tile**
   - Acceptance: The existing 128×128 test workload lowers without exceeding the configured `local.acc_buffer` bound and completes its existing TSIM correctness checks.
   - Verify: Run `VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python -m pytest -q vta/tests/python/integration/test_benchmark_gemm.py`.
   - Files: `vta/tests/python/integration/test_benchmark_gemm.py`.
+  - Evidence: Focused TSIM pytest **1 passed**. The 128×128 workload now uses a 64×64 output tile, reducing the accumulator tile from 524288 bits to 131072 bits against the existing 262144-bit capacity. Added an explicit reference-result comparison for the real GEMM/ALU path; the existing mock unit paths remain exempt from that output comparison.
 
 ### Checkpoint 3: End-to-End TSIM Verification
 
