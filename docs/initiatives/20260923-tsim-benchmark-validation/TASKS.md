@@ -9,10 +9,11 @@ Fresh Default execution boundary. Complete each task in order and commit each ta
   - Verify: Run the VWW model-pipeline pytest module, VWW TSIM deployment contract tests excluding the real matrix test, and the VWW host deployment tests with `VTA_BACKEND=fsim`.
   - Files: `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_tsim_deployment.py`, `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_host_deployment.py`.
   - Evidence: model pipeline **8/8**, TSIM deployment contract tests **6/6** (excluding the real matrix), FSIM host deployment **23/23**. Real TSIM matrix execution is Task 2.
-- [ ] **Task 2 — VWW TSIM graph-execution recovery**
+- [x] **Task 2 — VWW TSIM graph-execution recovery**
   - Acceptance: The real VWW TSIM matrix completes and preserves its ten output comparisons per host-codegen and positive simulator-cycle checks.
   - Verify: Run the real matrix pytest and VWW `run.py --simulator tsim --host-codegen all` command in `SPEC-vww-tsim-runtime.md`, plus focused VWW runtime tests.
   - Files: VWW `runtime.py`, `run.py`, and directly related tests only; no shared TVM/VTA platform code without another scope decision.
+  - Evidence: Matrix pytest **1/1**, non-matrix TSIM runtime contracts **6/6**, and the TSIM CLI completed for LLVM and C with **10/10** sample comparisons each and positive `cycle_count=73045290` for both. The earlier crash did not reproduce on the clean Task 1 commit, so no runtime change was justified.
 - [ ] **Task 3 — Image classification V2 8-partition contract**
   - Acceptance: Production and test expectations agree with the observed 8 VTA symbols; host operator, per-partition convolution, and composite checks remain intact.
   - Verify: Run image classification V2 model-pipeline pytest and TSIM deployment tests.
