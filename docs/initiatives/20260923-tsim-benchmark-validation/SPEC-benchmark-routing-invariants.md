@@ -2,13 +2,13 @@
 
 ## Objective
 
-Update the structural validation for Visual Wake Words V1, image classification V2, and anomaly detection V1 so the current checked-in model artifacts can proceed through TSIM deployment. The checkpoint3 logs show 13 VWW partition symbols versus an assertion of 12, 8 image classification V2 symbols versus 7, and anomaly detection's quantized reference has 10 `nn.conv2d` operators versus an assertion of 8. The user is validating VTA TSIM support; success means structural preflight validates the real graph and still catches routing regressions.
+Update the structural validation for Visual Wake Words V1, image classification V2, and anomaly detection V1 so the current checked-in model artifacts can proceed through TSIM deployment. The checkpoint3 logs show 13 VWW partition symbols versus an assertion of 12, 8 image classification V2 symbols versus 7, and anomaly detection's quantized reference has 10 `nn.conv2d` operators versus an assertion of 8. The user is validating VTA TSIM support; success for this module means structural preflight validates the real graph and still catches routing regressions. The VWW end-to-end TSIM runtime failure is handled by the dependent `vww-tsim-runtime` module.
 
 ## Assumptions
 
 1. The checkpoint3 model artifacts and current VTA partitioner output are the intended deployment inputs.
 2. Symbol counts are not arbitrary pass thresholds: the expected symbols, partition convolution counts, composites, and host operators should describe the observed graph and preserve existing routing guarantees.
-3. The focused pipeline tests and the six end-to-end TSIM runner invocations are authorized verification for this initiative.
+3. The focused pipeline and structural tests are the verification for this module; VWW end-to-end TSIM execution is verified by the dependent runtime module, and all six end-to-end TSIM runner invocations remain the initiative-level acceptance gate.
 
 ## Tech Stack
 
@@ -58,7 +58,7 @@ Update production expectations and corresponding focused tests together. Keep er
 ## Testing Strategy
 
 - Use the existing pytest model-pipeline tests for the three affected benchmark modules.
-- Run each of the six TSIM benchmark deployment commands and record whether it completed simulator execution; a preflight-only pass does not count as deployment success.
+- Run each of the six TSIM benchmark deployment commands at the initiative-level acceptance checkpoint and record whether it completed simulator execution; a preflight-only pass does not count as deployment success.
 - Do not weaken unrelated asset hashes, tensor contracts, host operator checks, or partition composite checks to make a run pass.
 - No new testing framework or coverage threshold is introduced.
 
@@ -74,7 +74,7 @@ Update production expectations and corresponding focused tests together. Keep er
 - Image classification V2's assertions accept its observed 8-symbol partition graph while retaining its host operator and composite requirements.
 - Anomaly detection's quantized reference convolution check matches the current model's observed count of 10; partition convolution, host dense/convolution, symbol, and composite checks remain meaningful and pass against the actual graph.
 - All three focused pipeline test modules pass.
-- The six end-to-end TSIM benchmark runs complete successfully.
+- VWW, image classification V2, and anomaly detection focused pipeline tests pass. End-to-end deployment completion for all six runners is verified at the initiative-level acceptance checkpoint after the dependent VWW runtime fix.
 
 ## Open Questions
 
