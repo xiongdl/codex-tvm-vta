@@ -39,7 +39,8 @@ Fresh Default execution boundary.
 
 Fresh Default execution boundary, after Checkpoints 1 and 2 are committed.
 
-- [ ] **Task 6 — Run and record the complete validation matrix**
+- [x] **Task 6 — Run and record the complete validation matrix**
   - Acceptance: All three affected model-pipeline test modules and the GEMM test pass; all six MLPerf benchmark TSIM runner commands in `SPEC-benchmark-routing-invariants.md` complete deployment; `VALIDATION.md` records each command and its result without implying success for a run that did not complete.
   - Verify: Run the focused model-pipeline pytest command and GEMM pytest command in the two approved specs, followed by each of the six TSIM runner commands.
   - Files: `docs/initiatives/20260923-tsim-benchmark-validation/VALIDATION.md`.
+  - Evidence: The combined pipeline command exited 2 on pytest's duplicate `test_model_pipeline` import-name collision; each of the three modules passed separately (**8/8 each**). Focused GEMM pytest passed (**1/1**). All six TSIM runner commands exited 0 and completed deployment; per-run sample comparisons and cycle counts, anomaly's one-window scope, and the known V2 full-module segfault limitation are recorded in `VALIDATION.md`.
