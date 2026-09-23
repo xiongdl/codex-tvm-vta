@@ -149,6 +149,10 @@ The follow-up fixes are included in root commits `b4ed2dae`, `6eaba6e5`, and
 - The config CLI rejects legacy `TARGET=sim`/`TARGET=tsim` without requiring an
   opt-in validation flag, and the bitstream/runtime tests use canonical `fsim`
   and `tsim` names.
+- The default config path for both the Python environment and config CLI is now
+  `config/vta_64mac.json`; the legacy `config/vta_config.json` is no longer
+  silently selected. The legacy deploy example also uses `VTA_BACKEND` and no
+  longer invokes the retired `TARGET=sim` path.
 - The focused backend/config/build/runtime tests now pass:
   `50 passed in 2.14s`.
 - Rebuilding TSIM with the shared config completed successfully and produced
