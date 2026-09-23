@@ -14,10 +14,11 @@ Fresh Default execution boundary. Complete each task in order and commit each ta
   - Verify: Run the real matrix pytest and VWW `run.py --simulator tsim --host-codegen all` command in `SPEC-vww-tsim-runtime.md`, plus focused VWW runtime tests.
   - Files: VWW `runtime.py`, `run.py`, and directly related tests only; no shared TVM/VTA platform code without another scope decision.
   - Evidence: Matrix pytest **1/1**, non-matrix TSIM runtime contracts **6/6**, and the TSIM CLI completed for LLVM and C with **10/10** sample comparisons each and positive `cycle_count=73045290` for both. The earlier crash did not reproduce on the clean Task 1 commit, so no runtime change was justified.
-- [ ] **Task 3 — Image classification V2 8-partition contract**
+- [x] **Task 3 — Image classification V2 8-partition contract**
   - Acceptance: Production and test expectations agree with the observed 8 VTA symbols; host operator, per-partition convolution, and composite checks remain intact.
   - Verify: Run image classification V2 model-pipeline pytest and TSIM deployment tests.
   - Files: `vta/apps/mlperf_tiny_benchmark/image_classification_v2/model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_tsim_deployment.py`.
+  - Evidence: Structural and non-matrix tests **17 passed, 1 deselected**; isolated real TSIM matrix **1 passed, 9 deselected**; production CLI completed LLVM and C host-codegen matrices with 10 comparisons each and `cycle_count=217301380`. The full pytest module segfaulted twice during in-process graph execution; it is not reported as passing.
 - [ ] **Task 4 — Anomaly detection 10-convolution contract**
   - Acceptance: Production and test expectations agree with the observed 10 quantized convolutions; existing VTA symbol, per-partition convolution, host operator/dense, and composite checks remain intact.
   - Verify: Run anomaly detection model-pipeline pytest and TSIM deployment tests.
