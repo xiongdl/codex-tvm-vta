@@ -19,10 +19,11 @@ Fresh Default execution boundary. Complete each task in order and commit each ta
   - Verify: Run image classification V2 model-pipeline pytest and TSIM deployment tests.
   - Files: `vta/apps/mlperf_tiny_benchmark/image_classification_v2/model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_tsim_deployment.py`.
   - Evidence: Structural and non-matrix tests **17 passed, 1 deselected**; isolated real TSIM matrix **1 passed, 9 deselected**; production CLI completed LLVM and C host-codegen matrices with 10 comparisons each and `cycle_count=217301380`. The full pytest module segfaulted twice during in-process graph execution; it is not reported as passing.
-- [ ] **Task 4 — Anomaly detection 10-convolution contract**
+- [x] **Task 4 — Anomaly detection 10-convolution contract**
   - Acceptance: Production and test expectations agree with the observed 10 quantized convolutions; existing VTA symbol, per-partition convolution, host operator/dense, and composite checks remain intact.
   - Verify: Run anomaly detection model-pipeline pytest and TSIM deployment tests.
   - Files: `vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_model_pipeline.py`.
+  - Evidence: Model pipeline **8/8**; TSIM deployment contract module **9 passed, 1 skipped**; production TSIM CLI completed LLVM and C codegen runs for all 10 samples, with `cycle_count=1949920`. The updated exact graph contract is 10 quantized convolutions, 9 one-convolution VTA partitions, 1 host convolution, 0 host dense operators, and 9 VTA composites.
 
 ### Checkpoint 2: GEMM Accumulator Bound
 
