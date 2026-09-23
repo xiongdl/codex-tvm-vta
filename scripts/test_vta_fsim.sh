@@ -51,7 +51,12 @@ vta_build_dir="${VTA_PATH}/build"
 VTA_CONFIG_FILE="${VTA_CONFIG_FILE:-${VTA_PATH}/config/vta_64mac.json}"
 
 export TVM_PATH VTA_PATH VTA_CONFIG_FILE
-export VTA_BACKEND="${VTA_BACKEND:-fsim}"
+requested_backend="${VTA_BACKEND:-fsim}"
+if [[ "${requested_backend}" != "fsim" ]]; then
+    echo "Error: test_vta_fsim.sh requires VTA_BACKEND=fsim (got ${requested_backend})." >&2
+    exit 1
+fi
+export VTA_BACKEND=fsim
 
 if [[ ! -x "${python_bin}" ]]; then
     echo "Error: Python was not found in environment: ${python_bin}" >&2

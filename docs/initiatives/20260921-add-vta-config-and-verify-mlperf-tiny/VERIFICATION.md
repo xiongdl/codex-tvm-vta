@@ -46,13 +46,16 @@ The TSIM build cache recorded the same config path and `VTA_BACKEND=tsim`.
 The backend/config/ABI focused tests passed:
 
 ```bash
-VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
-PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
-  ./.envs/tvm-vta-env/bin/python -m pytest -q \
-  vta/tests/python/unittest/test_backend_contract.py \
-  vta/tests/python/unittest/test_runtime_backend.py \
-  vta/tests/python/unittest/test_abi_fingerprint.py
-# 41 passed in 3.38s; exit 0
+cd vta
+VTA_CONFIG_FILE="$PWD/config/vta_64mac.json" VTA_BACKEND=fsim \
+PYTHONPATH="$PWD/../tvm/python:$PWD/python:$PWD/tests/python/unittest" \
+  ../.envs/tvm-vta-env/bin/python -m pytest --import-mode=importlib -q \
+  tests/python/unittest/test_backend_contract.py \
+  tests/python/unittest/test_build_contract.py \
+  tests/python/unittest/test_runtime_backend.py \
+  tests/python/unittest/test_program_bitstream.py \
+  tests/python/unittest/test_abi_fingerprint.py
+# 50 passed in 1.89s; exit 0
 ```
 
 The ABI fingerprint command returned `09d98811c06abcab` for both
@@ -153,8 +156,12 @@ The follow-up fixes are included in root commits `b4ed2dae`, `6eaba6e5`, and
   `config/vta_64mac.json`; the legacy `config/vta_config.json` is no longer
   silently selected. The legacy deploy example also uses `VTA_BACKEND` and no
   longer invokes the retired `TARGET=sim` path.
+- CMake's default `VTA_CONFIG_FILE` now resolves to the same canonical file,
+  and the FSIM test gate rejects an externally supplied `VTA_BACKEND=tsim`.
 - The focused backend/config/build/runtime tests now pass:
   `50 passed in 2.14s`.
+- Including the environment default-path regression test, the combined focused
+  suite passed `55 passed in 1.90s`.
 - Rebuilding TSIM with the shared config completed successfully and produced
   `vta/build/libvta_tsim.dylib` and `vta/build/libvta_hw.dylib`.
 
