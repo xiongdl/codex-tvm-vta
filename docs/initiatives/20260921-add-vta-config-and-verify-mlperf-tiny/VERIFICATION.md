@@ -136,3 +136,26 @@ git -C vta diff --name-only 1c7d8f5de3096f70b6d6b787bda20c03033bbe5b \
 No benchmark model, partition implementation, model asset, or topology
 expectation changed. The only tracked file changed by Task 5 is this report;
 all generated deployment output remained outside the repository or ignored.
+
+## Follow-up after backend-contract review (2026-09-23)
+
+The follow-up fixes are included in root commits `b4ed2dae`, `6eaba6e5`, and
+`a6756600`, with VTA commits `e416041e`, `cc15ab7d`, and `b3ecb333`:
+
+- TSIM Chisel generation now consumes a normalized properties file generated
+  from the shared geometry config. For `vta_64mac.json`, the generated values
+  include `BLOCK_IN=8`, `BLOCK_OUT=8`, `UOP_MEM_DEPTH=4096`,
+  `INP_MEM_DEPTH=1024`, `WGT_MEM_DEPTH=256`, and `ACC_MEM_DEPTH=1024`.
+- The config CLI rejects legacy `TARGET=sim`/`TARGET=tsim` without requiring an
+  opt-in validation flag, and the bitstream/runtime tests use canonical `fsim`
+  and `tsim` names.
+- The focused backend/config/build/runtime tests now pass:
+  `50 passed in 2.14s`.
+- Rebuilding TSIM with the shared config completed successfully and produced
+  `vta/build/libvta_tsim.dylib` and `vta/build/libvta_hw.dylib`.
+
+These fixes do not make the MLPerf matrix fully green. A real mixed TSIM
+execution still aborts in the hardware model while executing the generated
+program (`FetchVME64.scala:161 Unknown instruction type`), and the previously
+recorded FSIM topology/model failures remain. The follow-up verification must
+therefore be read as contract/build progress, not as an all-benchmark pass.
