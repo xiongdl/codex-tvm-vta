@@ -127,18 +127,28 @@ backends such as `pynq` and `zcu104` were not exercised and remain deferred.
 
 ## Source-diff guard
 
-The following checks were empty:
+The following narrowed checks were empty; they cover model, partition,
+topology, and graph-artifact implementation files rather than benchmark
+runtime/adaptor documentation that intentionally changed for the backend
+contract:
 
 ```bash
 git diff --name-only c944927fb5d1a5c905e93704898e8326821fb1b9 \
-  -- vta/apps/mlperf_tiny_benchmark
-git -C vta diff --name-only 1c7d8f5de3096f70b6d6b787bda20c03033bbe5b \
-  -- apps/mlperf_tiny_benchmark
+  -- 'vta/apps/mlperf_tiny_benchmark/**/model_pipeline.py' \
+     'vta/apps/mlperf_tiny_benchmark/**/partition*.py' \
+     'vta/apps/mlperf_tiny_benchmark/**/topology*.py' \
+     'vta/apps/mlperf_tiny_benchmark/**/graph_artifacts.py'
+git -C vta diff --name-only 1c7d8f5de3096f70b6d6b787bda20c03033bbe5 \
+  -- 'apps/mlperf_tiny_benchmark/**/model_pipeline.py' \
+     'apps/mlperf_tiny_benchmark/**/partition*.py' \
+     'apps/mlperf_tiny_benchmark/**/topology*.py' \
+     'apps/mlperf_tiny_benchmark/**/graph_artifacts.py'
 ```
 
 No benchmark model, partition implementation, model asset, or topology
-expectation changed. The only tracked file changed by Task 5 is this report;
-all generated deployment output remained outside the repository or ignored.
+expectation changed. Backend runtime/adaptor tests and documentation did
+change as part of the approved interface migration; generated deployment
+output remained outside the repository or ignored.
 
 ## Follow-up after backend-contract review (2026-09-23)
 

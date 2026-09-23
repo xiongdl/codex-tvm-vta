@@ -68,7 +68,12 @@ VTA_CONFIG_FILE="${VTA_CONFIG_FILE:-${VTA_PATH}/config/vta_64mac.json}"
 }
 
 export TVM_PATH VTA_PATH VTA_CONFIG_FILE
-export VTA_BACKEND="${VTA_BACKEND:-tsim}"
+requested_backend="${VTA_BACKEND:-tsim}"
+if [[ "${requested_backend}" != "tsim" ]]; then
+    echo "Error: test_vta_tsim.sh requires VTA_BACKEND=tsim (got ${requested_backend})." >&2
+    exit 1
+fi
+export VTA_BACKEND=tsim
 export PYTHONPATH="${TVM_PATH}/python:${VTA_PATH}/python${PYTHONPATH:+:${PYTHONPATH}}"
 
 [[ -x "${python_bin}" ]] || {
