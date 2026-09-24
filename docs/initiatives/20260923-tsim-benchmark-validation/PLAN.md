@@ -2,44 +2,59 @@
 
 ## Overview
 
-Correct the three stale MLPerf model-structure checks that currently stop before TSIM deployment, diagnose and fix the VWW TSIM runtime segmentation fault exposed by the corrected routing graph, reduce the GEMM schedule's accumulator tile to fit the existing VTA memory bound, then rerun all six TSIM benchmark deployments and the focused GEMM test.
+Keep the completed routing, VWW runtime, and GEMM fixes; close the three remaining validation gaps by stabilizing the complete image classification V2 TSIM pytest module, running anomaly detection over every checked-in validation window, and making the three model-pipeline test modules collect and run together. Finish with the complete six-benchmark TSIM matrix, focused GEMM verification, and an evidence-based `VALIDATION.md`.
 
 ## Architecture Decisions
 
-- Keep the corrections in each benchmark's existing `model_pipeline.py` and the associated expectations in its existing tests.
-- Preserve model asset, tensor, host-routing, partition-composite, and partition-convolution guarantees; update only assertions contradicted by the current checked-in artifacts and observed partitioner output.
-- Separate VWW's structural-routing correction from its real TSIM matrix runtime fault so each failure has clear evidence and ownership.
-- Keep VWW runtime fixes inside VWW deployment code and tests. If diagnosis requires changing shared TVM/VTA platform code, stop and request a scope decision.
-- Fix GEMM at the TE schedule tile level. Leave TVM storage-bound enforcement, VTA geometry, and the 128×128 workload intact.
-- Run the six benchmark deployment commands separately so each result identifies the benchmark that passed or failed. Record concise command/result evidence in `VALIDATION.md` without checking in generated model artifacts or temporary simulator output.
-- Follow the project workflow: a separate task commit for each implementation task, then a verification-record commit.
+- Preserve the completed per-benchmark model and partition invariants, VWW TSIM deployment, and GEMM accumulator fix.
+- Diagnose the image classification V2 process crash before selecting a repair. Preserve the full LLVM/C TSIM matrix and its output/cycle assertions. A minimal shared TVM/VTA executor-boundary change is in scope only if a reproducer identifies it and focused regression coverage verifies it.
+- Derive anomaly's full-window budget from the checked-in validation records and existing windowing contract. Require every per-sample executed count to equal its total count; do not infer full coverage from a successful exit code alone.
+- Resolve duplicate pytest module names with the narrowest supported solution, preferring the documented `--import-mode=importlib` command before broader pytest configuration or test-file renames.
+- Run each required deployment separately so evidence remains attributable. Do not check in generated model artifacts, output bundles, or temporary simulator files.
+- Give each implementation task its own commit. Record the completed integrated verification in a separate evidence commit.
 
 ## Task List
 
-### Checkpoint 1: Benchmark Routing and VWW Runtime
+### Completed Checkpoint 1: Benchmark Routing and VWW Runtime
 
 - Task 1: Update VWW expectations for the observed 13 VTA partitions.
-- Task 2: Diagnose and fix the VWW TSIM matrix segmentation fault in the VWW deployment path.
+- Task 2: Diagnose and verify the VWW TSIM matrix graph execution.
 - Task 3: Update image classification V2 expectations for the observed 8 VTA partitions.
-- Task 4: Update anomaly detection's quantized convolution expectation to the observed count of 10.
+- Task 4: Update anomaly detection's quantized graph and routing expectations.
 
-### Checkpoint 2: GEMM Accumulator Bound
+### Completed Checkpoint 2: GEMM Accumulator Bound
 
 - Task 5: Tile the GEMM output schedule to fit the configured accumulator capacity while preserving the full workload.
 
-### Checkpoint 3: End-to-End TSIM Verification
+### Completed Checkpoint 3: Initial End-to-End TSIM Verification
 
-- Task 6: Run the focused pipeline/GEMM checks and all six benchmark deployment commands; record results in `VALIDATION.md`.
+- Task 6: Run and record the six runner commands, focused pipeline tests, and GEMM test, noting the V2, anomaly-window, and combined-collection limitations accurately.
+
+### Checkpoint 4: Image Classification V2 TSIM Test Stability
+
+- Task 7: Reproduce and fix the full-module V2 TSIM pytest crash without weakening the real matrix.
+
+### Checkpoint 5: Anomaly Detection Full-Window Coverage
+
+- Task 8: Execute every window for every checked-in anomaly validation record and assert full coverage.
+
+### Checkpoint 6: Combined Pipeline Test Collection
+
+- Task 9: Make the three benchmark model-pipeline pytest modules run together in one process.
+
+### Checkpoint 7: Final Integrated Verification
+
+- Task 10: Re-run focused checks, all six TSIM runner paths, full anomaly windows, and GEMM; update `VALIDATION.md` with exact command and result evidence.
 
 ## Risks and Mitigations
 
 | Risk | Impact | Mitigation |
 |---|---|---|
-| A revised partition count masks a real routing regression. | Incorrect model regions could be accepted. | Preserve and run the exact per-partition convolution, host operator, and VTA composite checks; change only expectations supported by observed model output. |
-| The VWW TSIM segfault is caused by shared TVM/VTA platform code rather than VWW deployment code. | The runtime repair would exceed the approved boundary. | Diagnose first; stop and request a scope decision before modifying shared platform code. |
-| A smaller GEMM tile still exceeds the accumulator capacity or changes execution. | GEMM remains blocked or becomes incorrect. | Use the focused TSIM GEMM integration test to check lowering, simulator execution, and reference output. |
-| One of the six runs has an independent deployment issue. | The six-run goal remains incomplete. | Capture per-run evidence and fix issues only within the approved model/deployment validation scope; escalate if a fix needs an out-of-scope model or platform change. |
+| The V2 segmentation fault is order-sensitive or originates at the shared executor boundary. | Full-module pytest remains unstable or a broad repair causes regressions. | Reproduce with the full module, isolate the failing boundary, permit shared changes only with a minimal reproducer, add targeted regression coverage, and retain both the real matrix pytest and production CLI checks. |
+| Full anomaly window execution is materially more expensive than representative sampling. | The final matrix may take substantially longer or expose a simulator/resource limit. | Derive and record the exact expected window total first; execute all windows without silent truncation; report any real resource blocker with evidence rather than calling a subset complete. |
+| Pytest importlib mode does not resolve the duplicate module-name collision or affects test behavior. | Combined pipeline verification remains unavailable. | Try the documented supported mode first; if it fails, use a narrowly scoped naming/configuration fix and verify standalone and combined runs with the same tests. |
+| A fix for one validation gap changes another benchmark path. | Previously passing deployments regress. | Run focused affected-module checks after each task and the complete six-run matrix at the final checkpoint. |
 
 ## Open Questions
 
-- None. The intent and specifications are approved.
+- None. The user approved the updated specifications; Task 7 diagnosis will determine the narrowest code location, and Task 8 will measure the exact full-window count from the checked-in inputs.

@@ -1,46 +1,96 @@
 # Tasks: TSIM Benchmark Validation
 
-## Checkpoint 1: Benchmark Routing and VWW Runtime
+## Checkpoint 1: Benchmark Routing and VWW Runtime — Complete
 
 Fresh Default execution boundary. Complete each task in order and commit each task separately.
 
 - [x] **Task 1 — VWW 13-partition contract**
   - Acceptance: Production and test expectations agree with the observed 13 VTA symbols; host operator, partition convolution, and composite checks remain intact.
   - Verify: Run the VWW model-pipeline pytest module, VWW TSIM deployment contract tests excluding the real matrix test, and the VWW host deployment tests with `VTA_BACKEND=fsim`.
-  - Files: `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_tsim_deployment.py`, `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_host_deployment.py`.
-  - Evidence: model pipeline **8/8**, TSIM deployment contract tests **6/6** (excluding the real matrix), FSIM host deployment **23/23**. Real TSIM matrix execution is Task 2.
-- [x] **Task 2 — VWW TSIM graph-execution recovery**
+  - Files: VWW `model_pipeline.py` and focused model-pipeline, TSIM-deployment, and host-deployment tests.
+  - Evidence: model pipeline **8/8**, TSIM deployment contract tests **6/6** (excluding the real matrix), FSIM host deployment **23/23**.
+- [x] **Task 2 — VWW TSIM graph execution**
   - Acceptance: The real VWW TSIM matrix completes and preserves its ten output comparisons per host-codegen and positive simulator-cycle checks.
-  - Verify: Run the real matrix pytest and VWW `run.py --simulator tsim --host-codegen all` command in `SPEC-vww-tsim-runtime.md`, plus focused VWW runtime tests.
-  - Files: VWW `runtime.py`, `run.py`, and directly related tests only; no shared TVM/VTA platform code without another scope decision.
-  - Evidence: Matrix pytest **1/1**, non-matrix TSIM runtime contracts **6/6**, and the TSIM CLI completed for LLVM and C with **10/10** sample comparisons each and positive `cycle_count=73045290` for both. The earlier crash did not reproduce on the clean Task 1 commit, so no runtime change was justified.
+  - Verify: Run the real matrix pytest, VWW `run.py --simulator tsim --host-codegen all`, and focused VWW runtime tests.
+  - Files: VWW `runtime.py`, `run.py`, and directly related tests only.
+  - Evidence: Matrix pytest **1/1**, non-matrix TSIM runtime contracts **6/6**, and the TSIM CLI completed LLVM and C with **10/10** sample comparisons each and positive `cycle_count=73045290` for both. The original crash did not reproduce on the clean Task 1 commit, so no runtime change was made.
 - [x] **Task 3 — Image classification V2 8-partition contract**
   - Acceptance: Production and test expectations agree with the observed 8 VTA symbols; host operator, per-partition convolution, and composite checks remain intact.
   - Verify: Run image classification V2 model-pipeline pytest and TSIM deployment tests.
-  - Files: `vta/apps/mlperf_tiny_benchmark/image_classification_v2/model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_tsim_deployment.py`.
-  - Evidence: Structural and non-matrix tests **17 passed, 1 deselected**; isolated real TSIM matrix **1 passed, 9 deselected**; production CLI completed LLVM and C host-codegen matrices with 10 comparisons each and `cycle_count=217301380`. The full pytest module segfaulted twice during in-process graph execution; it is not reported as passing.
+  - Files: V2 `model_pipeline.py` and focused model-pipeline and TSIM-deployment tests.
+  - Evidence: Structural and non-matrix tests **17 passed, 1 deselected**; isolated real TSIM matrix **1 passed, 9 deselected**; production CLI completed LLVM and C matrices with 10 comparisons each and `cycle_count=217301380`. Full pytest module crashed twice in graph execution; closure is Task 7.
 - [x] **Task 4 — Anomaly detection 10-convolution contract**
   - Acceptance: Production and test expectations agree with the observed 10 quantized convolutions; existing VTA symbol, per-partition convolution, host operator/dense, and composite checks remain intact.
-  - Verify: Run anomaly detection model-pipeline pytest and TSIM deployment tests.
-  - Files: `vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/model_pipeline.py`, `vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_model_pipeline.py`.
-  - Evidence: Model pipeline **8/8**; TSIM deployment contract module **9 passed, 1 skipped**; production TSIM CLI completed LLVM and C codegen runs for all 10 samples, with `cycle_count=1949920`. The updated exact graph contract is 10 quantized convolutions, 9 one-convolution VTA partitions, 1 host convolution, 0 host dense operators, and 9 VTA composites.
+  - Verify: Run anomaly model-pipeline pytest and TSIM deployment tests.
+  - Files: Anomaly `model_pipeline.py` and focused model-pipeline tests.
+  - Evidence: Model pipeline **8/8**; TSIM deployment contract module **9 passed, 1 skipped**; production TSIM CLI completed LLVM and C for all 10 samples with `cycle_count=1949920`. Exact graph contract: 10 quantized convolutions, 9 one-convolution VTA partitions, 1 host convolution, 0 host dense operators, and 9 VTA composites. Full-window execution is Task 8.
 
-### Checkpoint 2: GEMM Accumulator Bound
+## Checkpoint 2: GEMM Accumulator Bound — Complete
 
 Fresh Default execution boundary.
 
 - [x] **Task 5 — Bound the GEMM accumulator tile**
-  - Acceptance: The existing 128×128 test workload lowers without exceeding the configured `local.acc_buffer` bound and completes its existing TSIM correctness checks.
-  - Verify: Run `VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python -m pytest -q vta/tests/python/integration/test_benchmark_gemm.py`.
+  - Acceptance: The existing 128×128 workload lowers within the configured `local.acc_buffer` bound and completes TSIM correctness checks.
+  - Verify: `VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python -m pytest -q vta/tests/python/integration/test_benchmark_gemm.py`.
   - Files: `vta/tests/python/integration/test_benchmark_gemm.py`.
-  - Evidence: Focused TSIM pytest **1 passed**. The 128×128 workload now uses a 64×64 output tile, reducing the accumulator tile from 524288 bits to 131072 bits against the existing 262144-bit capacity. Added an explicit reference-result comparison for the real GEMM/ALU path; the existing mock unit paths remain exempt from that output comparison.
+  - Evidence: **1 passed**. A 64×64 output tile reduces accumulator allocation to 131072 bits against a 262144-bit capacity. Added a reference-result comparison for the real GEMM/ALU path.
 
-### Checkpoint 3: End-to-End TSIM Verification
+## Checkpoint 3: Initial End-to-End TSIM Verification — Complete
 
-Fresh Default execution boundary, after Checkpoints 1 and 2 are committed.
+Fresh Default execution boundary, after Checkpoints 1 and 2.
 
-- [x] **Task 6 — Run and record the complete validation matrix**
-  - Acceptance: All three affected model-pipeline test modules and the GEMM test pass; all six MLPerf benchmark TSIM runner commands in `SPEC-benchmark-routing-invariants.md` complete deployment; `VALIDATION.md` records each command and its result without implying success for a run that did not complete.
-  - Verify: Run the focused model-pipeline pytest command and GEMM pytest command in the two approved specs, followed by each of the six TSIM runner commands.
+- [x] **Task 6 — Run and record the initial validation matrix**
+  - Acceptance: Run focused pipeline and GEMM checks and all six MLPerf TSIM runner commands; record successes and limitations accurately.
+  - Verify: Run each pipeline module separately, the GEMM pytest command, and each of the six runner commands in `SPEC-benchmark-routing-invariants.md`.
   - Files: `docs/initiatives/20260923-tsim-benchmark-validation/VALIDATION.md`.
-  - Evidence: The combined pipeline command exited 2 on pytest's duplicate `test_model_pipeline` import-name collision; each of the three modules passed separately (**8/8 each**). Focused GEMM pytest passed (**1/1**). All six TSIM runner commands exited 0 and completed deployment; per-run sample comparisons and cycle counts, anomaly's one-window scope, and the known V2 full-module segfault limitation are recorded in `VALIDATION.md`.
+  - Evidence: Each pipeline module passed **8/8** separately; the combined invocation failed collection due duplicate module names. GEMM passed **1/1**. All six runner commands exited 0. Anomaly used one representative window per sample; V2 full pytest crashed twice. Details are in `VALIDATION.md`; Tasks 7–10 close these limitations and revalidate.
+
+## Checkpoint 4: Image Classification V2 TSIM Test Stability
+
+Fresh Default execution boundary.
+
+- [ ] **Task 7 — Stabilize complete V2 TSIM pytest module**
+  - Acceptance: Reproduce and identify the full-module crash; add regression coverage and make the complete module exit 0 while retaining the real LLVM/C matrix, ten comparisons per host-codegen, and positive cycle checks.
+  - Verify: Run the full V2 `tests/test_tsim_deployment.py` module, focused V2 runtime tests, and the production `run.py --simulator tsim --host-codegen all` command. If the shared executor boundary is implicated, run the new focused regression there as well.
+  - Files: V2 `runtime.py`, `run.py`, and related tests; one narrowly scoped TVM/VTA source and test pair only if a minimal reproducer demonstrates the shared boundary is responsible.
+  - Dependencies: Tasks 1 and 3 complete.
+  - Estimated scope: Medium; expand only if evidence requires the authorized shared-boundary regression.
+
+## Checkpoint 5: Anomaly Detection Full-Window Coverage
+
+Fresh Default execution boundary.
+
+- [ ] **Task 8 — Execute and verify all anomaly windows**
+  - Acceptance: Every checked-in validation record executes all of its windows in both LLVM and C TSIM runs; each result reports `executed_window_count == total_window_count`, all aggregate counts agree, and score/reference plus positive-cycle checks pass.
+  - Verify: Derive the total window budget from the manifest and runtime windowing contract; run the full anomaly deployment test module and CLI using that exact budget with `--host-codegen all`; verify output JSON or printed results identify full-window scope and matching counts.
+  - Files: Anomaly `runtime.py`, `run.py`, and focused deployment tests only if the existing result contract cannot prove full coverage; update initiative validation evidence in Task 10.
+  - Dependencies: Task 4 complete.
+  - Estimated scope: Medium.
+
+## Checkpoint 6: Combined Pipeline Test Collection
+
+Fresh Default execution boundary.
+
+- [ ] **Task 9 — Run pipeline test modules together**
+  - Acceptance: The VWW, image classification V2, and anomaly model-pipeline test modules collect and pass in one pytest process; each remains independently runnable, with no test skipped or removed.
+  - Verify: Run the exact combined command in `SPEC-pipeline-test-collection.md`, then each of its three module commands individually.
+  - Files: The three model-pipeline test modules only if naming changes are required, or narrowly scoped pytest config if the documented `--import-mode=importlib` option alone is insufficient.
+  - Dependencies: Tasks 1, 3, and 4 complete.
+  - Estimated scope: Small.
+
+## Checkpoint 7: Final Integrated Verification
+
+Fresh Default execution boundary, after Checkpoints 4–6 are committed.
+
+- [ ] **Task 10 — Re-run and record the complete acceptance matrix**
+  - Acceptance: The combined pipeline invocation, full V2 deployment module, all-window anomaly TSIM matrix, all six benchmark TSIM runners, and GEMM focused test pass; `VALIDATION.md` gives exact commands, sample/window counts, and cycle evidence without overstating coverage.
+  - Verify: Run the collection command in `SPEC-pipeline-test-collection.md`; V2 full-module command in `SPEC-v2-tsim-test-stability.md`; anomaly full-window command in `SPEC-anomaly-full-window-coverage.md`; all six commands in `SPEC-benchmark-routing-invariants.md` (using the full-window anomaly budget); and the GEMM command in Task 5.
+  - Files: `docs/initiatives/20260923-tsim-benchmark-validation/VALIDATION.md`.
+  - Dependencies: Tasks 7, 8, and 9 complete.
+  - Estimated scope: Medium; evidence documentation only, no generated artifacts.
+
+### Completion Checkpoint
+
+- [ ] All acceptance criteria in Tasks 1–10 are evidenced.
+- [ ] Reviewer passes the complete latest committed range.
+- [ ] Working tree is clean and ready for the user-owned merge.
