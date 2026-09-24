@@ -81,8 +81,30 @@ Fresh Default execution boundary, after Checkpoints 4 and 5 are committed.
   - Estimated scope: Medium; evidence documentation only, no generated artifacts.
   - Evidence: All six TSIM runner commands exited 0 at their specified scopes; V2 full deployment module **10/10**; combined pipeline tests **24/24**; focused GEMM **1/1**. Anomaly reports one representative window per sample (`score_scope=representative_windows`). Full command and cycle/sample evidence is recorded in `VALIDATION.md`. Commit: root `554985df61e54d8fcf87f488670eb4d90934139f`; TVM and VTA unchanged.
 
+## Checkpoint 7: V2 In-Process TSIM Root-Cause Fix
+
+Fresh Default execution boundary.
+
+- [ ] **Task 10 — Diagnose and fix the native in-process graph-execution abort**
+  - Acceptance: Reproduce the native abort with a direct `deploy_tsim_matrix()` call inside pytest; identify and document the concrete failing ownership/state/lifecycle condition; fix that cause; and leave the integration test executing the real matrix directly in the pytest process, not through a child process.
+  - Verify: First change the existing end-to-end test from subprocess isolation back to a direct call and capture its baseline signal/exit evidence. Reduce the reproducer and compare isolated versus full-module order and the production CLI. After the fix, run the focused direct matrix test plus focused tests for every changed V2/TVM/VTA boundary.
+  - Files: `vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_tsim_deployment.py`; only the V2 runtime and the proven TVM graph-executor or VTA TSIM runtime implementation/test paths required by the diagnosis.
+  - Dependencies: Tasks 1, 3, and 7 complete.
+  - Estimated scope: Medium to Large depending on the proven native defect; no unrelated platform cleanup.
+
+## Checkpoint 8: Post-Fix Regression Matrix
+
+Fresh Default execution boundary, after Task 10 is committed.
+
+- [ ] **Task 11 — Verify and record the in-process root-cause fix**
+  - Acceptance: The focused direct matrix test and complete V2 TSIM pytest module pass without a subprocess workaround; the production V2 CLI control, all six benchmark TSIM commands at specified scopes, combined routing tests, and focused GEMM test pass. `VALIDATION.md` records the demonstrated root cause, pre-fix reproducer, fix, and post-fix results.
+  - Verify: Run the V2 focused in-process command, full V2 deployment module, V2 production CLI, six commands in `SPEC-benchmark-routing-invariants.md` (anomaly budget remains one representative window), combined command in `SPEC-pipeline-test-collection.md`, and GEMM command from Task 5.
+  - Files: `docs/initiatives/20260923-tsim-benchmark-validation/VALIDATION.md`.
+  - Dependencies: Task 10 complete.
+  - Estimated scope: Medium; verification/evidence only, no generated artifacts.
+
 ### Completion Checkpoint
 
-- [x] All acceptance criteria in Tasks 1–9 are evidenced.
-- [x] Reviewer passes the complete latest committed range: **Pass**, no Critical or Required findings.
-- [x] Working tree is clean and ready for the user-owned merge.
+- [ ] All acceptance criteria in Tasks 1–11 are evidenced.
+- [ ] Reviewer passes the complete latest committed range: **Pass**, no Critical or Required findings.
+- [ ] Working tree is clean and ready for the user-owned merge.
