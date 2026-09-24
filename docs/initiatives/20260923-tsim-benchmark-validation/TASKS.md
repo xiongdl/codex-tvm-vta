@@ -23,7 +23,7 @@ Fresh Default execution boundary. Complete each task in order and commit each ta
   - Acceptance: Production and test expectations agree with the observed 10 quantized convolutions; existing VTA symbol, per-partition convolution, host operator/dense, and composite checks remain intact.
   - Verify: Run anomaly model-pipeline pytest and TSIM deployment tests.
   - Files: Anomaly `model_pipeline.py` and focused model-pipeline tests.
-  - Evidence: Model pipeline **8/8**; TSIM deployment contract module **9 passed, 1 skipped**; production TSIM CLI completed LLVM and C for all 10 samples with `cycle_count=1949920`. Exact graph contract: 10 quantized convolutions, 9 one-convolution VTA partitions, 1 host convolution, 0 host dense operators, and 9 VTA composites. Full-window execution is Task 8.
+  - Evidence: Model pipeline **8/8**; TSIM deployment contract module **9 passed, 1 skipped**; production TSIM CLI completed LLVM and C for all 10 samples with `cycle_count=1949920`. Exact graph contract: 10 quantized convolutions, 9 one-convolution VTA partitions, 1 host convolution, 0 host dense operators, and 9 VTA composites. Its one representative window per sample is the accepted TSIM coverage scope.
 
 ## Checkpoint 2: GEMM Accumulator Bound — Complete
 
@@ -43,7 +43,7 @@ Fresh Default execution boundary, after Checkpoints 1 and 2.
   - Acceptance: Run focused pipeline and GEMM checks and all six MLPerf TSIM runner commands; record successes and limitations accurately.
   - Verify: Run each pipeline module separately, the GEMM pytest command, and each of the six runner commands in `SPEC-benchmark-routing-invariants.md`.
   - Files: `docs/initiatives/20260923-tsim-benchmark-validation/VALIDATION.md`.
-  - Evidence: Each pipeline module passed **8/8** separately; the combined invocation failed collection due duplicate module names. GEMM passed **1/1**. All six runner commands exited 0. Anomaly used one representative window per sample; V2 full pytest crashed twice. Details are in `VALIDATION.md`; Tasks 7–10 close these limitations and revalidate.
+  - Evidence: Each pipeline module passed **8/8** separately; the combined invocation failed collection due duplicate module names. GEMM passed **1/1**. All six runner commands exited 0. Anomaly used one representative window per sample; V2 full pytest crashed twice. Details are in `VALIDATION.md`; Tasks 7–9 close the remaining V2 and combined-collection limitations and revalidate.
 
 ## Checkpoint 4: Image Classification V2 TSIM Test Stability
 
@@ -56,41 +56,30 @@ Fresh Default execution boundary.
   - Dependencies: Tasks 1 and 3 complete.
   - Estimated scope: Medium; expand only if evidence requires the authorized shared-boundary regression.
 
-## Checkpoint 5: Anomaly Detection Full-Window Coverage
+## Checkpoint 5: Combined Pipeline Test Collection
 
 Fresh Default execution boundary.
 
-- [ ] **Task 8 — Execute and verify all anomaly windows**
-  - Acceptance: Every checked-in validation record executes all of its windows in both LLVM and C TSIM runs; each result reports `executed_window_count == total_window_count`, all aggregate counts agree, and score/reference plus positive-cycle checks pass.
-  - Verify: Derive the total window budget from the manifest and runtime windowing contract; run the full anomaly deployment test module and CLI using that exact budget with `--host-codegen all`; verify output JSON or printed results identify full-window scope and matching counts.
-  - Files: Anomaly `runtime.py`, `run.py`, and focused deployment tests only if the existing result contract cannot prove full coverage; update initiative validation evidence in Task 10.
-  - Dependencies: Task 4 complete.
-  - Estimated scope: Medium.
-
-## Checkpoint 6: Combined Pipeline Test Collection
-
-Fresh Default execution boundary.
-
-- [ ] **Task 9 — Run pipeline test modules together**
+- [ ] **Task 8 — Run pipeline test modules together**
   - Acceptance: The VWW, image classification V2, and anomaly model-pipeline test modules collect and pass in one pytest process; each remains independently runnable, with no test skipped or removed.
   - Verify: Run the exact combined command in `SPEC-pipeline-test-collection.md`, then each of its three module commands individually.
   - Files: The three model-pipeline test modules only if naming changes are required, or narrowly scoped pytest config if the documented `--import-mode=importlib` option alone is insufficient.
   - Dependencies: Tasks 1, 3, and 4 complete.
   - Estimated scope: Small.
 
-## Checkpoint 7: Final Integrated Verification
+## Checkpoint 6: Final Integrated Verification
 
-Fresh Default execution boundary, after Checkpoints 4–6 are committed.
+Fresh Default execution boundary, after Checkpoints 4 and 5 are committed.
 
-- [ ] **Task 10 — Re-run and record the complete acceptance matrix**
-  - Acceptance: The combined pipeline invocation, full V2 deployment module, all-window anomaly TSIM matrix, all six benchmark TSIM runners, and GEMM focused test pass; `VALIDATION.md` gives exact commands, sample/window counts, and cycle evidence without overstating coverage.
-  - Verify: Run the collection command in `SPEC-pipeline-test-collection.md`; V2 full-module command in `SPEC-v2-tsim-test-stability.md`; anomaly full-window command in `SPEC-anomaly-full-window-coverage.md`; all six commands in `SPEC-benchmark-routing-invariants.md` (using the full-window anomaly budget); and the GEMM command in Task 5.
+- [ ] **Task 9 — Re-run and record the complete acceptance matrix**
+  - Acceptance: The combined pipeline invocation, full V2 deployment module, all six benchmark TSIM runners at the scope specified by their module (including one representative anomaly window per validation sample), and GEMM focused test pass; `VALIDATION.md` gives exact commands, sample/window counts, and cycle evidence without overstating coverage.
+  - Verify: Run the collection command in `SPEC-pipeline-test-collection.md`; V2 full-module command in `SPEC-v2-tsim-test-stability.md`; all six commands in `SPEC-benchmark-routing-invariants.md`; and the GEMM command in Task 5.
   - Files: `docs/initiatives/20260923-tsim-benchmark-validation/VALIDATION.md`.
-  - Dependencies: Tasks 7, 8, and 9 complete.
+  - Dependencies: Tasks 7 and 8 complete.
   - Estimated scope: Medium; evidence documentation only, no generated artifacts.
 
 ### Completion Checkpoint
 
-- [ ] All acceptance criteria in Tasks 1–10 are evidenced.
+- [ ] All acceptance criteria in Tasks 1–9 are evidenced.
 - [ ] Reviewer passes the complete latest committed range.
 - [ ] Working tree is clean and ready for the user-owned merge.

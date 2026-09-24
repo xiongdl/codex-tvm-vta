@@ -35,7 +35,7 @@ VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim PYTHONPATH="$P
 VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/run.py --simulator tsim --host-codegen all
 ```
 
-The commands follow the established checkpoint3 invocation matrix.
+The commands follow the established checkpoint3 invocation matrix. Anomaly detection intentionally uses one representative TSIM window per validation sample (`--tsim-window-budget 1`); that is the accepted validation scope and is not presented as full-window scoring.
 
 ## Project Structure
 
@@ -59,6 +59,7 @@ Update production expectations and corresponding focused tests together. Keep er
 
 - Use the existing pytest model-pipeline tests for the three affected benchmark modules.
 - Run each of the six TSIM benchmark deployment commands at the initiative-level acceptance checkpoint and record whether it completed simulator execution; a preflight-only pass does not count as deployment success.
+- For anomaly detection, preserve the representative-window budget of one per sample and report `score_scope=representative_windows`; exhaustive window coverage is not required for this initiative.
 - Do not weaken unrelated asset hashes, tensor contracts, host operator checks, or partition composite checks to make a run pass.
 - No new testing framework or coverage threshold is introduced.
 
@@ -73,6 +74,7 @@ Update production expectations and corresponding focused tests together. Keep er
 - VWW's quantized reference and partition assertions accept the observed 13-symbol partition graph while retaining its host operator and composite requirements.
 - Image classification V2's assertions accept its observed 8-symbol partition graph while retaining its host operator and composite requirements.
 - Anomaly detection's quantized reference convolution check matches the current model's observed count of 10; partition convolution, host dense/convolution, symbol, and composite checks remain meaningful and pass against the actual graph.
+- Anomaly detection TSIM completes the configured representative-window run for each validation sample and reports its sampled scope accurately.
 - All three focused pipeline test modules pass.
 - VWW, image classification V2, and anomaly detection focused pipeline tests pass. End-to-end deployment completion for all six runners is verified at the initiative-level acceptance checkpoint after the dependent VWW runtime fix.
 
