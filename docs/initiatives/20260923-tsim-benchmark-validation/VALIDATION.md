@@ -38,7 +38,7 @@ PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
   ./.envs/tvm-vta-env/bin/python <command suffix>
 ```
 
-## Known test limitation
+## Initial Checkpoint 3 V2 test failure (superseded below)
 
 The full image classification V2 pytest module sequence segfaulted twice during in-process graph execution in Checkpoint 1. It is not counted as passing here. The accepted V2 evidence remains the focused structural/non-matrix tests (**17 passed, 1 deselected**), the isolated real TSIM matrix (**1 passed, 9 deselected**), and the production CLI result above. The production CLI completed both host-codegen matrices successfully.
 
@@ -63,7 +63,7 @@ The three model-pipeline modules were collected and run in one pytest process us
 VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python -m pytest -q --import-mode=importlib vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_model_pipeline.py vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_model_pipeline.py vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_model_pipeline.py
 ```
 
-Result: exit 0, **24 passed** in 14.58 seconds. All three files collected in the same process without duplicate-module import errors.
+Result: exit 0, **24 passed** in 14.58 seconds. The documented `--import-mode=importlib` option handled duplicate module basenames; the scoped `vta/apps/mlperf_tiny_benchmark/pytest.ini` also kept collection from shadowing the top-level `vta` package.
 
 ### Image classification V2 stability
 
