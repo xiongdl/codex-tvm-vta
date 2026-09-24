@@ -108,5 +108,5 @@ Fresh Default execution boundary, after Task 10 is committed.
 ### Completion Checkpoint
 
 - [x] All acceptance criteria in Tasks 1–11 are evidenced.
-- [ ] Reviewer passes the complete latest committed range: **Pass**, no Critical or Required findings.
-- [ ] Working tree is clean and ready for the user-owned merge.
+- [x] Reviewer passes the complete latest committed range: **Pass**, no Critical or Required findings.
+- [x] Working tree is clean and ready for the user-owned merge.
