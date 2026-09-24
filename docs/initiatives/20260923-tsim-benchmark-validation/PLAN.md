@@ -63,4 +63,4 @@ Keep the completed routing, VWW runtime, GEMM, pytest collection, and benchmark 
 
 ## Open Questions
 
-- The exact V2 native root cause remains unknown and is the objective of Task 10. The user confirmed that one representative anomaly window per sample is sufficient.
+- Resolved: wrong-backend validation imported `vta.testing.simulator`, whose module-level `LIBS = load_backend()` eagerly loaded FSIM before raising the mismatch. A later TSIM load in the same pytest process collided with overlapping globally visible VTA symbols. Validation now uses the pure `vta.backend.normalize_backend` selector, and the direct in-process regression and post-fix matrix pass. The user confirmed that one representative anomaly window per sample is sufficient.
