@@ -80,4 +80,4 @@ Follow existing Python, TVM, and VTA patterns. Preserve a failing reproducer bef
 
 ## Open Questions
 
-- Which concrete executor/runtime ownership or state condition causes the abort remains unresolved; diagnosis must answer this before the fix is selected.
+- Resolved: wrong-backend validation imported `vta.testing.simulator`, whose module-level `LIBS = load_backend()` eagerly loaded the environment-selected native backend. The rejected FSIM preflight therefore loaded FSIM before the same pytest process later loaded TSIM; the libraries export overlapping VTA symbols through global dynamic-loader visibility. Validation now uses the pure `vta.backend.normalize_backend` selector and rejects the mismatch without importing the simulator or loading its native library.
