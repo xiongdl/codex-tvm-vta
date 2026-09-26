@@ -30,7 +30,7 @@ Add a shared VTA AutoTVM tuning entry point for FSIM and TSIM, prove the tuned s
 
 ### Phase 2: Image Classification V1 Closed Loop
 
-- Task 3: Apply V1's matching history-best log during compilation and report tuned-versus-baseline output and TSIM cycle results.
+- Task 3: Apply V1's matching history-best log during compilation and report tuned-versus-baseline output and TSIM cycle results. If the current AutoTVM candidates do not lower complete-model TSIM cycles, expand the VTA-side TOPI schedule/search space or VTA cycle-cost path and retune; do not modify TVM core.
 
 ### Checkpoint 2: V1 Closed Loop
 
@@ -75,6 +75,7 @@ Add a shared VTA AutoTVM tuning entry point for FSIM and TSIM, prove the tuned s
 |---|---|---|
 | TVM AutoTVM's standard runner may report only wall time rather than TSIM simulator cycles. | AutoTVM may choose a host-measurement winner that does not minimize VTA cycles. | Prove a cycle-aware TSIM measurement adapter in Task 1; stop before wider integration if it requires out-of-scope TVM-core changes. |
 | The initial FSIM smoke's RPC worker exited with `-11`; TSIM task creation reported an unregistered `ext_dev` schedule, and direct VTA conv/dense templates reported already-split iterator errors. | V1 cannot produce valid AutoTVM trials until target selection/task extraction and VTA schedule construction agree. | Resolve the V1 path in VTA-side Python and add regression coverage in Task 1; keep TVM core unchanged. |
+| The initial finite AutoTVM search selected the lowest recorded per-task costs, but the complete tuned V1 TSIM cycle count equaled baseline. | Per-task AutoTVM cost may not correlate with end-to-end V1 cycles, or the current schedule candidates may not expose a faster schedule. | In Task 3, verify history-best application and cycle measurement; then expand the VTA-side schedule/search space or cycle-cost path and retune until tuned full-model cycles are strictly lower, keeping TVM core unchanged. |
 | VTA AutoTVM task extraction may not see operations after each benchmark's external-codegen partitioning. | A model may produce no tunable tasks or incomplete task coverage. | Extract from the model's existing quantized Relay graph at the supported pre-partition boundary and report unsupported task families. |
 | Benchmark models have different graph, runtime, and profiler contracts. | A single generic integration could break existing correctness gates. | Add one model adapter at a time and keep the current model-specific output checks unchanged. |
 | TSIM tuning trials can be slow. | Full search may take a long time. | Keep trial count and early stopping configurable; use bounded smoke runs in checkpoints and full search for performance acceptance. |

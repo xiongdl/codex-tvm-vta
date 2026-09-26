@@ -59,14 +59,14 @@ Fresh Default execution boundary: complete Task 3. Verify and commit the task se
 
 ### Task 3: Integrate tuned V1 builds and cycle comparison
 
-**Description:** Connect the shared tuner to the existing `image_classification_v1` runtime. Preserve an untuned baseline build, apply the matching AutoTVM log to tuned builds, run the current committed samples, and report both TSIM cycle counts.
+**Description:** Connect the shared tuner to the existing `image_classification_v1` runtime. Preserve an untuned baseline build, apply the matching AutoTVM log to tuned builds, run the current committed samples, and report both TSIM cycle counts. If the complete tuned graph does not use fewer TSIM cycles after the current finite search space is exhausted, expand the VTA-side TOPI schedule/search space or the VTA TSIM cycle-cost path as needed, then retune. Keep all changes in VTA; do not modify TVM core.
 
 **Acceptance criteria:**
 - [ ] The existing V1 FSIM and TSIM commands continue to work; tuned mode requires a matching log/sidecar pair.
 - [ ] Baseline and tuned V1 outputs pass the existing equality checks for all ten samples.
 - [ ] Tuned TSIM `cycle_count` is strictly lower than baseline, with config, log, and sidecar identities printed in the result.
 
-**Verification:** Run the V1 model-pipeline and deployment tests; run bounded FSIM/TSIM tuned replay; run the documented V1 TSIM comparison command with the resulting best log.
+**Verification:** Run the V1 model-pipeline and deployment tests; run bounded FSIM/TSIM tuned replay; run relevant VTA TOPI regression tests if schedules or measurement hooks change; run the documented V1 TSIM comparison command with the resulting best log. Confirm that AutoTVM applies the selected records during Relay compilation and that the tuned full-model cycle count is strictly lower than baseline.
 
 **Dependencies:** Checkpoint 1.
 
@@ -76,6 +76,8 @@ Fresh Default execution boundary: complete Task 3. Verify and commit the task se
 - `vta/apps/mlperf_tiny_benchmark/image_classification_v1/README.md`
 - `vta/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_tsim_deployment.py`
 - `vta/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_host_deployment.py`
+- `vta/python/vta/top/vta_conv2d.py` and `vta/python/vta/top/vta_dense.py` (if additional VTA schedule/search-space changes are needed)
+- `vta/apps/mlperf_tiny_benchmark/autotvm_tuner.py` (if the VTA-side TSIM cycle-cost path needs adjustment)
 
 **Estimated scope:** Medium.
 
