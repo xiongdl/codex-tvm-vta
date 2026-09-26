@@ -4,22 +4,25 @@
 
 Fresh Default execution boundary: complete Tasks 1–2 in order. Verify and commit each task separately.
 
-### Task 1: Add simulator-aware AutoTVM measurement
+### Task 1: Enable simulator-aware VTA AutoTVM measurements
 
-**Description:** Add the narrowest measurement adapter needed for FSIM/TSIM AutoTVM. Confirm per-trial TSIM `cycle_count` can be reset, collected, and returned as the candidate cost. Keep FSIM measurements isolated from TSIM state and preserve the existing VTA runner behavior for non-simulator targets.
+**Description:** Make the V1 AutoTVM path create and build supported VTA conv/dense tasks for the intended target. Repair task extraction/target normalization or VTA-side TOPI schedule construction where needed, then add the narrowest FSIM/TSIM measurement adapter. Confirm per-trial TSIM `cycle_count` can be reset, collected, and returned as the candidate cost. Keep the work in the VTA repository; do not modify TVM core.
 
 **Acceptance criteria:**
+- [ ] V1 AutoTVM task extraction yields supported VTA tasks, and selected conv/dense schedule candidates build without unregistered-target or already-split-iterator errors.
 - [ ] A TSIM trial records a positive integer `cycle_count` as its AutoTVM cost and resets profiler state between candidate measurements.
 - [ ] FSIM and TSIM backend mismatch, missing libraries, and missing profiler registries fail with clear diagnostics.
-- [ ] The change uses current TVM AutoTVM runner APIs and does not edit TVM core.
+- [ ] A bounded V1 trial completes under FSIM and TSIM using current AutoTVM APIs; no TVM core files are changed.
 
-**Verification:** Run the focused new runner unit tests, then a one-task/one-trial AutoTVM smoke on FSIM and TSIM in separate processes using `vta_64mac.json`.
+**Verification:** Run focused AutoTVM runner/task-extraction tests and VTA TOPI regression tests for changed behavior, then a one-task/one-trial AutoTVM smoke on FSIM and TSIM in separate processes using `vta_64mac.json`.
 
 **Dependencies:** None.
 
 **Files likely touched:**
 - `vta/apps/mlperf_tiny_benchmark/autotvm_tuner.py`
 - `vta/apps/mlperf_tiny_benchmark/tests/test_autotvm_tuner.py`
+- `vta/python/vta/top/vta_conv2d.py` (if the conv schedule is the failing boundary)
+- `vta/python/vta/top/vta_dense.py` (if the dense schedule is the failing boundary)
 
 **Estimated scope:** Small.
 
@@ -46,6 +49,7 @@ Fresh Default execution boundary: complete Tasks 1–2 in order. Verify and comm
 ### Checkpoint 1 verification
 
 - [ ] Both backends independently tune a bounded V1 task set.
+- [ ] VTA-side task extraction and selected schedule templates build successfully for V1.
 - [ ] TSIM trial costs are cycle counts, not wall-clock values mislabeled as cycles.
 - [ ] Logs and sidecars can be paired and replayed; geometry mismatch is rejected.
 
