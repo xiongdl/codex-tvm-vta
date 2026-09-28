@@ -245,6 +245,52 @@ summary to replay its outputs; see
 `vta/apps/mlperf_tiny_benchmark/README.md` for the six-model replay command
 matrix and result interpretation.
 
+### Per-layer useful-MAC utilization estimates
+
+`vta/apps/mlperf_tiny_benchmark/mac_utilization.py` reports one row for every
+VTA Conv/Dense occurrence in the prepared graph. It validates the TSIM log and
+sidecar identities against the model and `vta_64mac.json`; `--model all` also
+requires the existing successful six-model TSIM aggregate summary and checks
+all six pairs before creating either report. It does not tune, compile, or run
+the model. The default output directory is the ignored
+`vta/apps/mlperf_tiny_benchmark/build/autotvm/mac-utilization/`.
+
+The metric is
+`logical_MACs / (best_successful_isolated_TSIM_task_cycles * peak_MACs_per_cycle)`.
+AutoTVM's FLOP count is divided by two to obtain logical MACs; the geometry
+peak is `2**LOG_BATCH * 2**LOG_BLOCK * 2**LOG_BLOCK` MAC/cycle (64 MAC/cycle for
+`vta_64mac.json`). The CSV contains occurrence rows, so repeated workload
+occurrences remain distinct. The JSON records formula and units, geometry and
+hash, workload identities, artifact paths and hashes, unsupported task
+coverage, and row counts. These cycles come from an isolated AutoTVM workload
+measurement. They are a schedule estimate associated with a layer occurrence,
+not per-layer profiling inside full-model execution or FPGA utilization.
+
+Use the matching V1 TSIM log and sidecar, then use the TSIM aggregate summary
+for all six models:
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/mac_utilization.py \
+  --model image_classification_v1 --backend tsim \
+  --log vta/apps/mlperf_tiny_benchmark/build/autotvm/<v1-tsim-log>.log \
+  --sidecar vta/apps/mlperf_tiny_benchmark/build/autotvm/<v1-tsim-sidecar>.json
+
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/mac_utilization.py \
+  --model all --backend tsim \
+  --summary vta/apps/mlperf_tiny_benchmark/build/autotvm/<autotvm-all-tsim-summary>.json
+```
+
+An alternate report location can be selected with `--output-dir PATH`.
+Output names use a stable stem derived from the selected model set and validated
+artifact identities. Re-running with the same inputs replaces the same paired
+CSV and JSON paths.
+
 ### `extract_mlperf_resnet_samples.py`
 
 ```bash
