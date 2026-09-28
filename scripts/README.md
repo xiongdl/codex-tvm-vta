@@ -174,12 +174,13 @@ Compilation may create ignored Python bytecode caches.
 
 ### MLPerf Tiny AutoTVM schedule tuning
 
-`image_classification_v1` supports independent AutoTVM tuning runs for FSIM
-and TSIM. Each run searches the supported VTA schedule configuration spaces
+`image_classification_v1` and `image_classification_v2` support independent
+AutoTVM tuning runs for FSIM and TSIM. Each run searches the supported VTA schedule configuration spaces
 and writes a native AutoTVM log plus a JSON sidecar under the ignored
 `vta/apps/mlperf_tiny_benchmark/build/autotvm/` directory. The sidecar records
-the model identity, backend, `vta_64mac.json` path and SHA-256, log hash, task
-and trial counts, and effective tuning options. By default the grid search
+the model identity, backend, `vta_64mac.json` path and SHA-256, log hash,
+supported and unsupported task-template report, task and trial counts, and
+effective tuning options. By default the grid search
 exhausts each extracted task's configuration space; `--trials-per-task` bounds
 the search for a smoke run.
 
@@ -191,21 +192,22 @@ VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
 PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
   ./.envs/tvm-vta-env/bin/python \
   vta/apps/mlperf_tiny_benchmark/autotvm_tuner.py \
-  --model image_classification_v1 --backend fsim
+  --model image_classification_v2 --backend fsim
 
 VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
 PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
   ./.envs/tvm-vta-env/bin/python \
   vta/apps/mlperf_tiny_benchmark/autotvm_tuner.py \
-  --model image_classification_v1 --backend tsim
+  --model image_classification_v2 --backend tsim
 ```
 
 Add `--trials-per-task 1` for a bounded smoke run. FSIM defaults to a 120 s
 per-measurement timeout and TSIM to 180 s; `--timeout` overrides that value.
 Replay code should use the `history_best` helper in
 `vta/apps/mlperf_tiny_benchmark/autotvm_tuner.py` with the generated log and
-sidecar. It validates backend, model, geometry, log integrity, task coverage,
-and tuning options before applying history-best.
+sidecar. It validates backend, model, geometry, log integrity, supported task
+coverage, and tuning options before applying history-best. Unsupported VTA
+task templates are listed in the sidecar and are not represented as tuned.
 TSIM AutoTVM record costs are simulator `cycle_count` values; FSIM record costs
 are its runner measurements and should not be interpreted as TSIM cycles.
 
