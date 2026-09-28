@@ -174,7 +174,7 @@ Compilation may create ignored Python bytecode caches.
 
 ### MLPerf Tiny AutoTVM schedule tuning
 
-`image_classification_v1` and `image_classification_v2` support independent
+`image_classification_v1`, `image_classification_v2`, and `anomaly_detection_v1` support independent
 AutoTVM tuning runs for FSIM and TSIM. Each run searches the supported VTA schedule configuration spaces
 and writes a native AutoTVM log plus a JSON sidecar under the ignored
 `vta/apps/mlperf_tiny_benchmark/build/autotvm/` directory. The sidecar records
