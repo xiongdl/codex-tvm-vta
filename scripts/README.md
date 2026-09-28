@@ -174,15 +174,28 @@ Compilation may create ignored Python bytecode caches.
 
 ### MLPerf Tiny AutoTVM schedule tuning
 
-`image_classification_v1`, `image_classification_v2`, and `anomaly_detection_v1` support independent
-AutoTVM tuning runs for FSIM and TSIM. Each run searches the supported VTA schedule configuration spaces
-and writes a native AutoTVM log plus a JSON sidecar under the ignored
+All six benchmark applications support independent AutoTVM tuning runs for
+FSIM and TSIM: `image_classification_v1`, `image_classification_v2`,
+`anomaly_detection_v1`, `keyword_spotting_v1`, `streaming_wakeword_v1`, and
+`visual_wake_words_v1`. Each model/backend run searches its supported VTA
+schedule configuration spaces and writes a native AutoTVM log plus a JSON
+sidecar under the ignored
 `vta/apps/mlperf_tiny_benchmark/build/autotvm/` directory. The sidecar records
 the model identity, backend, `vta_64mac.json` path and SHA-256, log hash,
 supported and unsupported task-template report, task and trial counts, and
 effective tuning options. By default the grid search
 exhausts each extracted task's configuration space; `--trials-per-task` bounds
 the search for a smoke run.
+
+`--model all` tunes the six models sequentially in the order listed above. It
+writes an aggregate JSON summary after each model completes, so completed log
+pairs survive interruption and per-model failures remain visible. Pass a prior
+summary back with `--resume-summary` to validate and reuse completed model/backend
+pairs, then continue failed, interrupted, or invalid entries. Resume requires
+the same backend, geometry file contents, and tuning options. Each model still
+uses its own native log and sidecar; a failure does not cause a later model to
+reuse another model's records. Aggregate exit status is nonzero if any model
+failed, and the summary records each status and each successful artifact pair.
 
 Run each backend in a separate process, with the same geometry file and an
 explicit matching backend selector:
@@ -199,6 +212,23 @@ PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
   ./.envs/tvm-vta-env/bin/python \
   vta/apps/mlperf_tiny_benchmark/autotvm_tuner.py \
   --model image_classification_v2 --backend tsim
+
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/autotvm_tuner.py \
+  --model all --backend tsim --trials-per-task 1
+```
+
+To continue an aggregate run, use the printed summary path:
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/autotvm_tuner.py \
+  --model all --backend tsim --trials-per-task 1 \
+  --resume-summary <autotvm-all-tsim-summary.json>
 ```
 
 Add `--trials-per-task 1` for a bounded smoke run. FSIM defaults to a 120 s
@@ -210,6 +240,10 @@ coverage, and tuning options before applying history-best. Unsupported VTA
 task templates are listed in the sidecar and are not represented as tuned.
 TSIM AutoTVM record costs are simulator `cycle_count` values; FSIM record costs
 are its runner measurements and should not be interpreted as TSIM cycles.
+Use each model's own `run.py` with the corresponding log/sidecar from the
+summary to replay its outputs; see
+`vta/apps/mlperf_tiny_benchmark/README.md` for the six-model replay command
+matrix and result interpretation.
 
 ### `extract_mlperf_resnet_samples.py`
 
