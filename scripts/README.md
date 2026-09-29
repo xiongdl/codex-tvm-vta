@@ -245,6 +245,32 @@ summary to replay its outputs; see
 `vta/apps/mlperf_tiny_benchmark/README.md` for the six-model replay command
 matrix and result interpretation.
 
+For one IC V1 workload, use the V1-local `tune.py` command. The required
+`--workload-index` is zero-based in supported task extraction order. It uses
+AutoTVM RandomTuner with a local FSIM runner, 32 trials, and a 120-second
+per-measurement timeout by default, then measures the best successful FSIM
+record's exact configuration on TSIM. Begin with `VTA_BACKEND=fsim`; the
+command changes the process-local selector to `tsim` for the final run. Both
+FSIM and TSIM libraries must be built using the same absolute geometry file.
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune.py \
+  --workload-index 0
+```
+
+`--trials N` and `--timeout SECONDS` override the defaults; trials are capped
+at the selected workload's configuration-space size. `--output-dir PATH`
+changes the artifact location. The default native FSIM log, best-record log,
+and result JSON are written below the ignored
+`vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1/`
+directory. Output includes the task template and workload SHA-256, logical
+MAC count, TSIM `cycle_count`, and artifact paths. FSIM wall-clock cost is not
+reported as cycles. See the IC V1 README for the existing model-specific
+command context.
+
 ### Per-layer useful-MAC utilization estimates
 
 `vta/apps/mlperf_tiny_benchmark/mac_utilization.py` reports one row for every
