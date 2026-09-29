@@ -349,6 +349,26 @@ not be the dataset directory or any path below `.envs`; the source dataset is
 never modified. Invalid roots, class directories, image files, or output
 locations fail before any output is created.
 
+### `mac_utilization.py`
+
+```bash
+./.envs/tvm-vta-env/bin/python scripts/mac_utilization.py \
+  --macs 123456 --cycles 7890
+```
+
+Required inputs are positive integer `--macs` (logical multiply-accumulates)
+and `--cycles` (TSIM cycles). `--config PATH` selects a VTA geometry JSON; by
+default it reads `vta/config/vta_64mac.json`. The JSON must be an object with
+non-negative integer `LOG_BATCH` and `LOG_BLOCK` fields. Peak throughput is
+`2**LOG_BATCH * 2**LOG_BLOCK * 2**LOG_BLOCK` MAC/cycle (64 MAC/cycle for the
+shared configuration), and utilization is
+`MACs / (TSIM cycles * peak MACs/cycle)`. Output reports the supplied MAC and
+cycle counts, peak MACs/cycle, utilization ratio, and percentage. Invalid
+numbers, unreadable or malformed JSON, and missing or invalid geometry fields
+return a nonzero error before printing a result. The calculator uses only the
+Python standard library, has no model or TVM dependency, and does not write
+files or run a simulator.
+
 ## Environment overrides
 
 | Variable | Used by | Default or constraint |
