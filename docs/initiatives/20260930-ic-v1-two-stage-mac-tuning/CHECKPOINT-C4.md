@@ -83,9 +83,77 @@ Project Python: `.envs/tvm-vta-env/bin/python`.
 | Repository | T7 commit OID | Paths |
 |---|---|---|
 | `vta` | `98824287875053ddc7bd28617098ad9e6a00c651` | IC V1 TECompiler-cache correction and candidate validation; focused regression tests; full optimal manifest/results/native TSIM records; narrow `.gitignore` exceptions |
-| `.` | `da4804af4f8bfe97f7e6dd4e2ac9afe8c8f358fd` | this evidence file and VTA gitlink |
+| `.` | `da4804af4f8bfe97f7e6dd4e2ac9afe8c8f358fd`, `aa307dadb6c2fe75147aac6dfd8dab629e9dc02b` | evidence and gitlink, then exact T7 commit-map update |
 | `tvm` | unchanged | — |
 
 ## T8 — Final deployment and acceptance
 
-Pending execution after T7 is committed.
+The final T7 selected manifest was applied as a real baseline and tuned TSIM
+deployment over all ten committed samples. Every tuned output exactly matched
+the pure HOST output. Debug and ordinary Graph Executor cycle counts matched.
+The tuned VTA occurrence sum is 275,137 cycles per sample and the matching
+ordinary full-model count is 275,137, leaving zero residual. The uninstrumented
+ten-sample whole-model counts are 38,757,180 baseline and 2,751,370 tuned.
+
+The first deployment run rejected two minimum-cycle schedules at the fixed
+10% comparison limit:
+
+| Occurrence | First selected TSIM cycles | Real cycles | Difference | Final measured config | Final TSIM cycles | Final real cycles | Difference |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 2 | 11,507 | 12,961 | 12.6358% | 64 | 14,338 | 15,573 | 8.6135% |
+| 5 | 7,097 | 7,833 | 10.3706% | 111 | 7,980 | 8,547 | 7.1053% |
+
+These replacements came from the already TSIM-measured candidates; the complete
+search was not repeated. The final selected result JSON records both the
+minimum observed TSIM cycles and the deployment-qualified selected cycles.
+All eight final comparisons are 1.7436%–8.6135%.
+
+| Occurrence | MACs / invocation | Final TSIM cycles | Deployed cycles | Difference | Deployed MAC utilization |
+|---:|---:|---:|---:|---:|---:|
+| 0 | 2,359,296 | 51,299 | 54,229 | 5.7116% | 67.9784% |
+| 1 | 2,359,296 | 54,144 | 56,301 | 3.9838% | 65.4766% |
+| 2 | 131,072 | 14,338 | 15,573 | 8.6135% | 13.1510% |
+| 3 | 1,179,648 | 26,955 | 28,411 | 5.4016% | 64.8763% |
+| 4 | 2,359,296 | 44,451 | 45,907 | 3.2755% | 80.3015% |
+| 5 | 131,072 | 7,980 | 8,547 | 7.1053% | 23.9616% |
+| 6 | 1,179,648 | 22,961 | 23,689 | 3.1706% | 77.8083% |
+| 7 | 2,359,296 | 41,752 | 42,480 | 1.7436% | 86.7797% |
+
+The generic deployment calculator reports 12,058,624 logical MACs per sample,
+whole-model utilization of 4.8614% baseline and 68.4808% tuned, 63.6193
+percentage-points gain, and 14.0865× cycle speedup. Its JSON output uses actual
+uninstrumented full-model cycles; it does not infer whole-model utilization
+from the sum of VTA node counts. The readable result is
+`vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune/REPORT-C4-FULL.md`;
+versioned deployment and calculator output are
+`tune/deployment-c4-full.json` and `tune/mac-utilization-c4-full.json`.
+
+The required same-process TSIM regression was fixed. `SimulatorSession` now
+validates the backend through the pure `vta.backend.normalize_backend`
+selector, not the `vta.testing.simulator` module whose import eagerly loads the
+environment-selected native simulator. Previously the wrong-environment test
+could load FSIM, after which the final real TSIM graph test loaded TSIM in the
+same process and Graph Executor aborted. A fresh-process regression test fails
+if backend mismatch validation imports the simulator module. The root-cause
+test first failed and then passed after the change; the complete TSIM profile
+and deployment suite now passes in one process.
+
+The HOST/FSIM suite also exposed that the older single-workload `tune.py`
+left `VTA_BACKEND=tsim` in its caller after measurement, making following FSIM
+tests fail their backend check. It now restores the prior selector (including
+when TSIM setup or cleanup raises). The tuning test verifies FSIM is restored;
+it first failed before the fix and passed after it.
+
+### T8 verification
+
+Project Python: `.envs/tvm-vta-env/bin/python`.
+
+- Final `tune/deployment.py --best-manifest tune/optimal/c4-full/best-manifest.json`: passed; all ten outputs matched HOST, 8/8 per-occurrence errors stayed below 10%, and debug/full-model profiling agreed.
+- `scripts/mac_utilization.py --deployment-report tune/deployment-c4-full.json --output-json tune/mac-utilization-c4-full.json`: passed; whole-model, utilization, MAC counts and gains reconcile with the deployment artifact.
+- `tune/tune.py --replay-manifest tune/optimal/c4-full/best-manifest.json`: passed; all 8 results replayed after deployment-qualified candidates were selected.
+- Full IC V1 HOST/FSIM group (`test_fused_tuning.py`, `test_tune.py`, `test_two_stage_tuning.py`, `test_model_pipeline.py`, `test_host_deployment.py`): 70 passed.
+- Full IC V1 TSIM/profile group (`test_deployment_profile.py`, `test_tsim_deployment.py`): 13 passed in one process, including the formerly aborting end-to-end matrix test.
+- JSON syntax validation passed for deployment and utilization reports. BYOC gate is pending.
+
+T8 implementation, deployment-qualified results, README and report await the
+verified task commit; final BYOC results will be appended afterward.
