@@ -128,8 +128,7 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_assets.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_model_pipeline.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_graph_artifacts.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_runtime.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_tsim_deployment.py"
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_runtime.py"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/run.py" \
     --simulator fsim --host-codegen all
@@ -151,6 +150,10 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
 echo "==> TSIM gate"
 export VTA_BACKEND=tsim
 VTA_CONFIG_FILE="${tsim_config}" "${script_dir}/test_vta_tsim.sh" --env-name "${env_name}"
+
+echo "==> MLPerf anomaly detection V1 TSIM unit gate"
+VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_tsim_deployment.py"
 
 echo "==> MLPerf ResNet V1 HOST/TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
