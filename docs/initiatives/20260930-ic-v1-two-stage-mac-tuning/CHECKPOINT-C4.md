@@ -161,20 +161,37 @@ shapes assumed a fixed block width of 16, while the documented `vta_64mac.json`
 geometry uses 8. The fixtures now derive invalid channel counts and packed
 tensor dimensions from `vta.get_env()`. With the unchanged approved geometry,
 `pytest -q vta/tests/python/unittest/test_byoc_partition.py vta/tests/python/unittest/test_byoc_lowering.py`
-passes all 202 tests. The complete gate is being rerun on a clean committed
-tree.
+passes all 202 tests. A later full attempt also exposed two test-routing
+mistakes: anomaly detection and streaming wakeword TSIM-only unit files were
+invoked during the FSIM phase. Both are now invoked in the TSIM phase. Their
+focused runs pass (anomaly: 9 passed, 1 existing skip; wakeword: 7 passed).
+The gate script passes `bash -n`.
 
-After that correction, the full gate passed the BYOC structural suite (311),
-standalone FSIM suite (40), and ResNet V1/VWW V1/ResNet V2 HOST/FSIM suites
-(38/66/62). It then exposed a gate-command environment mismatch: the anomaly
-detection TSIM-only unit file had been run in the earlier FSIM phase with
-`VTA_BACKEND=fsim`, and correctly rejected this. The command now runs the same
-TSIM test file in the TSIM phase with `VTA_BACKEND=tsim`; its direct focused run
-passes 9 tests with 1 documented skip. A subsequent gate attempt found the
-same routing error for streaming wakeword's TSIM-only unit file. That file is
-now also run in the TSIM phase; its focused run passes all 7 tests. The gate
-script passes `bash -n`, and a clean full rerun is pending after committing
-this final routing correction.
+The final clean, committed-tree gate was run as
+`VTA_CONFIG_FILE=/Users/xdl/Projects/codex-tvm-vta/vta/config/vta_64mac.json bash scripts/test_vta_byoc.sh --env-name tvm-vta-env`
+and ended with `VTA BYOC validation passed`. All phases completed:
 
-T8 implementation, deployment-qualified results, README and report await the
-verified task commit; final BYOC results will be appended afterward.
+| Gate phase | Result |
+|---|---:|
+| BYOC structural pytest suite | 311 passed |
+| Standalone VTA FSIM pytest suite | 40 passed |
+| ResNet V1 HOST/FSIM | 38 passed; LLVM and C FSIM matrices passed |
+| VWW V1 HOST/FSIM | 66 passed; LLVM and C FSIM matrices passed |
+| ResNet V2 HOST/FSIM | 62 passed; LLVM and C FSIM matrices passed |
+| Anomaly V1 HOST/FSIM | 53 passed; 10 samples compared |
+| Streaming wakeword V1 HOST/FSIM | 42 passed; 3 samples matched in LLVM and C FSIM |
+| Standalone VTA TSIM pytest suite | 21 passed |
+| Anomaly V1 TSIM-only unit tests | 9 passed, 1 existing skip |
+| Streaming wakeword V1 TSIM-only unit tests | 7 passed |
+| ResNet V1 HOST/TSIM | 10 samples; LLVM/C both reported 38,757,180 cycles |
+| VWW V1 HOST/TSIM | 10 samples; LLVM/C both reported 73,045,290 cycles |
+| ResNet V2 HOST/TSIM | 10 samples; LLVM/C both reported 217,301,380 cycles |
+| Anomaly V1 HOST/TSIM | all 10 scores matched; TSIM used the documented 1-window representative sample |
+| Streaming wakeword V1 HOST/TSIM | 3 samples matched; LLVM/C both reported 523,899 cycles |
+| Python compilation, retired Relay check, scoped checks | passed |
+
+This gate pass followed commits
+`dab5b8c71ae0e18998707c1b84c1cd90d63e2f81` (root),
+`ef92abae1e6ed56b8a30dfde59b4ab8dfed06b6a` (VTA), and
+`9f2472d8637a4aa1f2f0c0ef2595dc8043bf3aca` (TVM). The final evidence and
+commit-map update is recorded in the T8 task commit below.
