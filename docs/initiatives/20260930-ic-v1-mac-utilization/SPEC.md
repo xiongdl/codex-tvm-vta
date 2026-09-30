@@ -1,58 +1,68 @@
-# Spec: IC V1 MAC 利用率诊断
+# Spec: IC V1 NOP 诊断与 tuning / 推理计算一致性
 
-## Objective
+## Revision and objective
 
-交付面向用户的证据报告，解释当前 workload 0 约 44.62% 利用率的开销来源，提出软件优先的优化路线。61.62% 是同 workload、调度、统计口径的用户提供参考结果；无该环境产物，不声称已识别其历史改动。
+本规格按用户后续指令修订，取代原来的 tile 复用建议方向。原 EVIDENCE.md / ANALYSIS.md 保留为裸 Conv 历史分析；新验证必须明确区分其计算口径。
 
-## Inputs and structure
+解释当前 dump 的 19 条 NOP，并修正 IC V1 单 workload tuning：FSIM 搜索、TSIM 测量应执行真实推理融合算子的完整计算，包含适用的 bias、right_shift、clip、cast。真实图的属性与运算顺序是标准，不硬编码参考脚本的值。
 
-- `vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1/`：现有日志、结果、TSIM rerank 和指令 dump，保持原始文件。
-- `image_classification_v1-workload-0-20260930T025152.937603Z-tsim-rerank.json`：79 个成功配置已测量，best config 393 为 82524 cycles，config 392 为 82604 cycles。
-- `image_classification_v1-workload-0-config-392-instruction-dump-once.txt`：88 条指令，分析前核对其 workload、geometry 和周期出处。
-- `vta/python/`、`vta/src/`、硬件源码及 `tvm/`：只读追溯调度、指令生成、依赖与执行语义。
-- 本 initiative 目录：生命周期文件和最终 `ANALYSIS.md`；必要的生成数据放 ignored build 目录或临时目录。
+## Current evidence and reference
 
-## Commands
+- `image_classification_v1/tune.py` 经 `autotvm_tuner.extract_model_tasks` 取得独立 `conv2d_packed.vta` task；TOPI compute 只构建卷积与 identity output。
+- 当前 config 392 dump 有 GEMM/reset、DMA、NOP，无 ALU；它不能作为包含后处理的真实融合层周期。
+- `vta/python/vta/relay/transform.py` 的 `legalize_vta_function` 保留可选 bias → shift → clip → cast。
+- `tvm/vta/scripts/tune_conv2d.py` 显式构建 conv → shift → bias → min/max → cast，可参考完整计算的组织方式，但其顺序与固定参数不能视为本模型语义。
+- `vta/src/runtime/runtime.cc` 的 `DepPush`、`CommitPendingPop`、`PushNoop`、`Synchronize` 与 TIR coprocessor sync pass 共同决定 NOP；静态 token 余额不是等待周期。
 
-从仓库根目录运行；读文件无需项目环境，所有项目 Python 使用 `.envs/tvm-vta-env/bin/python`。
+## Structure and ownership boundary
+
+- `vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune.py`：单 workload tuning 与输出。
+- `vta/apps/mlperf_tiny_benchmark/autotvm_tuner.py`：共享提取、builder/runner、history-best；仅在一致性需要时调整，保留其他模型兼容性。
+- `vta/python/vta/relay/` 与 TOPI：真实推理计算和调度来源；优先复用现有路径，最小范围变更。
+- 对应 `tests/`：计算与属性一致、ALU 生成、日志身份与回放验证。
+- IC V1 README 与 `scripts/README.md`：记录口径、命令和旧产物兼容规则。
+- initiative 文档：新增 `CONSISTENCY.md` 记录 NOP 依据、修复机制、验证与周期，更新历史报告的适用范围说明。
+
+## Required behavior
+
+1. 从 prepared IC V1 图识别对应真实 VTA 融合 occurrence，建立 Conv workload 与完整融合计算的对应关系。相同 Conv shape 但后处理不同的 occurrence 不能被默默去重为一个完整任务。
+2. 复用真实图属性和计算路径。bias 的有无、值或参数化契约、shift、clip 边界、输出 dtype、运算顺序与真实推理相同；适用的计算留在 VTA ALU 而非 host。
+3. FSIM tuning 和 TSIM 最终比较测量同一完整任务；单算子 isolated 测量边界明确，不要求包含模型 host 前后处理或把 isolated cycles 当整模型 profile。
+4. 正确性验证使用代表性输入、负值、溢出/饱和边界，并与真实融合计算比较；不能只检查编译成功或 ALU 指令存在。
+5. tuning 身份/元数据包括融合语义，旧裸 Conv 产物必须能明确识别。旧数据不得静默用于新完整计算的性能声明；需要兼容的 Conv schedule key 与新测量 identity 分开处理。
+6. 逐类解释 NOP：起始空闲 token、分块间数据就绪/覆盖保护和结束队列汇合；给出具体编号与生成源码。不能仅凭 NOP 数宣称瓶颈或直接删依赖。
+7. 产出有界 smoke tuning、对应 ALU dump 和 TSIM cycle 结果；不做完整配置穷举。不把新周期与旧裸 Conv 周期当同计算的优化前后。
+
+## Commands and environment
+
+从仓库根目录执行，全部项目 Python 使用 `.envs/tvm-vta-env/bin/python`，geometry 为同一绝对 `vta/config/vta_64mac.json`。
 
 ```bash
-rg --files --hidden --no-ignore vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1
-cat vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1/image_classification_v1-workload-0-20260930T025152.937603Z-tsim-rerank.json
-sed -n '1,180p' vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1/image_classification_v1-workload-0-config-392-instruction-dump-once.txt
-./.envs/tvm-vta-env/bin/python scripts/mac_utilization.py --macs <核实后的逻辑MAC数> --cycles 82524
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python -m pytest vta/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_tune.py
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune.py --workload-index 0 --trials 1 --timeout 120
 ```
 
-最后一条中的 MAC 数为待核实参数，必须替换为结果中的整数后执行。若需重放 dump，仅使用现有构建与同一 geometry/backend，具体命令在计划中依据入口确定；本次不进行大规模重新调优或重建硬件。
+新增一致性测试和指令 dump 命令在计划中按实际入口列出；相关共享提取/回放变更需增加受影响兼容性检查。重建仅在实现确实需要且已有项目脚本支持时进行，不安装依赖或修改硬件。
 
-## Analysis style
+## Style and testing strategy
 
-结论分为已证实事实、估计和待验证假设；每项优化必须给出指令编号或源码位置、影响机制、约束和验证方法。例如：
+遵循现有 Python 模块、测试命名和显式 backend/geometry 校验风格。报告每项结论提供指令编号、源码位置与验证命令，例如“INSTRUCTION 20 的 compute→store push 为第二条 store 提供 token；等待周期未知”。
 
-> 观察：指令 N 使用某依赖 token。假设：该依赖限制搬运与计算重叠。验证：核对 buffer 生命周期，并用相同 workload 的 TSIM cycles 比较候选指令序列。
-
-静态 dump 的逻辑队列状态不直接当作真实周期级 stall；无法从现有证据分离的开销明确标注，不给出虚假的精确分摊。
-
-## Verification strategy
-
-1. 关联 workload identity、geometry、MAC 数、配置和 TSIM cycles；重算 44.62% 及达到 61.62% 所需周期预算。
-2. 对指令统计计算迭代、reset、DMA 类型与大小、UOP 加载、store 和同步；结合源码核实语义，检查总工作量与逻辑 MAC 的关系。
-3. 分析软件候选的 buffer、依赖与正确性约束，记录其可验证步骤；只有证据表明软件限制时提出硬件候选。
-4. 独立审核报告与证据，不要求无功能改动的全量功能测试。重放若执行，记录命令、配置和结果。
+测试先覆盖已发现的语义不一致，再实现修复；核对完整计算输出与真实融合函数，验证 ALU lowering。共享代码变更检查其他模型提取和现有 log/sidecar 的兼容规则，避免单 workload 修复改变无关应用行为。
 
 ## Boundaries
 
-- Always：保留输入产物；优先软件；遵循角色与 git-workflow 规则；使用项目 Python；报告证据局限。
-- Ask first：扩大到功能修改、改变确认意图或已批准产物；缺少用户独有信息或环境条件导致无法继续。
-- Never：修改原始日志伪造提升；直接 Git mutation；改统计口径来提高利用率；从静态 dump 断言真实 stall 周期。
+- Always：真实推理语义为准；保留原产物；记录测量计算范围；软件优先；依赖与缓冲区正确性不降标准。
+- Ask first：改变已批准规格/计划、扩大至其他模型的功能重设计、需要用户独有信息或外部权限。
+- Never：权重/输入 tile 复用优化；硬件改造；删除必要 token；伪造 ALU 以通过检查；用旧裸 Conv 周期表示真实融合推理性能。
 
 ## Success criteria
 
-- 报告能解释 dump config 392 与当前 best config 393 的对应关系和差距，核实约 44.62% 基线。
-- 至少给出有证据支撑的软件瓶颈候选及优先级，量化目标周期预算；不可量化项注明理由。
-- 每项建议包含源码/指令依据与验证方法，区分软件可改进部分与硬件潜在限制。
-- 不将 61.62% 历史实现或达成目标描述为已验证事实。
+- NOP 说明可追溯到 dump 与 runtime/TIR 生成机制，明确其数量不等于真实 stall 周期。
+- IC V1 tuning 与对应真实模型融合算子语义和输出一致，适用 ALU 出现在生成指令中，FSIM/TSIM 测的是同一计算。
+- 新旧任务与性能口径可辨别，日志或回放不会静默混用不同融合语义。
+- 有界 smoke 与相关测试通过，文档记录命令、指令、周期及限制，经独立审核。
 
 ## Open questions
 
-没有需要用户补充才能开展的范围问题。具体时间开销与可实现提升由分析决定；旧环境产物不可获取是已知限制。
+实现路径、融合 occurrence 去重方式和 schedule-key 兼容方式由计划阶段根据代码机制确定；不需要用户指定技术方案。
