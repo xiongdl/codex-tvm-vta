@@ -1,5 +1,49 @@
 # Plan: IC V1 NOP 与融合 tuning 一致性
 
+## Latest active plan: TSIM 单次 cycle cost
+
+此前 Checkpoints 1–4 已完成，融合与 replay 修复经 Reviewer Pass。当前 root 为 `2cf608910d37c7c01ab94eadc7acf6f36a5d739d`，VTA 为 `4dba1e8eb75f9ed76fc270f9eff6c2df179176bb`，TVM 为 `9f2472d8637a4aa1f2f0c0ef2595dc8043bf3aca`。以下是新审批范围，后文保留为已完成工作的计划记录；发生冲突以本段为准。
+
+### Decisions and sequence
+
+1. 最小修改共享 TSIM runner/loader。保留标准 AutoTVM RPC 流程；优先使用 TVM time_evaluator 的 `f_preproc` hook：其调用位于 warmup 之后、正式执行之前，可调用已注册的 `vta.tsim.profiler_clear`。用 TSIM 专用 module adapter 或等价局部方式注入，不修改 TVM/runtime。若 hook 不适合，允许在同一 Python runner 局部实现等价的 warmup→clear→一次执行→status；不添加二次除法。
+2. TSIM 保持恰好一次计数调用，明确固定/校验 number=1、repeat=1、min_repeat_ms=0，并处理冲突 f_preproc/CPU cache flush，避免静默多次计数或覆盖用户 hook。FSIM 完全保持现有计时行为。
+3. 新 TSIM 测量协议包含版本、计数调用数 1、warmup 排除策略，作为共享侧 metadata 和 IC V1 result 的明确契约。TSIM artifact validator 的统一检查让 resume、history-best、MAC 报告拒绝缺少该契约的旧累计数据；不重写旧文件，不默认除以二。FSIM metadata 兼容维持。
+4. IC V1 保留当前真实融合 task 及 FSIM search/best 选择，只修正最终 TSIM cost 与结果验证。新 result 保存协议，加载/replay 拒绝旧累计周期性能身份，继续校验日志和配置。可以继续使用 FSIM record 作为配置来源；其 cost 不是 TSIM cycles。
+5. 先验证不等 warmup/正式周期的回归测试与共享/IC V1兼容测试，再做真实融合 config32 的有界 TSIM oracle。记录 warmup cycles、清零、正式单次 cycles、AutoTVM cost；期望 cost 等于正式单次 oracle，而非两次总和或平均。除必要复核外不做随机搜索。
+6. 更新历史报告：82524/82604 与120983属于旧累计计数，原44.62%/30.47%单次利用率及基于其得出的优化周期差撤回；只能将除二值标为均值估计。最终利用率以新实测单次周期计算，原数据/hash保留。NOP结构事实保留，不再把warmup与正式dump一起统计。
+
+### Checkpoint 5: Runner 和数据口径修复
+
+Fresh Default 执行 Tasks 6、7、8，逐任务验证、分别提交。
+
+- Task 6 owns shared `autotvm_tuner.py` 的 TSIM runner/loader 及 `tests/test_autotvm_tuner.py` 的计数回归；实际时间评估流程中验证 warmup 排除。
+- Task 7 owns shared metadata/validator 和对应 tests，以及 MAC report 的协议消费/测试（若 validator 已统一覆盖则不作无必要修改）。FSIM行为与旧FSIM身份保留。
+- Task 8 owns IC V1 `tune.py`、`tests/test_tune.py`；新 TSIM 协议与融合/replay校验。`fused_tasks.py`及真实pipeline只读，除非局部验证显示测量一致性需要最小修复，且不改计算契约。
+
+### Checkpoint 6: 实测与文档纠正
+
+Fresh Default 执行 Task 9。复用 config32 实际完整融合、同一 geometry；FSIM output 对照可复用已记录正确性并运行 focused tests，新 TSIM 单次 output/oracle必须验证。产物写入 ignored `fusion-single-call/`，不能覆盖旧 fusion-smoke。保存真实计数范围、dump和可复现命令。只修改 EVIDENCE、ANALYSIS、CONSISTENCY、IC V1 README、scripts README；必要 scoped measurement bugfix限定 Tasks6–8路径并重新验证。
+
+### Verification commands
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python -m pytest vta/apps/mlperf_tiny_benchmark/tests/test_autotvm_tuner.py vta/apps/mlperf_tiny_benchmark/tests/test_mac_utilization.py
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python -m pytest vta/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_tune.py vta/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_fused_tuning.py
+```
+
+TSIM oracle 使用既有测量入口或任务 scoped 可复现 harness，不安装依赖；命令和完整步骤写进 CONSISTENCY。本地 RPC bind 如被沙箱限制可针对同一有界命令请求 escalation。共享变更只拓展到受影响检查；不全量调优、不改硬件、真实模型计算或 tile 复用策略。
+
+### Risks and checks
+
+- f_preproc 若调用次序错误仍会累计 warmup：用不等周期顺序断言、真实 oracle 对照。
+- repeat/min_repeat_ms 可自动追加调用：TSIM显式约束，并测试拒绝或确定单次语义。
+- 旧 sidecar 被误复用：统一协议验证及 resume/history-best/MAC report负例；FSIM不受影响。
+- 持久化 result身份不完整：真实 JSON 往返、新协议校验、旧累计口径负例。
+- 新周期不完全等于旧总和一半：报告 warmup/正式初始化差异，直接使用单次实测。
+
+完成后 fresh Reviewer 审核完整最新 committed range；继续自动 Fix/Verify/Re-review。Root lifecycle docs只由Root维护。
+
 ## Revision and completed work
 
 原 Checkpoint 1 / Task 1 已提交 EVIDENCE.md；Checkpoint 2 / Task 2 已提交 ANALYSIS.md，经修订后 Reviewer Pass，root tip 为 8c7817bb0a15f206ec5841c16acb6f0ec6713031；TVM/VTA 功能代码未变。保留这些历史文件，新任务编号从 3 开始。

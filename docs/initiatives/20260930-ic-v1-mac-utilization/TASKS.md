@@ -1,5 +1,61 @@
 # Tasks: IC V1 NOP 与融合 tuning 一致性
 
+## Latest active tasks: TSIM 单次 cost
+
+此前 Tasks1–5和对应review fixes已完成并通过审核。以下Tasks6–9为本轮执行范围；后文保留历史任务，不能重新执行。
+
+## Checkpoint 5 — 单次计数与协议
+
+### Task 6: 排除 warmup 的 TSIM 单次 cost
+
+- Owned: shared autotvm_tuner.py 的 TSIM runner/loader、tests/test_autotvm_tuner.py。
+- Acceptance:
+  - warmup计数不进入cost；clear发生在warmup之后，cost为一次正式执行原生counter，不除二、不使用wall time。
+  - 对 number/repeat/min_repeat_ms、冲突preproc/cache配置给出明确单次保证；FSIM runner行为保持。
+  - 用warmup和正式调用不同周期的回归验证顺序，并保留候选失败、timeout、profiler清零/读取错误处理。
+- Verify: focused runner测试与实际TVM time evaluator行为验证；FSIM回归；git diff --check。
+- Dependencies: approved latest revised artifacts。
+- Commit: Task6单独验证并workflow提交。
+
+### Task 7: 共享 TSIM artifact 的单次协议
+
+- Owned: shared autotvm_tuner.py 的 metadata/options/validator、tests/test_autotvm_tuner.py，必要 mac_utilization.py、tests/test_mac_utilization.py。
+- Acceptance:
+  - 新TSIM metadata明确measurement协议、counted invocation=1及warmup排除；缺失/不匹配/累计口径拒绝。
+  - resume/history-best/MAC report经过统一验证，不能静默使用旧TSIM累计数据；旧FSIM数据兼容。
+  - schema/options/aggregate身份一致，错误提示指向需重新单次测量而非建议默认除二。
+- Verify: 新协议正例、旧数据/篡改负例、JSON往返；共享及MAC report相关tests。
+- Dependencies: Task6 committed。
+- Commit: Task7单独验证并workflow提交。
+
+### Task 8: IC V1 单次结果与部署融合保持
+
+- Owned: IC V1 tune.py、tests/test_tune.py；fusion task计算路径只读。
+- Acceptance:
+  - 最终TSIM与AutoTVM共享单次协议，新result记录和加载/replay校验完整，旧累计result不能静默作为新性能数据。
+  - FSIM search策略/计时、完整融合语义、所选配置应用、日志hash校验均保持；新协议不改变MAC分子。
+  - 新JSON结果正例及旧协议负例通过，真实模型bias/shift/clip/cast输出与配置一致性测试不降低。
+- Verify: test_tune.py、test_fused_tuning.py与相关shared tests；必要真实原生日志result往返。
+- Dependencies: Tasks6/7 committed。
+- Commit: Task8单独验证并workflow提交。
+
+Checkpoint verification：Tasks6–8各项验收/测试成立，逐任务提交，managed repositories clean，返回GREEN含每任务commit map与命令证据。
+
+## Checkpoint 6 — 真实单次 oracle 与报告纠正
+
+### Task 9: 实测单次周期并纠正性能结论
+
+- Owned: initiative EVIDENCE.md、ANALYSIS.md、CONSISTENCY.md；IC V1 README、scripts/README.md；ignored fusion-single-call产物。必要bugfix只限Tasks6–8代码/测试，改后重新验证。
+- Acceptance:
+  - config32完整fusion真实TSIM的AutoTVM cost与独立warmup→clear→一次call的原生counter oracle一致，记录输入/配置/协议/dump；输出对照真实融合及ALU计算保持。
+  - 记录warmup与正式计数、counted invocation=1，不冒充执行两次累计或均值；新MAC利用率按单次cycle计算。
+  - 撤回旧报告中将82524/82604/120983当单次及衍生性能结论，旧数据/hash保留，除二仅均值估计；文档说明新协议与历史数据兼容规则。
+- Verify: 真实bounded TSIM与oracle、focused正确性/计数tests、旧产物不变、git diff --check。
+- Dependencies: Tasks6–8 committed。
+- Commit: Task9独立验证并workflow提交。
+
+Checkpoint verification：Task9实测和文档证据齐全，managed repositories clean；fresh Reviewer审核完整最新范围，Required/Critical findings自动Fix后重审。
+
 ## Completed checkpoints
 
 - [x] Checkpoint 1 / Task 1: EVIDENCE.md，root e1c8f1689ad521369dad59e939802804f6f7065c。

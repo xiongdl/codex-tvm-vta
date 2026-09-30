@@ -1,5 +1,21 @@
 # Spec: IC V1 NOP 诊断与 tuning / 推理计算一致性
 
+## Latest revision: TSIM 单次周期测量
+
+用户最新要求修正 TSIM AutoTVM 周期统计，FSIM 保持现状。下列要求补充并优先于本文原有周期结论；原功能范围和融合语义要求保持。
+
+- Objective：TSIM runner 返回恰好一次成功算子执行的原生 cycle_count。若保留 warmup，warmup 必须在测量清零之前执行并排除；不得读两次累计值、除以二或用 wall time 换算周期。
+- 已证实根因：ProfilerModuleLoader 在 time_evaluator 前 clear，TVM time evaluator 执行一次 warmup 和 number×repeat 次正式调用；TSIM Profiler::Update 使用累加，而 runner 直接将结束累计数写为 cost。当前 number=repeat=1 下为两次累计。
+- 修复共享 `autotvm_tuner.py` 的 TSIM 路径，覆盖通用 TSIM tuning、IC V1 最终 TSIM measurement 和 direct runner 使用。FSIM 的 runner、RandomTuner/搜索策略、默认计时与任务计算不变；不改变 TOPI、runtime、硬件。
+- 测量调用策略须明确单次 scope，拒绝或明确处理可能导致多次正式执行的 number/repeat/min_repeat_ms 配置；不能静默把多次累计作为单次 cost。
+- TSIM 新产物记录测量协议和计数调用数。旧双次累计日志/sidecar/IC V1 result 不得静默作为新单次周期数据用于 resume、history-best、MAC 报告或 replay 的性能声明；旧 FSIM 产物与纯配置来源兼容性不应无故改变。
+- IC V1 完整融合保持：model-derived bias/shift/clip/cast 的次序、参数、dtype 与部署融合一致；相同 selected config 在 tuning 与真实 lowering 路径下有效，负值/饱和输出验证不降低。isolated 测量不冒充整模型端到端 profile；不扩展到其他模型的融合重设计。
+- 验证必须记录 warmup/clear/execute/status 的实际顺序和计数：回归用例应让 warmup 与正式执行贡献不同周期，以发现累计或简单平均的错误；用真实 TSIM 的同 task/config 单次调用 counter 作为 oracle，验证 AutoTVM cost 相同。
+- 有界复测 IC V1 fusion config 32（已验证可运行），生成明确计数范围的 ALU dump，并核对 FSIM output/真实融合 output 一致性。更新 EVIDENCE/ANALYSIS/CONSISTENCY 以及涉及 cycle 含义的 README，撤回之前由双次累计导致的单次性能判断，保留原始输入与历史记录。
+- 新报告区分“旧两次总和”“仅除以二所得均值估计”和“新实测单次周期”。单次 MAC 利用率必须使用新实测值；不能承诺达到 61.62%。
+
+Success criteria：共享 TSIM 单次 cost、真实 oracle 和调用顺序验证通过；FSIM 回归不变；旧累计口径识别/拒绝与新协议验证有负例；完整融合正确性保留；相关报告更新并经独立审核。
+
 ## Revision and objective
 
 本规格按用户后续指令修订，取代原来的 tile 复用建议方向。原 EVIDENCE.md / ANALYSIS.md 保留为裸 Conv 历史分析；新验证必须明确区分其计算口径。
