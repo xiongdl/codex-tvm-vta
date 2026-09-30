@@ -73,4 +73,39 @@ Project Python: `.envs/tvm-vta-env/bin/python`.
 - Real `tune/deployment.py --best-manifest ... --output ... --build-dir ...`: passed; 8/8 occurrence comparisons were at or below 10%; all ten output comparisons passed; debug and ordinary full-model cycles matched.
 - The existing `test_end_to_end_tsim_matrix_with_reloaded_graph_bundles` passed alone in 57.11s. Running the full `test_tsim_deployment.py` file in one process reproducibly segfaulted in Graph Executor on its final end-to-end test. The crash also occurs with only the existing test file and is absent in the bounded deployment command above. The full-file failure remains a known TSIM test-process risk.
 
-T5 implementation commit OIDs are recorded in the C3 handoff.
+T5 implementation commits:
+
+| Repository | Commit OID | Paths |
+|---|---|---|
+| `vta` | `fa9af5f5c16ce45bb7d50363a0d5c04e5c39fcac` | IC V1 `tune/deployment.py`; deployment profile tests; TSIM test isolation |
+| `.` | `5f2f23c4df5d45d2b742f5fdbdff1147eee793a` | this evidence file; VTA gitlink |
+| `tvm` | unchanged | — |
+
+## T6 — Generic real-deployment MAC utilization CLI
+
+`scripts/mac_utilization.py` now accepts `--deployment-report` and optional
+`--output-json`. It validates the report schema, TSIM protocol, geometry file
+hash and peak, full-model scope and invocation count, occurrence coverage,
+selected manifest/result/native-record hashes, and every selected
+configuration/workload association. It rejects mismatched counts, duplicate or
+missing occurrences, cycle differences above 10%, utilization above 100%, and
+mixed scalar/deployment input. Model identity remains metadata. Repeated
+workloads remain distinct rows, and whole-model ratios use actual full-model
+cycles rather than the operator sum. The prior scalar `--macs`, `--cycles`,
+and `--config` calculation remains compatible; `--output-json` can also export
+scalar results.
+
+`scripts/README.md` documents both script modes and the end-to-end IC V1
+deployment-report commands. The IC V1 README documents schedule replay,
+deployment correctness checks, cycle validation, and report paths.
+
+### T6 verification and reconciliation
+
+Project Python: `.envs/tvm-vta-env/bin/python`.
+
+- `pytest -q scripts/tests/test_mac_utilization.py`: **14 passed**, including 11 subtests for scalar errors and geometry; deployment tests cover unrelated model IDs, repeated workloads, two-invocation normalization, exact 10% acceptance, >10% rejection, stale/mismatched evidence, incomplete coverage, >100% rejection, JSON output, scalar compatibility and `--help`.
+- Scalar CLI with `--macs 1000 --cycles 100 --config vta/config/vta_64mac.json --output-json ...`: passed and reported 15.625%.
+- The script consumed the real T5 report and validated all eight selected native records and occurrence identities. Reconciled total logical MACs were **12,058,624 per inference** and **120,586,240 across ten measured invocations**. Actual full-model cycles were **38,757,180 baseline** and **5,075,100 tuned**. The reported whole-model utilization was **4.86145% baseline** and **37.12557% tuned**, a **7.63673x** cycle speedup. The tuned operator cycle sum was 507,510 per invocation with zero residual, matching the ordinary full-model single-invocation counter.
+- Deployment-mode CLI output included all per-occurrence MAC counts, actual and AutoTVM cycles, relative differences, and operator utilization. Every difference matched the T5 report and remained within the 10% limit.
+
+T6 repository commit maps are recorded in the C3 handoff.

@@ -312,6 +312,42 @@ coverage, and row counts. These cycles come from an isolated AutoTVM workload
 measurement under the single-call TSIM protocol above. They are a schedule estimate associated with a layer occurrence,
 not per-layer profiling inside full-model execution or FPGA utilization.
 
+### Real deployment MAC utilization
+
+The repository-level `scripts/mac_utilization.py --deployment-report PATH`
+consumes a versioned report from an actual mixed-model deployment. It is
+independent of model names, graph loaders, TVM imports and tuning logs. It
+validates geometry and selected-manifest hashes, occurrence-to-config identity,
+positive invocation/cycle counts and the 10% operator-cycle threshold. Repeated
+workloads remain separate occurrence rows. Operator utilization uses measured
+per-occurrence TSIM cycles; whole-model utilization uses the report's measured
+full-model cycles and the same invocation count as its logical MAC total.
+Baseline and tuned whole-model values are both reported. Host operations remain
+outside the VTA MAC total.
+
+IC V1 creates the report after a bounded or complete selected-schedule
+deployment. Its `--best-manifest` must cover every deployed fusion occurrence;
+the command writes the versioned artifact below the app's `tune/` directory and
+keeps graphs and raw deployment builds in `build/`:
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps/mlperf_tiny_benchmark:$PWD/vta/apps/mlperf_tiny_benchmark/image_classification_v1" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune/deployment.py \
+  --best-manifest vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune/optimal/<run-id>/best-manifest.json \
+  --output vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune/deployment.json
+
+./.envs/tvm-vta-env/bin/python scripts/mac_utilization.py \
+  --deployment-report vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune/deployment.json \
+  --output-json vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune/mac-utilization.json
+```
+
+The report command is read-only unless `--output-json PATH` is provided. It
+rejects mixed deployment/scalar input. The scalar `--macs`, `--cycles`, and
+`--config` interface remains available for explicit calculations; scalar
+values are labeled user inputs, not verified model measurements.
+
 Use the matching V1 TSIM log and sidecar, then use the TSIM aggregate summary
 for all six models:
 
@@ -376,18 +412,22 @@ locations fail before any output is created.
   --macs 123456 --cycles 7890
 ```
 
-Required inputs are positive integer `--macs` (logical multiply-accumulates)
-and `--cycles` (TSIM cycles). `--config PATH` selects a VTA geometry JSON; by
-default it reads `vta/config/vta_64mac.json`. The JSON must be an object with
+Use either deployment-report mode or the compatible scalar mode. Scalar mode
+requires positive integer `--macs` (logical multiply-accumulates) and `--cycles`
+(TSIM cycles). `--config PATH` selects a VTA geometry JSON; by default it reads
+`vta/config/vta_64mac.json`. The JSON must be an object with
 non-negative integer `LOG_BATCH` and `LOG_BLOCK` fields. Peak throughput is
 `2**LOG_BATCH * 2**LOG_BLOCK * 2**LOG_BLOCK` MAC/cycle (64 MAC/cycle for the
 shared configuration), and utilization is
 `MACs / (TSIM cycles * peak MACs/cycle)`. Output reports the supplied MAC and
 cycle counts, peak MACs/cycle, utilization ratio, and percentage. Invalid
 numbers, unreadable or malformed JSON, and missing or invalid geometry fields
-return a nonzero error before printing a result. The calculator uses only the
-Python standard library, has no model or TVM dependency, and does not write
-files or run a simulator.
+return a nonzero error before printing a result. Deployment mode validates a
+versioned real-measurement artifact and reports operator occurrences,
+baseline/tuned whole-model cycles, actual whole-model utilization, cycle gain,
+and the operator sum/residual. `--output-json PATH` atomically writes the same
+result in JSON for either mode. The calculator uses only the Python standard
+library, has no model or TVM dependency, and never runs a simulator.
 
 ## Environment overrides
 
