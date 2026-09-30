@@ -83,7 +83,7 @@ Project Python: `.envs/tvm-vta-env/bin/python`.
 | Repository | T7 commit OID | Paths |
 |---|---|---|
 | `vta` | `98824287875053ddc7bd28617098ad9e6a00c651` | IC V1 TECompiler-cache correction and candidate validation; focused regression tests; full optimal manifest/results/native TSIM records; narrow `.gitignore` exceptions |
-| `.` | pending | this evidence file and VTA gitlink |
+| `.` | `da4804af4f8bfe97f7e6dd4e2ac9afe8c8f358fd` | this evidence file and VTA gitlink |
 | `tvm` | unchanged | — |
 
 ## T8 — Final deployment and acceptance
