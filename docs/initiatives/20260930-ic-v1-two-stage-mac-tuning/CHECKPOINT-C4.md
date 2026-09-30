@@ -155,5 +155,14 @@ Project Python: `.envs/tvm-vta-env/bin/python`.
 - Full IC V1 TSIM/profile group (`test_deployment_profile.py`, `test_tsim_deployment.py`): 13 passed in one process, including the formerly aborting end-to-end matrix test.
 - JSON syntax validation passed for deployment and utilization reports. BYOC gate is pending.
 
+The first complete BYOC attempt stopped during its structural suite with 20
+failures in two older test modules: channel near-misses and packed output
+shapes assumed a fixed block width of 16, while the documented `vta_64mac.json`
+geometry uses 8. The fixtures now derive invalid channel counts and packed
+tensor dimensions from `vta.get_env()`. With the unchanged approved geometry,
+`pytest -q vta/tests/python/unittest/test_byoc_partition.py vta/tests/python/unittest/test_byoc_lowering.py`
+passes all 202 tests. The complete gate is being rerun on a clean committed
+tree.
+
 T8 implementation, deployment-qualified results, README and report await the
 verified task commit; final BYOC results will be appended afterward.
