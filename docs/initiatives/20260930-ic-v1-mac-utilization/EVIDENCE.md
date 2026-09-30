@@ -1,5 +1,11 @@
 # Baseline and instruction evidence
 
+> Historical scope: this evidence is for the standalone bare-Conv workload. It
+> excludes the real IC V1 bias/right-shift/clip/cast fusion, so its 44.62% and
+> 44.67% figures are not full-inference measurements. The follow-up fused
+> measurement, its ALU dump, and the original NOP interpretation are in
+> [CONSISTENCY.md](CONSISTENCY.md).
+
 ## Findings
 
 The approved workload is IC V1 AutoTVM workload index 0, template

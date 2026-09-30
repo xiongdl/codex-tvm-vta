@@ -1,5 +1,12 @@
 # IC V1 软件优化分析
 
+> Historical scope: this analysis used a standalone bare-Conv task and dump;
+> it omitted the model's bias/right-shift/clip/cast work. Its cycle and MAC
+> utilization figures therefore do not describe complete IC V1 fusion. The
+> revised tuning contract, fused smoke result, and NOP analysis are recorded in
+> [CONSISTENCY.md](CONSISTENCY.md). Tile reuse and hardware proposals below are
+> historical and outside the revised scope.
+
 ## 结论
 
 确认基线为 64 MAC/cycle、2,359,296 个 logical MAC。现有 TSIM rerank 的最优 config 393 用时 82,524 cycles，利用率 44.6706%；指令 dump 是 config 392，用时 82,604 cycles，利用率 44.6274%。达到用户确认的 61.62% 需要不超过 59,824 cycles，即比当前最佳至少减少 22,700 cycles（27.5%）。计算与完整 dump 核算见同目录已提交的 [EVIDENCE.md](EVIDENCE.md)。

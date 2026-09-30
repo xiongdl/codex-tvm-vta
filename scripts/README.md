@@ -246,12 +246,18 @@ summary to replay its outputs; see
 matrix and result interpretation.
 
 For one IC V1 workload, use the V1-local `tune.py` command. The required
-`--workload-index` is zero-based in supported task extraction order. It uses
-AutoTVM RandomTuner with a local FSIM runner, 32 trials, and a 120-second
-per-measurement timeout by default, then measures the best successful FSIM
-record's exact configuration on TSIM. Begin with `VTA_BACKEND=fsim`; the
-command changes the process-local selector to `tsim` for the final run. Both
-FSIM and TSIM libraries must be built using the same absolute geometry file.
+`--workload-index` is zero-based in prepared-graph fusion occurrence order. The
+task measures the complete outlined Conv fusion, including applicable bias,
+right shift, clip, and cast from the model. It uses AutoTVM RandomTuner with a
+local FSIM runner, 32 trials, and a 120-second per-measurement timeout by
+default, then measures the best successful FSIM record's exact configuration
+on TSIM. Begin with `VTA_BACKEND=fsim`; the command changes the process-local
+selector to `tsim` for the final run. Both FSIM and TSIM libraries must be
+built using the same absolute geometry file. Its fusion identity is distinct
+from the old bare `conv2d_packed.vta` workload; cycles from those two scopes are
+not directly comparable. For a bounded pinned-config measurement and runtime
+instruction dump, follow the reproducible procedure in
+`docs/initiatives/20260930-ic-v1-mac-utilization/CONSISTENCY.md`.
 
 ```bash
 VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
