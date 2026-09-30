@@ -2,9 +2,10 @@
 
 > Historical scope: this evidence is for the standalone bare-Conv workload. It
 > excludes the real IC V1 bias/right-shift/clip/cast fusion, so its 44.62% and
-> 44.67% figures are not full-inference measurements. The follow-up fused
-> measurement, its ALU dump, and the original NOP interpretation are in
-> [CONSISTENCY.md](CONSISTENCY.md).
+> 44.67% figures are not full-inference measurements and are not valid
+> single-call utilization measurements: their TSIM counters include warmup
+> plus formal call. Raw bytes and hashes remain preserved; derived claims are
+> withdrawn. Corrected fused measurement is in [CONSISTENCY.md](CONSISTENCY.md).
 
 ## Findings
 
@@ -27,32 +28,33 @@ The workload's channels are exact multiples of the 8-lane blocks; this dump
 does not show channel-tail GEMMs. Spatial boundary padding is present in the
 activation loads, as described below.
 
-| Evidence | Config | TSIM cycles | Useful-MAC utilization |
-| --- | ---: | ---: | ---: |
-| Rerank best | 393 | 82,524 | 44.670641% |
-| Dumped instruction stream | 392 | 82,604 | 44.627379% |
+| Historical evidence | Config | Saved cumulative counter | Scope |
+| --- | ---: | ---: | --- |
+| Rerank best entry | 393 | 82,524 | warmup + formal call |
+| Dumped instruction stream | 392 | 82,604 | warmup + formal call |
 
-Both percentages use `2,359,296 / (cycles * 64)`. Thus the dump's config 392
-result is approximately 44.63% (44.62% if truncated to two decimals); the
-rerank best is approximately 44.67%. Config 393 is 80 cycles faster than 392,
-about 0.097% fewer cycles. The compared FSIM schedule entities differ only in
+Earlier reports divided one Conv MAC count by these cumulative values and
+presented 44.62% / 44.67%; those utilization claims are withdrawn. Dividing by
+two yields only an arithmetic average across warmup and formal execution, not a
+measured single-call cycle count. The saved values differ by 80 cycles, but
+without per-invocation counters this cannot establish a single-call delta.
+The compared FSIM schedule entities differ only in
 `tile_h` (4 for 392; 8 for 393); `tile_w=32`, `tile_ci=1`, `tile_co=2`,
 `oc_nthread=1`, and `h_nthread=2` are the same. The instruction dump is for
 392, so its instruction statistics must not be represented as a dump of the
 best config 393.
 
-At 61.62%, the cycle budget is
-`2,359,296 / (64 * 0.6162) = 59,824.732...`; an integer cycle count must be at
-most 59,824. Relative to config 393 this requires at least 22,700 fewer cycles
-(27.51% of its measured cycles); relative to config 392 it requires 22,780
-fewer. This is a target budget, not an attribution of removable cycles.
+The 61.62% budget is `floor(2,359,296 / (64 * 0.6162)) = 59,824` cycles.
+Corrected config32 full-fusion smoke is 60,492 cycles, 668 cycles above that
+budget. This is not a full tuning result; see [CONSISTENCY.md](CONSISTENCY.md).
 
 ## Complete dump accounting (config 392)
 
 `image_classification_v1-workload-0-config-392-instruction-dump-once.txt`
 contains all 88 instructions. The full, timestamped runtime dump ends with
 `CONFIG_INDEX 392`, `FSIM_COST_SECONDS 0.001244`, `TSIM_ERROR_NO 0`, and
-`TSIM_RESULT (82604,)`, tying the decoded stream directly to the rerank result.
+`TSIM_RESULT (82604,)`, tying the decoded stream to the historical cumulative
+rerank entry, not to one invocation.
 
 | Instruction class | Count | Meaning / evidence |
 | --- | ---: | --- |
@@ -173,12 +175,12 @@ not decompose those cycles by instruction class.
 
 ## Reproduction
 
-Run from the repository root. Both utilization commands use the repository
-Python environment and checked-in metric script:
+Run from the repository root. Decode the historical FSIM configuration
+identities below; do not pass the old cumulative TSIM counters to the MAC
+utilization script as single-call measurements.
 
 ```bash
-./.envs/tvm-vta-env/bin/python scripts/mac_utilization.py --macs 2359296 --cycles 82524
-./.envs/tvm-vta-env/bin/python scripts/mac_utilization.py --macs 2359296 --cycles 82604
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" ./.envs/tvm-vta-env/bin/python -c 'from tvm import autotvm; p="vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1/image_classification_v1-workload-0-20260930T021628.757343Z-fsim.log"; rows=list(autotvm.record.load_from_file(p)); print("\n".join(f"id={i.config.index} config={i.config}" for i,r in rows if i.config.index in (392,393)))'
 ```
 
 The instruction counts and byte totals can be independently recalculated from
@@ -207,9 +209,10 @@ SHA-256 of original evidence inputs at analysis start and before commit:
 | Geometry (`vta/config/vta_64mac.json`) | `23b338eacdf5747610d90fd17296e3d0d4236ce416191b7c1cfc597cd67991fa` |
 
 The older paired `result.json` is a separate standalone verification reporting
-83,066 cycles; it is not the complete rerank best and is not used for the
-44.67% baseline above. The approved rerank contains 79 successful TSIM
-measurements, identifies 393 at 82,524 cycles as its best, and lists 392 at
-82,604 cycles. Config records 392 and 393 were read from the paired FSIM log.
+83,066 cumulative cycles; it is not the complete rerank best. The approved
+rerank contains 79 successful TSIM measurements, identifies 393 at 82,524
+cumulative cycles as its best, and lists 392 at 82,604 cumulative cycles.
+Config records 392 and 393 were read from the paired FSIM log. None of these
+historical aggregate counters recovers a formal-call-only count.
 The original input hashes matched at the final check. No source or original
 log/dump/result file was modified.

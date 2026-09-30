@@ -2,6 +2,13 @@
 
 ## 口径修正
 
+AutoTVM 的 TSIM `cycle_count` cost 是 warmup 后单次正式调用的原生 counter。TSIM
+time evaluator 仍执行一次 warmup 和一次正式调用；runner 在 warmup 后通过
+`f_preproc` 清零 counter，再读取正式调用。因此 cost 不是两次累计值，也不需要除二。
+FSIM runner 的计时方式保持不变。当前 TSIM 协议为
+`{"name":"tsim_single_call","version":1,"counted_invocations":1,"warmup_excluded":true}`；
+缺少此协议的历史 TSIM sidecar/result 需要重新测量，不能静默复用。
+
 旧的 44.62% / 44.67% 数据来自独立 `conv2d_packed.vta` 裸 Conv。真实 IC V1
 融合在 Conv 后还执行 `bias_add(64) -> right_shift(7) -> clip[-127,127] -> cast(int8)`。
 旧 TSIM cycles 没包含这些计算，不能把新结果当作同一计算的前后对比，也不能用旧
@@ -47,15 +54,12 @@ Relay 融合输出比较，结果完全相同；输出为 `(1,32,32,16)` 的 `in
 | --- | --- |
 | 配置 index / entity | `32`; `tile_h=4, tile_w=32, tile_ci=1, tile_co=1, oc_nthread=1, h_nthread=1` |
 | FSIM runner cost | `0.00130275 s`（本机 wall time，不是 cycles） |
-| 同配置 TSIM `cycle_count` | `120,983` |
+| 历史 TSIM `cycle_count` | `120,983`（warmup 与正式调用累计；不是单次 cost） |
 | logical Conv MAC | `2,359,296` |
-| `2,359,296 / (120,983 * 64)` | `30.4703967%` |
+| 旧报表利用率 | `30.4703967%`（撤回；分母误用了累计周期） |
 | 完整融合身份 / 几何 | 上述 fusion SHA-256 / `vta_64mac.json` SHA-256 |
 
-这个利用率以 Conv logical MAC 为分子，而分母 cycles 包含 ALU 后处理；它只描述该孤立
-融合 task。它与旧裸 Conv 统计不可直接作优化增幅比较，也不是完整模型端到端 cycles。
-它说明这次验证修复了计算语义，但没有证明 61.62% 可达。配置 32 的 FSIM、TSIM 和
-debug dump 均使用同一 AutoTVM task 与同一配置实体。忽略的原始运行日志在
+配置 32 的 FSIM、TSIM 和 debug dump 均使用同一 AutoTVM task 与同一配置实体。忽略的原始运行日志在
 `vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1/fusion-smoke/`，
 其中 `config-32-debug-run.log` 保存了完整 VTA 指令输出，`config-32-debug.tar` 是生成的
 debug 模块；文件 SHA-256 分别为
@@ -181,6 +185,47 @@ tile 上运行。`debug_flag=2` 下 AutoTVM 时间评估器打印了 warmup 和�
 新 dump 的变化来自完整后处理产生的 compute 队列工作和配置 32 的 tile/缓冲区生命周期；
 由于 fusion 身份和 schedule entity 不同，NOP 数量不能单独归因 ALU，也不能据此推断动态
 等待增减。完整 stream 可在忽略日志中按 `There are 220 instructions` 定位。
+
+## 单次 TSIM cost 的实测与独立 counter oracle
+
+2026-09-30 对完整 fusion 的 config 32 重新执行一次 AutoTVM TSIM runner，并以独立的
+本机 runtime 直接调用同一编译模块核对 native counter。warmup 后 counter 是 60,491；
+清零后为 0；正式调用一次后是 60,492。AutoTVM cost 同为 60,492 cycles。两次调用的
+计数不同，确认 runner 的 post-warmup clear 起效，且 cost 只计一次调用。
+
+| 项目 | 结果 |
+| --- | ---: |
+| AutoTVM cost / 独立 oracle 正式调用 | 60,492 cycles |
+| warmup counter（不计入 cost） | 60,491 cycles |
+| 单次 MAC 利用率 `2,359,296 / (60,492 × 64)` | 60.9402896% |
+| 61.62% 的最大周期预算 | 59,824 cycles |
+| 与该预算的差距 | 668 cycles |
+
+这是 config 32 的有界 smoke 结果，不是全量 FSIM 搜索后的最优配置。分子只计 Conv
+logical MAC，分母含融合 ALU 后处理。该 60.94% 与 61.62% 使用本次修正后的完整 fusion
+及单次 TSIM 口径；不与裸 Conv 的 44.62% / 44.67% 历史派生百分比作前后对比。
+真实模型常量权重的 config 32 输出已在 FSIM 上与 prepared Relay fusion 逐元素一致，
+并覆盖负值与 `[-127,127]` clip 边界；TSIM dump 有 64 条 ALU，后处理仍在被测 task 中。
+旧 correctness artifact、dump 和日志未修改。
+
+忽略产物 `build/autotvm/image_classification_v1/fusion-single-call/` 保存本次
+`config-32-single-call-result.json`、编译模块副本和 oracle 脚本。JSON 记录 workload、配置、
+模型、geometry、dump 哈希，协议、warmup 与正式 counter，以及正确性证据。历史
+`fusion-smoke/result.json` 保留原值 120,983 和原哈希；它现在标记为两次调用累计，原
+30.47% 计算已撤回。
+
+在仓库根目录重新生成这组结果：
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps/mlperf_tiny_benchmark" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1/fusion-single-call/measure_config32.py
+```
+
+脚本用 config space index 32 构建真实 fusion，保存 compiled module 副本，运行 AutoTVM
+TSIM runner，再在本机 runtime 中对该模块显式执行 warmup/clear/formal call/read。只有
+AutoTVM cost 与 direct native formal counter 相同才会写出成功结果 JSON。
 
 ### 源码定位
 

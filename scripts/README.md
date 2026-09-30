@@ -238,8 +238,15 @@ Replay code should use the `history_best` helper in
 sidecar. It validates backend, model, geometry, log integrity, supported task
 coverage, and tuning options before applying history-best. Unsupported VTA
 task templates are listed in the sidecar and are not represented as tuned.
-TSIM AutoTVM record costs are simulator `cycle_count` values; FSIM record costs
-are its runner measurements and should not be interpreted as TSIM cycles.
+TSIM AutoTVM record costs are native simulator `cycle_count` values from one
+formal invocation. The time evaluator performs one warmup, then the TSIM runner
+clears the profiler through its reserved `f_preproc` and measures once
+(`number=1`, `repeat=1`, `min_repeat_ms=0`). Warmup is excluded; do not divide
+costs by two. Each TSIM sidecar/options identity records protocol
+`tsim_single_call` v1 (`counted_invocations=1`, `warmup_excluded=true`).
+Historical TSIM artifacts missing this protocol must be remeasured before
+replay, resume, or MAC utilization reporting. FSIM timing and records are
+unchanged and must not be interpreted as TSIM cycles.
 Use each model's own `run.py` with the corresponding log/sidecar from the
 summary to replay its outputs; see
 `vta/apps/mlperf_tiny_benchmark/README.md` for the six-model replay command
@@ -255,8 +262,8 @@ on TSIM. Begin with `VTA_BACKEND=fsim`; the command changes the process-local
 selector to `tsim` for the final run. Both FSIM and TSIM libraries must be
 built using the same absolute geometry file. Its fusion identity is distinct
 from the old bare `conv2d_packed.vta` workload; cycles from those two scopes are
-not directly comparable. For a bounded pinned-config measurement and runtime
-instruction dump, follow the reproducible procedure in
+not directly comparable. For a bounded config32 single-call oracle measurement
+and runtime instruction dump, follow the reproducible procedure in
 `docs/initiatives/20260930-ic-v1-mac-utilization/CONSISTENCY.md`.
 
 ```bash
@@ -295,7 +302,7 @@ peak is `2**LOG_BATCH * 2**LOG_BLOCK * 2**LOG_BLOCK` MAC/cycle (64 MAC/cycle for
 occurrences remain distinct. The JSON records formula and units, geometry and
 hash, workload identities, artifact paths and hashes, unsupported task
 coverage, and row counts. These cycles come from an isolated AutoTVM workload
-measurement. They are a schedule estimate associated with a layer occurrence,
+measurement under the single-call TSIM protocol above. They are a schedule estimate associated with a layer occurrence,
 not per-layer profiling inside full-model execution or FPGA utilization.
 
 Use the matching V1 TSIM log and sidecar, then use the TSIM aggregate summary
