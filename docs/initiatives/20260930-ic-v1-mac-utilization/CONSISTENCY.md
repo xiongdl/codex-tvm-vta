@@ -129,6 +129,31 @@ finally:
 命令相同。`VTA_DEBUG_DUMP_INSN` 为 runtime debug flag bit 1，runtime 在
 `CommandQueue::Synchronize` 打印真实队列，不应手工拼接 ALU 或 NOP。
 
+### Native FSIM result 保存、加载与 replay
+
+验证 replay validator 时，用已知可运行的 config 32 做了一次单配置 FSIM
+测量，并将真实 `MeasureResult` 通过 `autotvm.record.encode` 写为 native FSIM
+记录；best log 是同一条成功记录（此次有界测量只有一个候选）。结果随后经
+正式 replay 入口加载。FSIM 返回 `error_no=0`，cost 为 `0.001243333 s`；
+AutoTVM 从文件解码出 config index 32。Replay CLI 成功验证模型、几何、完整
+融合和 task workload 的 identities，校验 FSIM/best log 的文件 SHA-256，并将
+配置应用到 prepared model 的真实 outlined fusion lowering；`lower_with_fused_config`
+确认 lowering 使用了对应 Conv schedule key。
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune.py \
+  --replay-result vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1/replay-config-32/config-32-result.json
+```
+
+这条命令打印 `Real outlined model fusion lowering: verified`。忽略目录中的
+FSIM 与 best log SHA-256 均为
+`8c32b1ece9212e4c04d7e82a427be7dd9abd46be1ea489c5895801678bdf8610`；result JSON
+SHA-256 为 `d00c6217af1ea5ea6ae454ecf1c41fd11e884b560fb42918b74c6fff598f9828`。
+该 replay 检查配置身份与实际 lowering，不会重新测量 TSIM，也不代表完整搜索。
+
 ## 真实 fusion dump 与 NOP 解释
 
 旧 config 392 dump 共 88 条指令，含 19 条 NOP（7 compute、9 memory、3 store）。编号和
