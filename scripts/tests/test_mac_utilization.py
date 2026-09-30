@@ -92,6 +92,7 @@ def build_deployment_fixture(directory, deployment_cycles=(180, 202)):
     report = {
         "schema_version": 1,
         "artifact_kind": "vta_deployment_profile_v1",
+        "completion_label": "BOUNDED_C3_PROFILE_INCOMPLETE",
         "model_id": "unrelated-model-id",
         "model_sha256": "a" * 64,
         "geometry": {
@@ -240,6 +241,8 @@ class MacUtilizationTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         parsed = json.loads(result.stdout[result.stdout.index("{\n"):])
         self.assertEqual(parsed["model_id"], "unrelated-model-id")
+        self.assertEqual(parsed["completion_label"], "BOUNDED_C3_PROFILE_INCOMPLETE")
+        self.assertIn("Completion: BOUNDED_C3_PROFILE_INCOMPLETE", result.stdout)
         self.assertEqual(len(parsed["occurrences"]), 2)
         self.assertEqual(parsed["whole_model"]["logical_macs"], 4000)
         self.assertEqual(parsed["whole_model"]["tuned_cycles"], 1000)

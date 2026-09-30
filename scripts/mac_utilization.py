@@ -304,6 +304,7 @@ def calculate_deployment_report(report):
         "artifact_kind": "deployment_mac_utilization_v1",
         "model_id": report["model_id"],
         "model_sha256": model_hash,
+        "completion_label": report.get("completion_label", "UNKNOWN_COMPLETION"),
         "backend": "tsim",
         "geometry": {"sha256": geometry_hash, "peak_macs_per_cycle": peak},
         "scope": scope,
@@ -365,6 +366,7 @@ def main(argv=None):
             result = calculate_deployment_report(source)
             model = result["whole_model"]
             print(f"Model: {result['model_id']} ({result['model_sha256']})")
+            print(f"Completion: {result['completion_label']}")
             print("Scope: actual full-model TSIM cycles; host operations excluded")
             print(f"Occurrences: {len(result['occurrences'])}")
             for item in result["occurrences"]:
