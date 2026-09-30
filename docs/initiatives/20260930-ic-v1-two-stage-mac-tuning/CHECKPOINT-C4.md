@@ -170,8 +170,11 @@ standalone FSIM suite (40), and ResNet V1/VWW V1/ResNet V2 HOST/FSIM suites
 detection TSIM-only unit file had been run in the earlier FSIM phase with
 `VTA_BACKEND=fsim`, and correctly rejected this. The command now runs the same
 TSIM test file in the TSIM phase with `VTA_BACKEND=tsim`; its direct focused run
-passes 9 tests with 1 documented skip. The complete gate is being rerun after
-this environment-routing correction.
+passes 9 tests with 1 documented skip. A subsequent gate attempt found the
+same routing error for streaming wakeword's TSIM-only unit file. That file is
+now also run in the TSIM phase; its focused run passes all 7 tests. The gate
+script passes `bash -n`, and a clean full rerun is pending after committing
+this final routing correction.
 
 T8 implementation, deployment-qualified results, README and report await the
 verified task commit; final BYOC results will be appended afterward.
