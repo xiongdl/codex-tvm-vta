@@ -252,37 +252,44 @@ summary to replay its outputs; see
 `vta/apps/mlperf_tiny_benchmark/README.md` for the six-model replay command
 matrix and result interpretation.
 
-For one IC V1 workload, use the V1-local `tune.py` command. The required
-`--workload-index` is zero-based in prepared-graph fusion occurrence order. The
-task measures the complete outlined Conv fusion, including applicable bias,
-right shift, clip, and cast from the model. It uses AutoTVM RandomTuner with a
-local FSIM runner, 32 trials, and a 120-second per-measurement timeout by
-default, then measures the best successful FSIM record's exact configuration
-on TSIM. Begin with `VTA_BACKEND=fsim`; the command changes the process-local
-selector to `tsim` for the final run. Both FSIM and TSIM libraries must be
-built using the same absolute geometry file. Its fusion identity is distinct
-from the old bare `conv2d_packed.vta` workload; cycles from those two scopes are
-not directly comparable. For a bounded config32 single-call oracle measurement
-and runtime instruction dump, follow the reproducible procedure in
-`docs/initiatives/20260930-ic-v1-mac-utilization/CONSISTENCY.md`.
+For IC V1 two-stage tuning, use the V1-local `tune/tune.py` command. It builds
+one complete task per prepared-graph fusion occurrence, including model bias,
+right shift, clip, and cast. The default `--all` run searches 100 distinct
+configurations per FSIM batch until each workload has at least 20 distinct
+successful schedules or its valid configuration space is exhausted. It then
+measures every FSIM success on TSIM and selects the minimum positive native
+`cycle_count`. FSIM and TSIM use separate processes and independent 60-second
+and 120-second per-candidate timeouts. Use the same absolute geometry file for
+both simulator libraries. The full fusion identity differs from bare
+`conv2d_packed.vta` records; do not compare cycles across those scopes.
 
 ```bash
 VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
-PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps/mlperf_tiny_benchmark:$PWD/vta/apps/mlperf_tiny_benchmark/image_classification_v1" \
   ./.envs/tvm-vta-env/bin/python \
-  vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune.py \
-  --workload-index 0
+  vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune/tune.py --all
 ```
 
-`--trials N` and `--timeout SECONDS` override the defaults; trials are capped
-at the selected workload's configuration-space size. `--output-dir PATH`
-changes the artifact location. The default native FSIM log, best-record log,
-and result JSON are written below the ignored
-`vta/apps/mlperf_tiny_benchmark/build/autotvm/image_classification_v1/`
-directory. Output includes the task template and workload SHA-256, logical
-MAC count, TSIM `cycle_count`, and artifact paths. FSIM wall-clock cost is not
-reported as cycles. See the IC V1 README for the existing model-specific
-command context.
+The command also supports `--workload-index N`, `--trial-batch N`,
+`--min-successful N`, `--fsim-timeout SECONDS`, and `--tsim-timeout SECONDS`.
+`--max-workloads N` and non-default search limits are bounded runs and the
+manifest labels them `BOUNDED_SMOKE_INCOMPLETE`. To continue a run, provide its
+`--resume-manifest PATH`; model, geometry, workload identities, search limits,
+and timeout settings must match. Native backend logs, candidate failures,
+progress, and resume state are written under
+`vta/apps/mlperf_tiny_benchmark/image_classification_v1/build/two_stage_tuning/`.
+Self-contained best native records and `best-manifest.json` are exported below
+`vta/apps/mlperf_tiny_benchmark/image_classification_v1/tune/optimal/<run-id>/`
+by default; `--artifact-dir PATH` changes that location. Replay with
+`--replay-manifest PATH` validates the model, geometry, fusion, workload,
+configuration, single-call TSIM protocol, and native record hashes without
+reading intermediate build files.
+
+The previous single-workload entry point
+`image_classification_v1/tune.py --workload-index N` remains available with its
+`--trials`, `--timeout`, `--output-dir`, and `--replay-result` options for
+compatibility. Full two-stage tuning and self-contained artifact replay use
+the new `tune/tune.py` entry point.
 
 ### Per-layer useful-MAC utilization estimates
 
