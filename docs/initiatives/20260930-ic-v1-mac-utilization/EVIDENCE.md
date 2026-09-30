@@ -76,6 +76,22 @@ TSIM implementation, reset iterations clear accumulator vectors and do not
 perform dot products; the reset loop is excluded from the simulator's
 `gemm_counter`. Do not count those as MACs.
 
+### Nominal GEMM UOP issue rate
+
+The checked-in Chisel implementation establishes a nominal one-UOP-per-active-
+cycle issue schedule. `TensorGemmIndexGenerator` drives `valid` from its
+`running` state and increments `uop_idx` on each running cycle
+(`vta/hardware/chisel/src/main/scala/core/TensorGemm.scala:238-269`). The
+configured compute block instantiates `new TensorGemm`
+(`vta/hardware/chisel/src/main/scala/core/Compute.scala:61-64`);
+`TensorGemm` extends `TensorGemmPipelinedSplit`, which connects the generator's
+valid signal to the UOP index stream (`TensorGemm.scala:547-563, 588-593,
+748`). Therefore, 36,864 useful UOPs require at least 36,864 active GEMM issue
+cycles in this nominal architecture. At 64 MAC/UOP, that is the useful-compute
+lower bound for the dump's workload. This does not establish measured TSIM
+cycles attributable to GEMM, queue stalls, DMA overlap, or command setup and
+drain; those remain unpartitioned by the dump.
+
 ### Transfer sizes and units
 
 The 2D memory instruction sizes are in memory elements, with each element a
@@ -141,6 +157,11 @@ not decompose those cycles by instruction class.
 - `vta/src/sim/sim_driver.cc:399-450` distinguishes normal GEMM work from
   reset work. Normal work performs the 8-by-8 dot product; reset work writes
   zeros to accumulator lanes.
+- `vta/hardware/chisel/src/main/scala/core/Compute.scala:61-64` instantiates
+  `TensorGemm`; `TensorGemm.scala:238-269,547-563,588-593,748` shows the
+  generator's one-UOP-per-active-cycle nominal schedule and the pipelined
+  implementation selected by that instance. This is an architectural issue
+  rate, not a TSIM cycle attribution or a measurement of realized stalls.
 - `vta/apps/mlperf_tiny_benchmark/README.md:92-105` defines the useful-MAC
   utilization formula and 64 MAC/cycle peak for this geometry.
 

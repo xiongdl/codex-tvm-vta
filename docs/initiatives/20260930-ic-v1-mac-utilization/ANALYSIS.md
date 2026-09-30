@@ -24,7 +24,7 @@ DMA 指令的依赖字段及 dump 内 `l2g_queue/g2l_queue/s2g_queue/g2s_queue` 
 
 ## 61.62% 目标判断与后续决策
 
-若将一个逻辑 UOP 的 64 MAC 理想化为每周期处理一次，36,864 个计算 UOP 给出 36,864-cycle 的纯计算参考值；要满足 59,824-cycle 目标，其余 reset、load/store、同步和流水线开销合计必须不超过约 22,960 cycles。该值只是条件性预算，不是本硬件实测的 compute lower bound：现有证据未提供 UOP issue interval 或动态阶段计时。
+Chisel 中的 `TensorGemmIndexGenerator` 每个 running cycle 前进一个 UOP，`TensorGemmPipelinedSplit` 将其 valid 信号驱动到 UOP 索引流，且 `TensorGemm` 继承该实现；`Compute` 实例化的正是 `TensorGemm`。因此，对 36,864 个有用 UOP，名义架构下 GEMM 至少需要 36,864 个 active issue cycles。这是源码支持的计算下界，不是 TSIM 测出的 GEMM 周期拆分，也不证明 DMA、同步或流水线实际用了多少周期。要满足 59,824-cycle 目标，reset、搬运、同步、命令开销及其他非有用计算时间合计预算约为 22,960 cycles；现有 dump 不能把该预算分摊到这些类别。源码引用和边界见 [EVIDENCE.md](EVIDENCE.md)。
 
 相对该理想参考，当前最佳实测比它多 45,660 cycles；达到目标需要削减这部分约一半。weight 和 input 重复 payload 提供了值得验证的软件机会，但是否落在关键路径、能节省多少 cycles 均未知。因此结论是：**软件方向还没有被证伪，但基于已测配置调参无法达到目标；对调度结构做数据驻留/复用实验后才能判断 61.62% 是否可由软件覆盖。**
 
