@@ -81,4 +81,5 @@ C7 began from root `a5ed36b0578f3ea85e657c8252c297c6904067c5`, TVM
 | Task | Root commit | TVM commit | VTA commit | Committed paths |
 | --- | --- | --- | --- | --- |
 | T17 | `912065c968e7d622ef95efdfa970d3e6e73491ec` | unchanged | `7ad544e0354fbc2d4aca506ddb65e139df40cce8` | VTA optimal manifest and native/result pair; VTA `.gitignore` exception |
-| T18 | This checkpoint commit | unchanged | This checkpoint commit | Deployment and MAC JSON/CSV, full report, this checkpoint |
+| T18 deployment report | `d98b1b967adfb9e927efaa5f478853808fb29b75` | unchanged | `f1906a19b5427e55f439b8dfbc6f44b2721cf130` | Deployment/MAC CSV, full report, checkpoint evidence |
+| T18 tracked JSON evidence | `7826116ce86a8f8a9a4b51fdfb1a7e204e773967` | unchanged | `b1caa9b71c872b21af616fad068d47a3fcc1cf1e` | Deployment/MAC JSON and `.gitignore` exceptions |
