@@ -423,6 +423,41 @@ Output names use a stable stem derived from the selected model set and validated
 artifact identities. Re-running with the same inputs replaces the same paired
 CSV and JSON paths.
 
+### Shared two-stage tuning controller
+
+`vta/apps/mlperf_tiny_benchmark/tuning_controller.py` contains the shared
+state, seed-gate, replay, and worker-process contracts used by model-local
+tuning adapters. It does not prepare a model or start simulator searches on its
+own. Adapters provide the prepared-graph occurrence identities and native
+AutoTVM measurement callbacks.
+
+Seed schedules are exported separately with `write_seed_manifest`. Before
+creating full-search state, adapters call `validate_seed_gate` with the seed
+manifest, its one-sample deployment report, the expected model/geometry
+identity, and the complete prepared-graph occurrence list. It returns a
+`SeedGateBinding`; `create_state` requires that validated binding, so full
+search cannot be initialized from free-form hashes. This checks the
+manifest and report hashes, each FSIM seed record, positive AutoTVM and
+deployment TSIM cycles, exact occurrence/config identities, the inclusive 10%
+cycle bound, and `tsim_single_call` v1. The seed manifest and report hashes
+from the binding are part of every full-search state identity.
+
+`create_state`, `record_fsim_result`, and `next_batch_size` maintain distinct
+FSIM attempts until the successful-schedule quota or valid search-space
+exhaustion. `pending_tsim_configs` enumerates every FSIM success not yet tried
+on TSIM. `record_tsim_result` retains failed attempts and lowering failures;
+`select_best_tsim` only selects a positive-cycle candidate that lowers through
+the real deployment path after every FSIM success has a TSIM attempt. State
+files are written atomically and carry a content hash checked during resume.
+`validate_replay_manifest` checks model/search identity, complete occurrence
+coverage, the single-call protocol, and hashes of exported result/native files.
+
+For backend isolation, `run_isolated_worker` takes an argument-list command,
+`fsim` or `tsim`, an existing geometry file, and optional Python paths. It
+starts one subprocess with explicit `VTA_BACKEND`, an absolute
+`VTA_CONFIG_FILE`, and the requested backend; it returns the subprocess status
+without interpreting candidate failures as infrastructure failures.
+
 ### `extract_mlperf_resnet_samples.py`
 
 ```bash
