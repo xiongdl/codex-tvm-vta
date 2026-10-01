@@ -326,14 +326,17 @@ delivery.
 The selected-config deployment validator is the separate V2-local
 `image_classification_v2/tune/deployment.py` entry point. It requires a
 complete-coverage exported best manifest, the project Python environment, the
-matching absolute geometry, and built TSIM libraries. It builds and reloads
-baseline and selected mixed graphs, checks all ten committed outputs against
-the quantized HOST graph, compares debug and ordinary full-run TSIM counters,
-then profiles each selected VTA graph node with one cleared/read counter
-window. Its exact strict gate is
+matching absolute geometry, and built TSIM libraries. It applies each selected
+configuration to its matching VTA symbol during lowering, then builds and
+reloads baseline and selected mixed graphs. The first committed sample is used
+for baseline and selected full-run cycles, debug and ordinary counter
+agreement, and all eight selected VTA node measurements. Each node measurement
+uses one cleared/read counter window and one counted invocation, with warmup
+excluded. After all eight cycle comparisons pass, all ten committed samples
+run with the selected graph for output correctness only. Its exact strict gate is
 `10 * abs(deployment_cycles - autotvm_cycles) < autotvm_cycles`; missing,
-invalid, or exactly-10-percent rows fail. Bundles and the combined native
-dispatch log go under the ignored V2 `build/selected_deployment/` directory.
+invalid, or exactly-10-percent rows fail. Bundles go under the ignored V2
+`build/selected_deployment/` directory.
 The JSON report defaults to V2 `tune/deployment.json`; failures write a
 separate `.failure.json` diagnostic and do not publish a passing report. Run
 it in a fresh TSIM process using the full command in the V2 README.

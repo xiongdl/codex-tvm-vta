@@ -11,3 +11,7 @@ Confirmed by the user on 2026-10-01 (Asia/Shanghai).
 - Out of scope: tuning other models and FPGA hardware performance validation.
 
 User confirmation: “确认”. The formula and per-occurrence comparison were separately confirmed with “是”.
+
+## Approved clarification (2026-10-01)
+
+The user explicitly clarified and authorized: one sample suffices for AutoTVM-to-deployment performance alignment for all eight VTA occurrences; after that passes, run the optimal configuration on ten samples solely to verify correctness. This supersedes any earlier requirement to profile ten samples or to execute them before the one-sample performance gate. Strict <10% and single counted invocation with warmup excluded remain unchanged.

@@ -43,7 +43,7 @@ Owned paths: V2/tune/deployment.py, V2/tests/test_deployment_profile.py, V2 runt
 - Dependencies: T2.
 
 ### T4: bounded end-to-end simulator verification
-- [ ] Run a bounded search covering all eight occurrences with explicit incomplete status, replay selected artifacts and execute selected-config real TSIM deployment on all ten samples.
+- [ ] Run a bounded search covering all eight occurrences with explicit incomplete status, replay selected artifacts and first execute selected-config real TSIM performance validation on one sample across all eight occurrences, then run the same selected configuration on ten samples for correctness only.
 - Acceptance: both simulator stages, replay and actual deployment operate end to end; real per-occurrence measurements and output checks are available; any discrepancy is fixed inside approved scope without threshold relaxation or a slower substitute. Bounded evidence is never presented as completed full tuning.
 - Verify: actual commands from specifications using --all --trial-batch 1 --min-successful 1 for smoke, with unchanged candidate timeouts; resume further valid candidates if required. Run deployment against that complete-coverage bounded manifest; run focused regressions for fixes.
 - Likely files: necessary localized implementation fixes, command documentation and CHECKPOINT-C2.md (target <=5 edited source/test files per fix slice). Generated bounded build artifacts remain ignored.
@@ -64,7 +64,7 @@ Owned paths: V2/tune/optimal/<full-run-id>/ exported best artifacts, V2/tune/dep
 - Commit selected artifacts only after completion and integrity/replay verification. Preserve ignored full search evidence for final report.
 
 ### T6: full selected deployment and publish evidence
-- [ ] Execute deployment using T5's committed complete manifest; measure baseline/tuned ordinary full-model cycles and all eight real VTA node cycle pairs; verify all ten outputs; publish final evidence.
+- [ ] Execute deployment using T5's committed complete manifest; measure baseline/tuned ordinary full-model cycles and all eight real VTA node cycle pairs on exactly one sample; after this strict gate passes, verify all ten outputs using the same optimal configuration without repeating performance alignment; publish final evidence.
 - Acceptance: eight of eight satisfy 10 * abs(deployed - best) < best; chosen configs and record hashes are attributable; all ten reference output checks pass; full-model figures are actual measurements and separately labeled; no final unresolved regression remains.
 - Verify: actual full deployment command in SPEC-deployment-validation.md, validate deployment JSON and optional MAC report, run focused V2 tests and affected V1/shared regressions. Confirm debug/ordinary agreement. Record exact commands, counts, config indices, cycle pairs, differences, outputs, full-model cycles, failure/root-cause evidence and known limitations in REPORT-FULL.md and CHECKPOINT-C3.md before final verification.
 - Likely files: deployment-full.json, REPORT-FULL.md, CHECKPOINT-C3.md, optional MAC JSON; localized contract-preserving fixes and meaningful regression tests if required. Reverify affected final artifacts after any fixes.
@@ -74,3 +74,7 @@ C3 gate: complete default search, all-eight strict agreement and all-ten correct
 
 ## Final review
 Root dispatches fresh Reviewer on complete committed ranges against approved artifacts. Required findings receive fresh Default Fix/Verify and fresh Reviewer; continue until Pass. No additional checkpoint approval is required after Plan/Tasks approval. Optional final merge remains user-owned.
+
+## Approved clarification (2026-10-01)
+
+The user explicitly clarified and authorized: one sample suffices for AutoTVM-to-deployment performance alignment for all eight VTA occurrences; after that passes, run the optimal configuration on ten samples solely to verify correctness. This supersedes any earlier requirement to profile ten samples or to execute them before the one-sample performance gate. Strict <10% and single counted invocation with warmup excluded remain unchanged.

@@ -9,12 +9,12 @@ Use repository TVM/VTA, GraphExecutor, debug_executor and the existing TSIM simu
 ## Required behavior
 - Validate complete artifact identity and coverage before building. Map the selected configuration to each deterministic V2 symbol and occurrence, including repeated workloads. Check actual lowering consumes the selected configuration.
 - Build untuned baseline and tuned mixed graphs plus the existing quantized pure HOST reference. Preserve model bytes, quantization and host/VTA routing.
-- Reload exported graph bundles and execute all ten committed samples. Both baseline and tuned outputs must pass existing reference tolerances and prediction checks. Performance improvements cannot justify arithmetic changes.
+- Reload exported graph bundles. First use exactly one committed sample to verify outputs, all eight VTA occurrence cycle pairs and ordinary/debug counter agreement. Only after this performance gate passes, execute the same selected configuration on all ten committed samples to verify output tolerances and predictions. The ten-sample phase is correctness-only: do not repeat per-occurrence performance alignment or baseline/tuned performance profiling for each sample. Performance improvements cannot justify arithmetic changes.
 - Measure deployed VTA graph nodes on graph-resident tensors after real graph execution. Use the existing profiler clear/read protocol around one counted node invocation. Exclude warmup and unrelated host nodes. Identify rows by occurrence, symbol, fusion, workload and selected configuration hashes.
 - Before trusting node measurements, compare debug complete-run TSIM counters with an ordinary uninstrumented GraphExecutor run on the same input and configuration. Require agreement; investigate any instrumentation effect rather than replacing deployment measurements with isolated task costs.
 - For each of the eight current VTA occurrences, require positive integer cycle counts and abs(deployment_cycles - autotvm_cycles) / autotvm_cycles < 0.10. Enforce using exact integer comparison: 10 * abs(deployment_cycles - autotvm_cycles) < autotvm_cycles. Exactly 10%, missing rows and invalid counts fail.
 - Preserve failure diagnostics; an invalid run must never publish a passing report. Correct scope/counting/lowering discrepancies without relaxing the threshold or choosing a slower schedule solely to pass it. Any required Root-owned scope change escalates.
-- Publish model/geometry/manifest identity, single-call protocol, per-occurrence config and cycle pairs, relative differences and pass status. Report baseline and tuned uninstrumented full-model cycles for the same sample invocations separately from isolated costs. Report selected MAC utilization using the existing model-independent calculator when compatible; the hard gate remains per-occurrence cycle agreement.
+- Publish model/geometry/manifest identity, single-call protocol, per-occurrence config and cycle pairs, relative differences and pass status. Report baseline and tuned uninstrumented full-model cycles for the one performance-validation sample separately from isolated costs. Do not require ten-sample performance measurements. Report selected MAC utilization using the existing model-independent calculator when compatible; the hard gate remains per-occurrence cycle agreement.
 - V1's current <=10% behavior must not weaken V2's strict contract. If generic shared validators are touched, keep their compatibility or explicitly scope strict validation to V2 and verify regressions.
 
 ## Commands
@@ -40,7 +40,7 @@ if 10 * delta >= autotvm_cycles:
 Follow V1 artifact structure where compatible; ensure model identity is explicit rather than inferred from a directory or imported module cache.
 
 ## Testing strategy
-Cover below/exactly/above 10% in both directions, large integers, invalid/nonpositive counts, missing/duplicate occurrences, foreign artifacts, actual selected-config dispatch and instrumentation checks. Integration verifies all ten real sample outputs and all eight real VTA measurements after full search. If shared helpers change, run the corresponding V1 tuning/deployment regressions. Mocked tests and bounded smoke results do not replace final simulator evidence.
+Cover below/exactly/above 10% in both directions, large integers, invalid/nonpositive counts, missing/duplicate occurrences, foreign artifacts, actual selected-config dispatch and instrumentation checks. Integration first verifies all eight real VTA measurements on one committed sample after full search, then verifies all ten real sample outputs using the same selected configurations without repeating performance alignment. If shared helpers change, run the corresponding V1 tuning/deployment regressions. Mocked tests and bounded smoke results do not replace final simulator evidence.
 
 ## Success criteria
 1. Complete full-search artifacts cover all V2 VTA occurrences and replay without intermediate build files.
@@ -53,3 +53,7 @@ Always retain failure evidence, distinguish full-model cycles from per-node cost
 
 ## Open questions
 None.
+
+## Approved clarification (2026-10-01)
+
+The user explicitly clarified and authorized: one sample suffices for AutoTVM-to-deployment performance alignment for all eight VTA occurrences; after that passes, run the optimal configuration on ten samples solely to verify correctness. This supersedes any earlier requirement to profile ten samples or to execute them before the one-sample performance gate. Strict <10% and single counted invocation with warmup excluded remain unchanged.

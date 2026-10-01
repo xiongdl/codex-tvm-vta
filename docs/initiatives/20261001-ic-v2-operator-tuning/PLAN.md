@@ -5,7 +5,7 @@ Branch in root, tvm and vta: codex/20261001-ic-v2-operator-tuning
 Approved input: INTENT.md, CAPABILITY_MAP.md, SPEC-two-stage-tuning.md and SPEC-deployment-validation.md in this directory. User approved specifications on 2026-10-01.
 
 ## Approach
-Extend the proven IC V1 complete-fusion tuning and deployment approach to IC V2 with explicit model-specific identities. First establish real V2 fusion extraction and single-candidate measurement; next implement durable full search, export and replay; then implement selected-config deployment and strict comparison. A bounded end-to-end run identifies integration failures before the expensive full search. Finally complete all eight occurrences, execute all ten samples, and commit verifiable best artifacts and the real deployment report.
+Extend the proven IC V1 complete-fusion tuning and deployment approach to IC V2 with explicit model-specific identities. First establish real V2 fusion extraction and single-candidate measurement; next implement durable full search, export and replay; then implement selected-config deployment and strict comparison. A bounded end-to-end run first verifies all eight performance comparisons on one sample; only after that passes, it verifies correctness on ten samples. This identifies integration failures before the expensive full search. Finally complete all eight occurrences, execute all ten samples, and commit verifiable best artifacts and the real deployment report.
 
 Retain V1 interfaces and measurement semantics. Prefer reuse of model-independent helpers; any sharing must have explicit model/task/runtime dependencies and import isolation. Avoid blindly importing V1's model pipeline or registering V2 tasks under the V1 task name. Concrete helper placement is an implementation choice within the delegated paths, subject to the approved contracts. No new dependencies, quantization changes or routing changes are planned.
 
@@ -19,7 +19,7 @@ The selected schedule is the minimum positive TSIM-cycle candidate that lowers f
 Each checkpoint is executed by one fresh Default, sequentially. Each task is verified and committed separately through git-workflow. A checkpoint is an execution boundary, not a user gate. Root dispatches an independent fresh Reviewer after C3. Implementation findings route through fresh Default Fix/Verify and fresh Reviewer until Pass. Root never takes over a running delegated agent.
 
 ## Verification
-Use project Python and explicit absolute geometry with matching backend in separate FSIM/TSIM processes. Focused tests cover real extraction, search bookkeeping, selection, artifact identity, resume and replay; deployment tests cover strict boundaries, occurrence mapping, selected dispatch and instrumentation. Run affected V1 regressions for shared helper changes. Bounded real runs prove both simulators and selected deployment; only full default search plus all-eight strict comparisons and all-ten output checks satisfy completion.
+Use project Python and explicit absolute geometry with matching backend in separate FSIM/TSIM processes. Focused tests cover real extraction, search bookkeeping, selection, artifact identity, resume and replay; deployment tests cover strict boundaries, occurrence mapping, selected dispatch and instrumentation. Run affected V1 regressions for shared helper changes. Bounded real runs prove both simulators and selected deployment. Performance alignment and full-model baseline/tuned counters use one sample only, before ten-sample correctness execution. Only full default search plus all-eight strict comparisons on that one sample and all-ten output checks satisfy completion.
 
 TASKS.md defines exact commands, task ownership and evidence. At each task's final verification, write evidence before verification and make no content changes between successful final verification and commit. Record task commits and per-repository OIDs in the agent's return; checkpoint evidence is written within delegated checkpoint files before the final task's verification and commit.
 
@@ -38,3 +38,7 @@ Defaults own only paths listed for their checkpoint, with approved artifacts rea
 
 ## Open questions
 None. No remote push or merge is requested. User owns optional final merge.
+
+## Approved clarification (2026-10-01)
+
+The user explicitly clarified and authorized: one sample suffices for AutoTVM-to-deployment performance alignment for all eight VTA occurrences; after that passes, run the optimal configuration on ten samples solely to verify correctness. This supersedes any earlier requirement to profile ten samples or to execute them before the one-sample performance gate. Strict <10% and single counted invocation with warmup excluded remain unchanged.
