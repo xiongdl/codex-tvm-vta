@@ -291,6 +291,38 @@ The previous single-workload entry point
 compatibility. Full two-stage tuning and self-contained artifact replay use
 the new `tune/tune.py` entry point.
 
+For IC V2, use the model-local
+`vta/apps/mlperf_tiny_benchmark/image_classification_v2/tune/tune.py` entry
+point. It requires the existing `.envs/tvm-vta-env`, the committed V2 model,
+`vta/config/vta_64mac.json`, and built FSIM and TSIM simulator libraries. Run
+the controller with absolute geometry, explicit FSIM selection, and Python
+paths for TVM, VTA, the benchmark helpers, and the V2 app:
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps/mlperf_tiny_benchmark:$PWD/vta/apps/mlperf_tiny_benchmark/image_classification_v2" \
+  ./.envs/tvm-vta-env/bin/python \
+  vta/apps/mlperf_tiny_benchmark/image_classification_v2/tune/tune.py --all
+```
+
+The CLI accepts `--workload-index`, `--max-workloads`, `--trial-batch`,
+`--min-successful`, `--fsim-timeout`, `--tsim-timeout`, `--resume-manifest`,
+`--artifact-dir`, and `--replay-manifest`. Defaults are 100 distinct FSIM
+trials per batch, 20 successful configurations per occurrence, and 60/120
+seconds per FSIM/TSIM candidate. FSIM and TSIM workers run in separate
+processes. Bounded invocations are labeled incomplete. Search state, native
+logs, and failures are written below the ignored V2
+`build/two_stage_tuning/`; self-contained selected result JSON/native records
+and `best-manifest.json` are exported below V2 `tune/optimal/`. The manifest
+contains model and geometry hashes, all eight occurrence/workload identities,
+the TSIM single-call protocol, candidate results, and native record hashes.
+Resume rejects changed model, geometry, fusion identities, selected workload
+set, or search limits. Standalone replay validates artifact coverage and
+integrity, then checks real fusion lowering without reading intermediate
+build files. Outputs under `build/` are ignored; `tune/optimal/` artifacts are
+ordinary files and are committed only when the checkpoint requires their
+delivery.
+
 ### Per-layer useful-MAC utilization estimates
 
 `vta/apps/mlperf_tiny_benchmark/mac_utilization.py` reports one row for every
