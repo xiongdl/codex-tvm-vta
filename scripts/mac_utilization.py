@@ -225,11 +225,18 @@ def calculate_deployment_report(report):
     rows = []
     per_model_mac_count = 0
     operator_cycle_sum_per_invocation = 0.0
+    occurrence_base = report.get("occurrence_base", 1)
+    if isinstance(occurrence_base, bool) or occurrence_base not in (0, 1):
+        raise ValueError("deployment report occurrence_base must be 0 or 1")
     for position, item in enumerate(occurrences):
         location = f"occurrences[{position}]"
         if not isinstance(item, dict):
             raise ValueError(f"{location} must be an object")
-        occurrence = _positive_integer(item, "occurrence", location) - 1
+        raw_occurrence = item.get("occurrence")
+        if occurrence_base == 0:
+            occurrence = _nonnegative_integer(raw_occurrence, f"{location}.occurrence")
+        else:
+            occurrence = _positive_integer(item, "occurrence", location) - 1
         symbol = item.get("symbol")
         if not isinstance(symbol, str) or not symbol:
             raise ValueError(f"{location}.symbol is required")

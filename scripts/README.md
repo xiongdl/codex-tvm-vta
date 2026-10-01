@@ -452,6 +452,16 @@ files are written atomically and carry a content hash checked during resume.
 `validate_replay_manifest` checks model/search identity, complete occurrence
 coverage, the single-call protocol, and hashes of exported result/native files.
 
+`vta/apps/mlperf_tiny_benchmark/deployment_evidence.py` validates selected
+symbol/config pairs against prepared-graph occurrences, lowers each config
+through the supplied real-lowering callback, checks ordinary/debug counter
+agreement, maps symbols to reloaded graph nodes, and profiles one cleared
+resident-node invocation. Its one-sample reference callback and exact integer
+cycle gate preserve failure diagnostics through `write_failure_report`. Passing
+reports use `occurrence_base: 0`; `scripts/mac_utilization.py` accepts this
+zero-based form alongside its existing one-based report form. The independent
+IC V2 deployment command keeps its strict threshold and ten-sample default.
+
 For backend isolation, `run_isolated_worker` takes an argument-list command,
 `fsim` or `tsim`, an existing geometry file, and optional Python paths. It
 starts one subprocess with explicit `VTA_BACKEND`, an absolute
