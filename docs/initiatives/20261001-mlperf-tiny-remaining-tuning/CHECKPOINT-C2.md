@@ -104,11 +104,12 @@ C2 began from root `c1cf92f89e59937a467dd780a1b83db232dab794`, TVM
 | T6 real lowering fix | `8edc3d6ad2cd51dca858e511f0efd8ffc4067d25` | `fd76793c0183aafe7baf5d3999b928f04fda1001` | Shared real fusion lowering seam and AD regression |
 | T6 config identity and seed export | `4daa787255e143fc761f6dac1fd8857516fcf8d4` | `24d2a634467ee4c9481060f53282103cf3b5accb` | Config identity normalization, regression, initial seed artifacts |
 | T6 profiler seam and generated seed artifacts | `a83c6f688ff24a4895a39110cb709f50ace5989c` | `57548798a28558eaebbab1a42ce069b1c547598b` | AD profiler adapter/regression, seed result/native records and retained failure diagnostics |
-| T6 final passing deployment and checkpoint | pending | pending | Final seed deployment report and this checkpoint |
+| T6 final passing deployment and checkpoint | `f380457b4345ab8fcb9f402ef1cbba1dcedef1d7` | `c9f643d4e9847b6af15f65242ceca3645ae21554` | `docs/initiatives/20261001-mlperf-tiny-remaining-tuning/CHECKPOINT-C2.md`; final `anomaly_detection_v1/tune/deployment-seed.json` |
 
 The T6 profiler fix commit also captured the then-current generated seed
 artifacts because the AD report/native files had just been made trackable. The
-final passing deployment report and checkpoint are committed separately below.
+final passing deployment report and checkpoint were committed together in the
+last row above.
 TVM has no C2 source changes and remains at
 `9f2472d8637a4aa1f2f0c0ef2595dc8043bf3aca`.
 
