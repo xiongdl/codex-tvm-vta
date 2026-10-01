@@ -466,6 +466,11 @@ The Visual Wake Words V1 complete-fusion adapter uses the same controller and
 deployment contracts for its thirteen prepared VTA Conv occurrences. Its
 model-local commands, including the seed-before-search gate, are documented in
 `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/README.md`.
+The model-local `tune/deployment.py --best-manifest PATH --output PATH`
+command validates a complete VWW seed or selected manifest, builds the exact
+dispatch, checks one committed image against the HOST reference and manifest
+label, and writes the versioned deployment report; intermediate graph bundles
+and debug data stay under the model's ignored `build/` directory.
 
 For backend isolation, `run_isolated_worker` takes an argument-list command,
 `fsim` or `tsim`, an existing geometry file, and optional Python paths. It
