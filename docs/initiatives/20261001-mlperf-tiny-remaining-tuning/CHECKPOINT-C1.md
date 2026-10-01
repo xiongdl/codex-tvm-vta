@@ -42,13 +42,13 @@ All commands used `.envs/tvm-vta-env/bin/python` with repository TVM/VTA
 and an explicit backend.
 
 - Shared focused suite:
-  `python -m pytest vta/apps/mlperf_tiny_benchmark/tests/test_fused_tasks.py vta/apps/mlperf_tiny_benchmark/tests/test_tuning_controller.py vta/apps/mlperf_tiny_benchmark/tests/test_deployment_evidence.py vta/apps/mlperf_tiny_benchmark/tests/test_mac_utilization.py -q`
+  `./.envs/tvm-vta-env/bin/python -m pytest vta/apps/mlperf_tiny_benchmark/tests/test_fused_tasks.py vta/apps/mlperf_tiny_benchmark/tests/test_tuning_controller.py vta/apps/mlperf_tiny_benchmark/tests/test_deployment_evidence.py vta/apps/mlperf_tiny_benchmark/tests/test_mac_utilization.py -q`
   — **53 passed**. This covers all four prepared graphs, 100-trial batching,
   20-success stopping, exhaustion, duplicate rejection, seed gating, TSIM
   failures, tamper/foreign-identity rejection, deployment boundary cases,
   graph-node counters, calculator report integration and failure diagnostics.
 - IC regressions:
-  `python -m pytest --import-mode=importlib vta/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_fused_tuning.py vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_fused_tuning.py vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_deployment_profile.py -q`
+  `./.envs/tvm-vta-env/bin/python -m pytest --import-mode=importlib vta/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_fused_tuning.py vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_fused_tuning.py vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_deployment_profile.py -q`
   — **33 passed**. IC V2's strict `<10%` policy remains covered.
 - `git diff --check` — passed before commits.
 - `./.agents/custom/scripts/git-workflow status` — clean after task commits.
