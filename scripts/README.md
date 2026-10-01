@@ -323,6 +323,21 @@ build files. Outputs under `build/` are ignored; `tune/optimal/` artifacts are
 ordinary files and are committed only when the checkpoint requires their
 delivery.
 
+The selected-config deployment validator is the separate V2-local
+`image_classification_v2/tune/deployment.py` entry point. It requires a
+complete-coverage exported best manifest, the project Python environment, the
+matching absolute geometry, and built TSIM libraries. It builds and reloads
+baseline and selected mixed graphs, checks all ten committed outputs against
+the quantized HOST graph, compares debug and ordinary full-run TSIM counters,
+then profiles each selected VTA graph node with one cleared/read counter
+window. Its exact strict gate is
+`10 * abs(deployment_cycles - autotvm_cycles) < autotvm_cycles`; missing,
+invalid, or exactly-10-percent rows fail. Bundles and the combined native
+dispatch log go under the ignored V2 `build/selected_deployment/` directory.
+The JSON report defaults to V2 `tune/deployment.json`; failures write a
+separate `.failure.json` diagnostic and do not publish a passing report. Run
+it in a fresh TSIM process using the full command in the V2 README.
+
 ### Per-layer useful-MAC utilization estimates
 
 `vta/apps/mlperf_tiny_benchmark/mac_utilization.py` reports one row for every
