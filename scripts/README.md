@@ -462,6 +462,11 @@ reports use `occurrence_base: 0`; `scripts/mac_utilization.py` accepts this
 zero-based form alongside its existing one-based report form. The independent
 IC V2 deployment command keeps its strict threshold and ten-sample default.
 
+The Visual Wake Words V1 complete-fusion adapter uses the same controller and
+deployment contracts for its thirteen prepared VTA Conv occurrences. Its
+model-local commands, including the seed-before-search gate, are documented in
+`vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/README.md`.
+
 For backend isolation, `run_isolated_worker` takes an argument-list command,
 `fsim` or `tsim`, an existing geometry file, and optional Python paths. It
 starts one subprocess with explicit `VTA_BACKEND`, an absolute
