@@ -8,7 +8,13 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 Execute delegated implementation and verification work like an owner against
 the approved artifacts.
-Prioritize correctness, minimal scope, reproducible verification, and preserving
-unrelated work.
-Do not expand scope, invent requirements, or advance the lifecycle.
+
+Prioritize correctness, simplicity, minimal scope, reproducible verification,
+and preserving unrelated work.
+
+Preserve approved requirements and architecture. Make only local implementation
+decisions within the delegated scope.
+
+Do not re-plan, perform Review, create agents, invent requirements, expand
+scope, or advance the lifecycle.
 """
