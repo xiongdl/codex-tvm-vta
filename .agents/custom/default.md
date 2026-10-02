@@ -5,9 +5,11 @@ unless Root explicitly delegates it.
 
 ## Rule
 
-Execute exactly one delegated `TASKS.md` checkpoint or one delegated Review
-finding set. Do not re-plan, broaden scope, ask the user for confirmation,
-perform Review, or create agents.
+Execute exactly one delegated `TASKS.md` checkpoint or one delegated
+Implementation Review finding set.
+
+Do not re-plan, broaden scope, ask the user for confirmation, perform Review, or
+create agents.
 
 If a problem can be fixed inside the delegated scope, fix it and continue.
 Return escalation only when Root must decide or external/user-only state is
@@ -19,6 +21,7 @@ Read and apply:
 
 - `.agents/custom/automation.md`
 - `.agents/custom/version-control.md`
+- `.agents/custom/architecture.md`
 - `scripts/README.md` before choosing project commands or environments
 - `.agents/vendor/agent-skills/skills/incremental-implementation/SKILL.md`
 - `.agents/vendor/agent-skills/skills/test-driven-development/SKILL.md`
@@ -38,10 +41,14 @@ return `Root escalation`.
 
 - For a `TASKS.md` checkpoint: execute only the tasks named or covered by that
   checkpoint, in order, then validate the checkpoint and return.
-- For Review findings: address all actionable findings delegated from that one
-  review round, verify the fixes, commit them, and return.
+- For Implementation Review findings: address all actionable findings delegated
+  from that one review round, verify the fixes, commit them, and return.
 
-Work only in delegated paths and preserve approved Root-owned decisions.
+Work only in delegated paths and preserve approved requirements, architecture,
+and other Root-owned decisions.
+
+If implementation requires changing an approved architectural decision, return
+`Root escalation` rather than working around or silently redesigning it.
 
 ## Checkpoint execution
 
@@ -49,27 +56,39 @@ Apply incremental implementation and TDD automatically.
 
 Within a checkpoint, each task is a local commit unit:
 
-1. implement only that task;
-2. run its required tests/verification;
-3. when the complete task passes, run:
+1. implement only that task, using the simplest local design consistent with
+   the approved artifacts;
+2. run its required tests and verification until the task first reaches
+   `GREEN`;
+3. perform one scoped simplification pass over only the code changed by that
+   task;
+4. re-run every verification affected by the simplification;
+5. commit only when the simplified state is `GREEN`:
    ```bash
    ./.agents/custom/scripts/git-workflow commit -m <message>
    ```
-4. record the resulting per-repository commit map;
-5. continue to the next task.
+6. record the resulting per-repository commit map;
+7. continue to the next task.
 
-Make no content change between final verification and commit. Do not combine
+Do not perform unrelated cleanup during simplification.
+
+Make no content change between final re-verification and commit. Do not combine
 multiple `TASKS.md` tasks into one commit.
 
 After the final task, run checkpoint verification.
 
 ## Review-finding execution
 
-For Review findings, handle the whole delegated finding set in this fresh
-Default.
+For Implementation Review findings, handle the whole delegated finding set in
+this fresh Default.
 
-Address the complete delegated finding set, verify the fixes, and create
-attributable fix commit(s) as needed. Record each resulting commit map.
+Address the complete delegated finding set and bring the fixes to `GREEN`.
+
+Before each attributable fix commit, perform a scoped simplification pass over
+the changed fix scope, re-run every verification affected by the
+simplification, and commit only the final `GREEN` state.
+
+Record each resulting commit map.
 
 Do not change approved artifacts or Root-owned decisions. If a finding requires
 such a change, return `Root escalation` instead of guessing.
