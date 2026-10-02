@@ -62,14 +62,14 @@ outputs and deleted no user results.
 
 The root repository base is `7416243c22d59300c22e6c222c364d155a7fb7e8`, TVM
 base is `9f2472d8637a4aa1f2f0c0ef2595dc8043bf3aca`, and VTA base is
-`a24152a6875b4bfe09d3d43a150bac3727b435688`.
+`a24152a6875b4fe09d3d43a150bac3727b435688`.
 
 | Task | Root commit | VTA commit | TVM |
 | --- | --- | --- | --- |
 | T29 | `63828e9a9f2a30e6cf3299a00c6019bf2ad62eff` | `427a3fd4fd0a63966f8a781766992c98d019dced` | unchanged |
 | T30 | `03bdf064b63420dbfa34b534039dd33c27a7f544` | `314bcdb199e09078223a17affcd6b17caece06a8` | unchanged |
 | T31 | `eedf6469ab9334a1e6a126b3339684b45788d40b` | `8c23e027c69cb694333ff3b64913d665cc015c0a` | unchanged |
-| T32 | recorded after its evidence commit | recorded after its evidence commit | unchanged |
+| T32 | `25fc9a6a16e37e28f6763dbd618fdc2eb04e0fd4` | unchanged at `8c23e027c69cb694333ff3b64913d665cc015c0a` | unchanged |
 
 The cumulative root and VTA tips are the final T32 commit ids reported with this
 checkpoint. This task does not edit approved design artifacts or advance the
