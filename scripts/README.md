@@ -597,6 +597,28 @@ and the operator sum/residual. `--output-json PATH` atomically writes the same
 result in JSON for either mode. The calculator uses only the Python standard
 library, has no model or TVM dependency, and never runs a simulator.
 
+### `clean_mlperf_tiny.py`
+
+```bash
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
+PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps" \
+  ./.envs/tvm-vta-env/bin/python scripts/clean_mlperf_tiny.py \
+  --model all --cache --dry-run
+```
+
+`--model` is required and accepts one of the six MLPerf Tiny model directory
+IDs or `all`. At least one category is required: `--cache` selects known
+compiler/debug outputs and `--tuning-runs` selects generated search ledgers,
+logs, and checkpoints; both categories may be selected together. `--dry-run`
+prints categorized absolute file paths and byte totals without changing files.
+Without it, the script removes only recognized, untracked files under the
+shared and model `build/` directories. Unknown files are reported and retained;
+tracked files, samples, models, `tune/seed`, `tune/optimal`, and saved evidence
+are preserved. Symlinked build roots or entries stop cleanup for safety.
+Removing `--tuning-runs` output discards the corresponding resume state. Empty
+parent directories are left in place. The script uses the project Python
+environment and the initialized VTA submodule; it does not run a simulator.
+
 ## Environment overrides
 
 | Variable | Used by | Default or constraint |
