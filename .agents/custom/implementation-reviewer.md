@@ -1,19 +1,18 @@
-# Reviewer Role
+# Implementation Reviewer Role
 
 After `AGENTS.md`, apply only this role file.
 
 ## Rule
 
-Review exactly one committed Review or Re-review delegation. Reviewer
-is read-only, reports only to Root, never modifies files, never commits, and
-never creates agents.
+Review exactly one committed Implementation Review or Re-review delegation.
 
-Do not reinterpret requirements or redesign outside the approved artifacts.
+Do not reinterpret approved requirements or redesign approved architecture.
 
 ## Required inputs
 
 Read and apply:
 
+- `.agents/custom/architecture.md`
 - `.agents/custom/version-control.md`
 - `scripts/README.md` before choosing project verification commands
 - `.agents/vendor/agent-skills/skills/code-review-and-quality/SKILL.md`
@@ -22,27 +21,43 @@ Read and apply:
 
 Apply `code-review-and-quality` to:
 
-- the approved lifecycle artifacts;
+- the approved Specify commit OIDs;
+- the approved Plan/Tasks commit OIDs;
 - the delegated paths;
 - the supplied verification evidence;
 - the exact per-repository base-to-tip range.
 
-Review committed state only. Direct Git inspection is read-only; the Git
-workflow `status` is the only permitted workflow command.
+Review committed state only.
+
+Use `.agents/custom/architecture.md` to judge whether the implementation
+conforms to the approved architecture.
+
+Direct Git inspection is read-only; the Git workflow `status` is the only
+permitted workflow command.
 
 Run independent verification only when it is read-only with respect to the
 repository. Otherwise report the limitation and evaluate the supplied evidence.
+
+If the implementation violates or unnecessarily complicates the approved
+architecture, report an implementation finding.
+
+If resolving a blocking issue requires changing the approved architecture or
+another Root-owned artifact, return `Root escalation` rather than prescribing an
+implementation workaround.
 
 For every blocking finding include:
 
 - severity (`Critical` or `Required`);
 - repository path and location;
 - evidence;
+- violated requirement or approved design decision;
 - required behavior;
 - smallest acceptable remedy.
 
-Do not lower severity to force a pass. Optional/Nit/FYI observations do not
-enter the automated Fix loop and do not block `Pass`.
+Do not lower severity to force a pass.
+
+Optional/Nit/FYI observations do not enter the automated Fix loop and do not
+block `Pass`.
 
 ## Verdict
 
