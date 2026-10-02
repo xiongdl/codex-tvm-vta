@@ -87,7 +87,7 @@ done
 
 export TVM_PATH VTA_PATH VTA_CONFIG_FILE="${config_file}"
 export VTA_BACKEND=fsim
-export PYTHONPATH="${TVM_PATH}/python:${VTA_PATH}/python${PYTHONPATH:+:${PYTHONPATH}}"
+export PYTHONPATH="${TVM_PATH}/python:${VTA_PATH}/python:${VTA_PATH}/apps${PYTHONPATH:+:${PYTHONPATH}}"
 
 echo "==> BYOC structural tests"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
@@ -100,41 +100,68 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
     "${VTA_PATH}/tests/python/unittest/test_byoc_codegen.py" \
     "${VTA_PATH}/tests/python/unittest/test_byoc_graphpack_retirement.py"
 
+echo "==> Retained MLPerf shared providers and cleanup contracts"
+VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
+    "${VTA_PATH}/apps/common/tests/test_artifacts.py" \
+    "${VTA_PATH}/apps/common/tests/test_deployment_evidence.py" \
+    "${VTA_PATH}/apps/common/tests/test_tuning_controller.py" \
+    "${VTA_PATH}/apps/common/tests/test_tuning.py" \
+    "${VTA_PATH}/apps/common/tests/test_measurement.py" \
+    "${project_dir}/scripts/tests/test_clean_mlperf_tiny.py"
+VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
+    "${VTA_PATH}/apps/common/tests/test_deployment_compute.py"
+VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
+    "${VTA_PATH}/apps/common/tests/test_schedule_artifacts.py"
+VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
+    "${VTA_PATH}/apps/common/tests/test_schedule_migration.py"
+
 echo "==> FSIM gate"
 VTA_CONFIG_FILE="${fsim_config}" "${script_dir}/test_vta_fsim.sh" --env-name "${env_name}"
 
 echo "==> MLPerf ResNet V1 HOST/FSIM gate"
-VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
+VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_assets.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_model_pipeline.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_host_deployment.py"
 
 echo "==> MLPerf VWW V1 HOST/FSIM gate"
-VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
+VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_assets.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_model_pipeline.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_graph_artifacts.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_host_deployment.py"
 
 echo "==> MLPerf ResNet V2 HOST/FSIM gate"
-VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
+VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_assets.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_model_pipeline.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_graph_artifacts.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_host_deployment.py"
 
+echo "==> MLPerf Keyword Spotting V1 HOST/FSIM gate (12 committed WAV samples)"
+VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_assets.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_model_pipeline.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_graph_artifacts.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_host_deployment.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_deployment_profile.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_two_stage_tuning.py"
+VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/run.py" \
+    --simulator fsim --host-codegen all --schedule none
+
 echo "==> MLPerf anomaly detection V1 HOST/FSIM gate (10 samples; normal=5 anomaly=5)"
-VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
+VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_assets.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_model_pipeline.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_graph_artifacts.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_runtime.py"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/run.py" \
-    --simulator fsim --host-codegen all
+    --simulator fsim --host-codegen all --schedule none
 
 echo "==> MLPerf streaming wakeword v1 HOST/FSIM gate (3 samples; Marvin=0 Silence=1 Unknown=2)"
-PYTHONDONTWRITEBYTECODE=1 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
+PYTHONDONTWRITEBYTECODE=1 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/tests/test_assets.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/tests/test_model_pipeline.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/tests/test_graph_artifacts.py" \
@@ -144,39 +171,48 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
     --simulator host --host-codegen llvm
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/run.py" \
-    --simulator fsim --host-codegen all
+    --simulator fsim --host-codegen all --schedule none
 
 echo "==> TSIM gate"
 export VTA_BACKEND=tsim
 VTA_CONFIG_FILE="${tsim_config}" "${script_dir}/test_vta_tsim.sh" --env-name "${env_name}"
 
+echo "==> MLPerf Keyword Spotting V1 TSIM unit gate"
+VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_tsim_deployment.py"
+
 echo "==> MLPerf anomaly detection V1 TSIM unit gate"
-VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q \
+VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests/test_tsim_deployment.py"
 
 echo "==> MLPerf streaming wakeword V1 TSIM unit gate"
-VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q \
+VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/tests/test_tsim_deployment.py"
 
 echo "==> MLPerf ResNet V1 HOST/TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/run.py" \
-    --simulator tsim --host-codegen all
+    --simulator tsim --host-codegen all --schedule none
 
 echo "==> MLPerf VWW V1 HOST/TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/run.py" \
-    --simulator tsim --host-codegen all
+    --simulator tsim --host-codegen all --schedule none
 
 echo "==> MLPerf ResNet V2 HOST/TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/run.py" \
-    --simulator tsim --host-codegen all
+    --simulator tsim --host-codegen all --schedule none
+
+echo "==> MLPerf Keyword Spotting V1 HOST/TSIM gate (12 committed WAV samples)"
+VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/run.py" \
+    --simulator tsim --host-codegen all --schedule none
 
 echo "==> MLPerf anomaly detection V1 HOST/TSIM gate (10 samples; normal=5 anomaly=5)"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/anomaly_detection_v1/run.py" \
-    --simulator tsim --host-codegen all --tsim-window-budget 1
+    --simulator tsim --host-codegen all --tsim-window-budget 1 --schedule none
 
 echo "==> MLPerf streaming wakeword v1 HOST/TSIM gate (3 samples; Marvin=0 Silence=1 Unknown=2)"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
@@ -184,7 +220,7 @@ VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     --simulator host --host-codegen llvm
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/run.py" \
-    --simulator tsim --host-codegen all
+    --simulator tsim --host-codegen all --schedule none
 
 echo "==> Python compilation"
 "${python_bin}" -m compileall -q "${VTA_PATH}/python/vta"
@@ -221,6 +257,18 @@ if rg -n "${legacy_reference_pattern}" "${legacy_reference_paths[@]}" \
     --glob '!**/cifar-10-batches-py/**' \
     --glob '!test_byoc_graphpack_retirement.py'; then
     echo "Error: retired Relay compiler or graph-range references remain." >&2
+    exit 1
+fi
+
+echo "==> Retired MLPerf schedule-command reference check"
+retired_schedule_pattern='autotvm_tuner[.]py|tune/(tune|deployment)[.]py|--autotvm-(log|sidecar)|mac_utilization[.]py.*--model'
+retired_schedule_paths=(
+    "${project_dir}/scripts/README.md"
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/README.md"
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark"/*/README.md
+)
+if rg -n "${retired_schedule_pattern}" "${retired_schedule_paths[@]}"; then
+    echo "Error: retired MLPerf tuning or deployment instructions remain." >&2
     exit 1
 fi
 
