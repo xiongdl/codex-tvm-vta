@@ -478,6 +478,63 @@ starts one subprocess with explicit `VTA_BACKEND`, an absolute
 `VTA_CONFIG_FILE`, and the requested backend; it returns the subprocess status
 without interpreting candidate failures as infrastructure failures.
 
+### Remaining four-model complete-fusion workflow
+
+The model-local commands support AD V1, KWS V1, Streaming Wakeword V1, and
+VWW V1. Run from the repository root, selecting exactly one model directory
+per run. These commands use the existing `.envs/tvm-vta-env`, built simulator
+libraries, and absolute shared VTA geometry. FSIM search and TSIM deployment
+or replay must use separate processes.
+
+```bash
+MODEL=anomaly_detection_v1 # or keyword_spotting_v1, streaming_wakeword_v1, visual_wake_words_v1
+MODEL_DIR="vta/apps/mlperf_tiny_benchmark/$MODEL"
+export MODEL MODEL_DIR
+export PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps/mlperf_tiny_benchmark:$PWD/$MODEL_DIR"
+
+# One seed schedule for every VTA occurrence.
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
+  ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune/tune.py" --seed --all
+
+# Apply the exported seed manifest to one committed sample. This report gates full search.
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
+  ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune/deployment.py" \
+  --best-manifest "$MODEL_DIR/tune/seed/<seed-run-id>/best-manifest.json" \
+  --output "$MODEL_DIR/tune/deployment-seed.json"
+
+# Full FSIM search (100 trials per batch, quota 20 by default).
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
+  ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune/tune.py" --all \
+  --alignment-report "$MODEL_DIR/tune/deployment-seed.json"
+
+# Resume an interrupted run with its matching manifest and options.
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
+  ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune/tune.py" \
+  --resume-manifest "$MODEL_DIR/build/two_stage_tuning/<run-id>/manifest.json"
+
+# Replay exported selected artifacts without intermediate build state.
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
+  ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune/tune.py" \
+  --replay-manifest "$MODEL_DIR/tune/optimal/<run-id>/best-manifest.json"
+
+# Deploy the selected schedules to one sample and calculate real deployment utilization.
+VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim \
+  ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune/deployment.py" \
+  --best-manifest "$MODEL_DIR/tune/optimal/<run-id>/best-manifest.json" \
+  --output "$MODEL_DIR/tune/deployment-full.json"
+./.envs/tvm-vta-env/bin/python scripts/mac_utilization.py \
+  --deployment-report "$MODEL_DIR/tune/deployment-full.json" \
+  --output-json "$MODEL_DIR/tune/mac-utilization-full.json"
+```
+
+Replace `MODEL` with one of the four exact directory names and replace each
+`<run-id>` with the ID printed by that model's prior command. Seed and selected
+deployment each run exactly one committed sample; do not substitute the
+separate ten-sample model integration suites for these commands. Resume accepts
+only the original search identity. The initiative result table and committed
+per-model evidence links are in
+`docs/initiatives/20261001-mlperf-tiny-remaining-tuning/RESULTS.md`.
+
 ### `extract_mlperf_resnet_samples.py`
 
 ```bash

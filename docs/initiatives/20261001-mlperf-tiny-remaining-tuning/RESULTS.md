@@ -1,0 +1,59 @@
+# Remaining MLPerf Tiny V1 tuning results
+
+All values below are cross-checked against the committed full-search FSIM manifests, optimal manifests, one-sample deployment reports, and calculator JSON/CSV reports. The run manifests are `FULL_SEARCH`, unbounded, use 100-trial batches, target 20 distinct successful schedules per occurrence, and bind the shared `vta_64mac.json` geometry. Seed alignment passed before each full search. TSIM uses `tsim_single_call` v1: warmup excluded, one cleared formal invocation.
+
+## Model summary
+
+| Model | VTA occurrences | FSIM attempts / successes | Spaces exhausted below quota | Successful configs with TSIM result | Max deployment deviation | Sample / sample SHA-256 | Baseline → tuned full-model cycles | Tuned whole-model MAC utilization |
+| --- | ---: | ---: | ---: | ---: | ---: | --- | ---: | ---: |
+| AD v1 | 9 | 740 / 240 | 2 / 9 | 240 / 240 | 0.000000% | `normal_id_01_00000000.wav` / `0385da04d6cf8c1f9d0df775f98fda55409a71890c02ed53bb5d2c66171f6828` | 188,773 → 28,988 | 9.8248% |
+| KWS v1 | 4 | 1,536 / 84 | 0 / 4 | 84 / 84 | 0.004005% | `down-00176480_nohash_0.wav` / `68d8077e68d9c2c02a9eb744061e934f514fc523aa90ee63fd56bfec0227e65d` | 2,354,444 → 99,884 | 32.0372% |
+| Streaming Wakeword v1 | 1 | 240 / 12 | 1 / 1 | 12 / 12 | 0.010131% | `marvin-00176480_nohash_0.wav` / `b95e103110b89a0d4dff88023edd537a92834f565cb8e3f38b16f725f3d58451` | 174,633 → 9,872 | 22.6904% |
+| VWW v1 | 13 | 1,700 / 401 | 0 / 13 | 401 / 401 | 0.004879% | `00-non-person-000000000009.jpg` / `d8f0e1e6e7635f189ab52e3e98aef1f7d734814a1fbe41fdb2c5ff8cbfc6dcfc` | 6,862,109 → 224,115 | 43.1778% |
+
+All FSIM successes in these completed runs have one successful positive-cycle AutoTVM TSIM measurement, and the selected manifest records the minimum TSIM cycles per occurrence. A search-space exhaustion count is reported separately; those occurrences did not reach the 20-success quota. All selected deployment occurrence gates pass at ≤10%. Full-model cycles are measured from the deployment run and are not sums of isolated operator costs. Whole-model MAC utilization uses the model’s total VTA logical MACs divided by measured whole-model TSIM cycles and 64 MAC/cycle; host-only work is excluded.
+
+## Per-occurrence deployment evidence
+
+The cycle pair is AutoTVM TSIM → real-deployment TSIM. Utilization is based on the deployment cycle count. Full SHA-256 workload and selected-config identities are included so repeated workloads remain traceable by occurrence. The linked JSON and CSV reports are the machine-readable source of truth.
+
+| Model | Occ. | Symbol | Logical MACs | AutoTVM → deployed cycles | Deviation | MAC utilization | Workload SHA-256 | Selected config SHA-256 |
+| --- | ---: | --- | ---: | ---: | ---: | ---: | --- | --- |
+| AD v1 | 0 | `tvmgen_mlperf_anomaly_vta_main_0` | 16,384 | 2,691 → 2,691 | 0.000000% | 9.5132% | `52a44ee15c10af6b32b0393d914fd2b254b3cb3c16a9a323b7d55f83e245139c` | `845fd8ddd6c6e6e8f5d85456898cdb922224b802dcabcc885a5170ec3d189849` |
+| AD v1 | 1 | `tvmgen_mlperf_anomaly_vta_main_1` | 16,384 | 2,691 → 2,691 | 0.000000% | 9.5132% | `3a1eb8ebf1eeb10e11376460d5f10e2d000698726666def688691b12a826c7b5` | `845fd8ddd6c6e6e8f5d85456898cdb922224b802dcabcc885a5170ec3d189849` |
+| AD v1 | 2 | `tvmgen_mlperf_anomaly_vta_main_2` | 16,384 | 2,691 → 2,691 | 0.000000% | 9.5132% | `15f03589a7f62ba6b1f3114ced544ab0b15004176e45e86fa3f57b7544922beb` | `845fd8ddd6c6e6e8f5d85456898cdb922224b802dcabcc885a5170ec3d189849` |
+| AD v1 | 3 | `tvmgen_mlperf_anomaly_vta_main_3` | 1,024 | 437 → 437 | 0.000000% | 3.6613% | `d99173ed0852c6839896daf80ff5fe2fae34376ccdaef8fb6864e93bb12034c5` | `de751726bbe13b0f8d77ab3fc1b1c7520deec74756aded03acf2b901d01ac3e1` |
+| AD v1 | 4 | `tvmgen_mlperf_anomaly_vta_main_4` | 1,024 | 516 → 516 | 0.000000% | 3.1008% | `ff4aefa361805aaef5e66b166052a0a824bf61e63c8e2fd7f5d5f939319f251b` | `2d127b7ae5c2ba06a3c3e6459e0f7212d1c828ec085bf6c42c06dc4dafa2ed6e` |
+| AD v1 | 5 | `tvmgen_mlperf_anomaly_vta_main_5` | 16,384 | 2,691 → 2,691 | 0.000000% | 9.5132% | `7a8f32654384837f7ef1e546b389f61acd64e16e30411b5afde41a220776c0a9` | `845fd8ddd6c6e6e8f5d85456898cdb922224b802dcabcc885a5170ec3d189849` |
+| AD v1 | 6 | `tvmgen_mlperf_anomaly_vta_main_6` | 16,384 | 2,691 → 2,691 | 0.000000% | 9.5132% | `7eb35144d9dc84a95f347f088e74f04d8a6f4c76ff6d1135e3a36668973670cf` | `845fd8ddd6c6e6e8f5d85456898cdb922224b802dcabcc885a5170ec3d189849` |
+| AD v1 | 7 | `tvmgen_mlperf_anomaly_vta_main_7` | 16,384 | 2,691 → 2,691 | 0.000000% | 9.5132% | `3067080f6718f0855fcc805d1f3324ea856c6f43baf0e4b82d1e33019a916383` | `845fd8ddd6c6e6e8f5d85456898cdb922224b802dcabcc885a5170ec3d189849` |
+| AD v1 | 8 | `tvmgen_mlperf_anomaly_vta_main_8` | 81,920 | 11,889 → 11,889 | 0.000000% | 10.7663% | `2df78e1254f17c348c84f9f78b1ad982d0abee1b52bf11e154d55828da46d5d2` | `41c7d0058b8094f83d0996eab13c913a30b08fcc620a24c3092d61d18c1e2f0b` |
+| KWS v1 | 0 | `tvmgen_mlperf_kws_vta_main_0` | 512,000 | 24,970 → 24,971 | 0.004005% | 32.0372% | `0cf732a3218304416359a0014abbd8600b2c7af7afe7e48a0e37d36c0d4276c4` | `3251dcbb9816b192421707dbecc0a98f17a7bf74984c381bf02ce2cf37e2f8c5` |
+| KWS v1 | 1 | `tvmgen_mlperf_kws_vta_main_1` | 512,000 | 24,970 → 24,971 | 0.004005% | 32.0372% | `ddc3d52462ad9ab5fdc708be0cfa476bb844c7af8c9c193277a42ed384a61d0c` | `3251dcbb9816b192421707dbecc0a98f17a7bf74984c381bf02ce2cf37e2f8c5` |
+| KWS v1 | 2 | `tvmgen_mlperf_kws_vta_main_2` | 512,000 | 24,970 → 24,971 | 0.004005% | 32.0372% | `abffeb8f030c33571933828f272cc54fb36904b5da7d1a2d2afcab55cc20807b` | `3251dcbb9816b192421707dbecc0a98f17a7bf74984c381bf02ce2cf37e2f8c5` |
+| KWS v1 | 3 | `tvmgen_mlperf_kws_vta_main_3` | 512,000 | 24,970 → 24,971 | 0.004005% | 32.0372% | `c1c3a3ee06c8dfb92e57f9e5444559b42ee81e732da559cf61bb76ef10d2d2e5` | `3251dcbb9816b192421707dbecc0a98f17a7bf74984c381bf02ce2cf37e2f8c5` |
+| Streaming Wakeword v1 | 0 | `tvmgen_mlperf_streaming_wakeword_vta_main_0` | 143,360 | 9,871 → 9,872 | 0.010131% | 22.6904% | `bcdc188e37bcdb020b83ccc3527227e30ce842411040ed89bae9013720c8a755` | `1f081caa54961d3774030e13472067faeb1d2729051b0f204463f0a87aa3d0e7` |
+| VWW v1 | 0 | `tvmgen_mlperf_vww_vta_main_0` | 294,912 | 36,524 → 36,525 | 0.002738% | 12.6160% | `7008382ef997e0d65a30892336f8bf6d3dcd100ec8fe27ede117d88978a08ad8` | `0c02e39e3dcbad19731128d5ab76be8c1cbba060248ff1bb3d45db1582124b86` |
+| VWW v1 | 1 | `tvmgen_mlperf_vww_vta_main_1` | 294,912 | 18,149 → 18,149 | 0.000000% | 25.3898% | `e8915de766c0d4785d3e9d4393af9279d7800141471836c9c29f83294139b4aa` | `c7772759406cf0f98c803ec3217a421b9bb1ef7e91b3cfeaa45ee80b8ff04069` |
+| VWW v1 | 2 | `tvmgen_mlperf_vww_vta_main_2` | 589,824 | 28,713 → 28,714 | 0.003483% | 32.0958% | `26bba58800ae8a514c14ec58711e300bae2cc47222689bfde7b6df65da7323a4` | `9d163f032c87fe35de1fb8bd350d09a0295bd1321c76ec9a7a291046a0e9df8b` |
+| VWW v1 | 3 | `tvmgen_mlperf_vww_vta_main_3` | 294,912 | 11,827 → 11,827 | 0.000000% | 38.9617% | `827c82bd591bb350af1d367f3df9793fdf64cb8f7a273f706f845641276c9e55` | `a4f654ced61a2015642bcf597cfd066ce70cff9877f4cd5094223a50b2526143` |
+| VWW v1 | 4 | `tvmgen_mlperf_vww_vta_main_4` | 589,824 | 17,386 → 17,386 | 0.000000% | 53.0082% | `9a59ad5f9b3e78ba75c0eaa92e9bbd97acea2db428c041e17b659df91db4fa10` | `03b1e94db2a897811af8c975a9bece4358426c6c4f5749723bc15c1939caad0b` |
+| VWW v1 | 5 | `tvmgen_mlperf_vww_vta_main_5` | 294,912 | 8,976 → 8,976 | 0.000000% | 51.3369% | `9938a07448f326ce8b3c1c56b15d71a89dc4c674e29ce5d2d4b0a8b2db72bf0e` | `f635be2e3342f086b529204b3fd3c111f1fb52749f93cf6bdab8f6776b563205` |
+| VWW v1 | 6 | `tvmgen_mlperf_vww_vta_main_6` | 589,824 | 15,462 → 15,462 | 0.000000% | 59.6042% | `8527cc7ecfe59e2a9d21a6f273dd825c7c3d48908875ca577af6f703aa7dc1b7` | `b81fcaff039f53d251fa0a9564c5d4f9d69746eb2070d23e5c539dd4855510cb` |
+| VWW v1 | 7 | `tvmgen_mlperf_vww_vta_main_7` | 589,824 | 13,408 → 13,408 | 0.000000% | 68.7351% | `e3b03f5b93c764fc873b6070a8bd5525480a47b7154bbae81bab4bf27b79fca7` | `823509f465ceb03a585495e0d86d453c6a12909cbda1afc9b9f96df36ec55d9e` |
+| VWW v1 | 8 | `tvmgen_mlperf_vww_vta_main_8` | 589,824 | 14,389 → 14,389 | 0.000000% | 64.0489% | `6fd68fd47297a7d07d408af1b4284befd08a73e5a81d43af0c89e91c970d00c3` | `8764ef8795b0a3c464990a21a235e92f8f015c84c1b99596ed4c053ed43f9286` |
+| VWW v1 | 9 | `tvmgen_mlperf_vww_vta_main_9` | 589,824 | 15,737 → 15,737 | 0.000000% | 58.5626% | `06fb10e2a5b708984c85c22dc0ff0e662034467048c30bc6cadc322cc24ab592` | `5e5e7c1539c17f85489dd16a9655811ebf6d4ce417bae30d38fcb81b3a912cba` |
+| VWW v1 | 10 | `tvmgen_mlperf_vww_vta_main_10` | 589,824 | 15,214 → 15,214 | 0.000000% | 60.5758% | `b4b667a50e4349db409f21f7009326134c177321ea908e82f83b46ce39ce1297` | `370c50e9aab2f8354c628154d70f0567dc2ba11ecb76646d2ec943baf52a9004` |
+| VWW v1 | 11 | `tvmgen_mlperf_vww_vta_main_11` | 294,912 | 7,829 → 7,829 | 0.000000% | 58.8581% | `496896ce62b5dae4f83ffdc27347952f4a8b6bd87c54f0930ee4d785ba560425` | `ab33f3db617cdcdaf5e3f7a0530f9dbe9d29e155dc9252422058a6350eb3e4e5` |
+| VWW v1 | 12 | `tvmgen_mlperf_vww_vta_main_12` | 589,824 | 20,498 → 20,499 | 0.004879% | 44.9583% | `c9970ecfc336835040914403225f282c6dfd0bca1fa4cb1d6627436234bd3188` | `eede9d2195ccf5bcc1a958aaeb472bef08eb80b7925ffb30ed2a6878fbcee19f` |
+
+## Committed reports and artifacts
+
+| Model | Full-search run ID | Optimal manifest | One-sample deployment | MAC CSV / JSON |
+| --- | --- | --- | --- | --- |
+| AD v1 | `20261001T174411.872234Z` | [`best-manifest.json`](../../../vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tune/optimal/20261001T174411.872234Z/best-manifest.json) | [`deployment-full.json`](../../../vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tune/deployment-full.json) | [`mac-utilization-full.csv`](../../../vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tune/mac-utilization-full.csv) / [`mac-utilization-full.json`](../../../vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tune/mac-utilization-full.json) |
+| KWS v1 | `20261001T192416.141960Z` | [`best-manifest.json`](../../../vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tune/optimal/20261001T192416.141960Z/best-manifest.json) | [`deployment-full.json`](../../../vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tune/deployment-full.json) | [`mac-utilization-full.csv`](../../../vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tune/mac-utilization-full.csv) / [`mac-utilization-full.json`](../../../vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tune/mac-utilization-full.json) |
+| Streaming Wakeword v1 | `20261001T205934.834798Z` | [`best-manifest.json`](../../../vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/tune/optimal/20261001T205934.834798Z/best-manifest.json) | [`deployment-full.json`](../../../vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/tune/deployment-full.json) | [`mac-utilization-full.csv`](../../../vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/tune/mac-utilization-full.csv) / [`mac-utilization-full.json`](../../../vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/tune/mac-utilization-full.json) |
+| VWW v1 | `20261001T220401.514781Z` | [`best-manifest.json`](../../../vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tune/optimal/20261001T220401.514781Z/best-manifest.json) | [`deployment-full.json`](../../../vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tune/deployment-full.json) | [`mac-utilization-full.csv`](../../../vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tune/mac-utilization-full.csv) / [`mac-utilization-full.json`](../../../vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tune/mac-utilization-full.json) |
+
+The deployment reports also record model and geometry hashes, the sample hash, selected-manifest hash, ordinary/debug counter agreement, and full-model baseline/tuned counters. Native per-occurrence TSIM candidate records and FSIM search states are under each ignored `build/two_stage_tuning/<run-id>/`; the exported optimal artifacts replay without those intermediates.
