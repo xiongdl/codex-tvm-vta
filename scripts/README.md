@@ -275,7 +275,13 @@ The command also supports `--workload-index N`, `--trial-batch N`,
 `--max-workloads N` and non-default search limits are bounded runs and the
 manifest labels them `BOUNDED_SMOKE_INCOMPLETE`. To continue a run, provide its
 `--resume-manifest PATH`; model, geometry, workload identities, search limits,
-and timeout settings must match. Native backend logs, candidate failures,
+and timeout settings must match. Every full-search invocation, including
+`--workload-index N` and bounded smoke runs, requires the complete passing
+one-sample seed deployment report for all prepared occurrences. The controller
+checks each positive integer cycle pair against the inclusive 10% bound and
+validates the report's model, geometry, protocol, complete seed manifest, and
+manifest hash before starting any search. Standalone replay rejects incomplete
+or partial manifests before reading any candidate artifacts. Native backend logs, candidate failures,
 progress, and resume state are written under
 `vta/apps/mlperf_tiny_benchmark/image_classification_v1/build/two_stage_tuning/`.
 Self-contained best native records and `best-manifest.json` are exported below
