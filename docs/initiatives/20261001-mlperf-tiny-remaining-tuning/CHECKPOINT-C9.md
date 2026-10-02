@@ -2,7 +2,7 @@
 
 Initiative: `20261001-mlperf-tiny-remaining-tuning`<br>
 Branch: `codex/20261001-mlperf-tiny-remaining-tuning`<br>
-Status: **IN PROGRESS (T22 complete; T23 pending)**
+Status: **GREEN**
 
 ## T22: full two-stage search
 
@@ -63,6 +63,49 @@ run directory. A manifest with a foreign model identity was rejected with
 
 ## T23: selected deployment and MAC utilization
 
-Pending. T23 will deploy the selected schedules on one committed image, verify
-the per-occurrence 10% gate and ordinary/debug counter agreement, then publish
-deployment JSON, MAC JSON/CSV, and `REPORT-FULL.md`.
+The selected manifest was applied to one committed image,
+`00-non-person-000000000009.jpg` (SHA-256
+`d8f0e1e6e7635f189ab52e3e98aef1f7d734814a1fbe41fdb2c5ff8cbfc6dcfc`). VWW's
+existing preprocessing and HOST output check passed. The deployment made one
+stateless model invocation. Ordinary and debug full-model TSIM counters both
+measured **224,115 cycles**; the untuned baseline measured **6,862,109 cycles**.
+
+| Occurrence | AutoTVM TSIM cycles | Deployment TSIM cycles | Difference | MAC utilization |
+| ---: | ---: | ---: | ---: | ---: |
+| 0 | 36,524 | 36,525 | 0.002738% | 12.6160% |
+| 1 | 18,149 | 18,149 | 0.000000% | 25.3898% |
+| 2 | 28,713 | 28,714 | 0.003483% | 32.0958% |
+| 3 | 11,827 | 11,827 | 0.000000% | 38.9617% |
+| 4 | 17,386 | 17,386 | 0.000000% | 53.0082% |
+| 5 | 8,976 | 8,976 | 0.000000% | 51.3369% |
+| 6 | 15,462 | 15,462 | 0.000000% | 59.6042% |
+| 7 | 13,408 | 13,408 | 0.000000% | 68.7351% |
+| 8 | 14,389 | 14,389 | 0.000000% | 64.0489% |
+| 9 | 15,737 | 15,737 | 0.000000% | 58.5626% |
+| 10 | 15,214 | 15,214 | 0.000000% | 60.5758% |
+| 11 | 7,829 | 7,829 | 0.000000% | 58.8581% |
+| 12 | 20,498 | 20,499 | 0.004879% | 44.9583% |
+
+All 13 selected config identities match the C9 manifest and pass the inclusive
+10% cycle gate. Useful-MAC utilization uses logical Conv MACs divided by real
+deployment cycles and the 64-MAC/cycle geometry. The tuned whole-model
+utilization is **43.1778%**, baseline utilization is **1.4102%**, and cycle
+speedup is **30.6187x**. HOST-only work is excluded from VTA MAC totals.
+
+Published evidence is
+`visual_wake_words_v1/tune/deployment-full.json`,
+`mac-utilization-full.json`, `mac-utilization-full.csv`, and `REPORT-FULL.md`.
+
+## T23 verification
+
+- One-sample selected deployment command from the approved specification:
+  `VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=tsim PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps/mlperf_tiny_benchmark:$PWD/vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1" ./.envs/tvm-vta-env/bin/python vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tune/deployment.py --best-manifest vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tune/optimal/20261001T220401.514781Z/best-manifest.json --output vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tune/deployment-full.json`
+  — passed, one image, 13/13 occurrence gates.
+- MAC calculator accepted the deployment report. A separate audit matched all
+  13 sample/config/workload identities, integer cycles, MAC counts and
+  invocations to the selected manifest and both JSON reports; CSV rows match
+  the calculator output.
+- Focused VWW tuning/deployment and shared deployment/MAC regressions:
+  **53 passed**.
+- `git diff --check` and final managed-repository status passed after the T23
+  commit.
