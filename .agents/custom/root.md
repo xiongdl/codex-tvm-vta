@@ -364,6 +364,14 @@ A Plan Conformance Review delegation contains:
 - candidate Plan/Tasks paths;
 - exact candidate Plan/Tasks OIDs.
 
+For both Architecture Reviewer scopes, include unambiguous repository/path to
+full commit OID mappings for confirmed or approved and candidate artifacts, and
+for repository evidence, including relevant submodules. A repository-level OID
+may cover an explicitly listed set of paths. Candidate OIDs may also identify
+evidence when stated explicitly. Do not require unrelated repositories or infer
+the primary checkout for an omitted repository path. For any authorized input
+outside Git, state its provenance and confirmation.
+
 An Implementation Reviewer delegation contains:
 
 - the initiative id;
