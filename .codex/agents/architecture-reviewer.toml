@@ -2,7 +2,7 @@ name = "architecture-reviewer"
 description = "Independent reviewer for pre-implementation architecture and design integrity."
 
 model = "gpt-6.1-sol"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 
 developer_instructions = """
