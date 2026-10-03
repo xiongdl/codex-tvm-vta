@@ -26,7 +26,7 @@ Commands ran from the repository root on 2026-10-03 (Asia/Shanghai):
 | Command | Exit | Result |
 | --- | ---: | --- |
 | `git diff --check 470b501dcc7e2b1a51baad5968f75e68efeb6848 e1d9589cd4b5a9b3bac58d50c04823e640c98aac` | 0 | No whitespace errors; no output. |
-| `bash -n .agents/custom/scripts/git-workflow .agents/custom/scripts/test-git-workflow .agents/custom/scripts/test-role-workflow` | 0 | All three scripts passed shell syntax checking; no output. |
+| `bash -n .agents/custom/scripts/git-workflow .agents/custom/scripts/test-git-workflow .agents/custom/scripts/test-role-workflow` | 0 | Initial invocation checked only the first script; subsequent arguments are positional parameters, not additional input scripts. See individual checks below. |
 | `bash .agents/custom/scripts/test-role-workflow` | 0 | `OK role workflow contract`. |
 | `bash .agents/custom/scripts/test-git-workflow` | 0 | `OK git-workflow tests`. Happy path, unmerged-task deletion, and submodule parent-commit retry cases completed. |
 | `./.envs/tvm-vta-env/bin/python` TOML/path validation (command below) | 0 | Four TOML files parsed; all ten listed role and skill paths existed. |
@@ -80,3 +80,27 @@ These checks establish shell syntax, textual role-contract assertions, Git
 workflow behavior for the tested fixture scenarios, TOML syntax, and existence
 of the checked paths. They do not establish runtime role selection or agent
 behavior. The suites passed, so no test failure is recorded as a finding here.
+
+## Root verification correction
+
+After independent review, Root identified the overly broad initial shell-syntax
+claim and ran each script separately on 2026-10-03 (Asia/Shanghai), at root OID
+`1bc5c1df94f32e7066e3499f18aa17af82ed1545`:
+
+```bash
+for script_path in .agents/custom/scripts/git-workflow .agents/custom/scripts/test-git-workflow .agents/custom/scripts/test-role-workflow; do
+    bash -n "$script_path" || exit
+    printf 'OK syntax %s\n' "$script_path"
+done
+```
+
+Exit status: 0. Output:
+
+```text
+OK syntax .agents/custom/scripts/git-workflow
+OK syntax .agents/custom/scripts/test-git-workflow
+OK syntax .agents/custom/scripts/test-role-workflow
+```
+
+All three scripts therefore have individual syntax-check evidence. This corrects
+the audit record only; no workflow, configuration, or test-source file changed.
