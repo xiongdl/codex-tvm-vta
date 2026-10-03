@@ -21,7 +21,8 @@ require_text() {
 
 ROOT="$CUSTOM_DIR/root.md"
 DEFAULT="$CUSTOM_DIR/default.md"
-REVIEWER="$CUSTOM_DIR/reviewer.md"
+ARCH_REVIEWER="$CUSTOM_DIR/architecture-reviewer.md"
+IMPL_REVIEWER="$CUSTOM_DIR/implementation-reviewer.md"
 
 require_text "$ROOT" 'skills/interview-me/SKILL.md'
 require_text "$ROOT" 'skills/spec-driven-development/SKILL.md'
@@ -30,22 +31,32 @@ require_text "$ROOT" 'YYYYMMDD-<kebab-case-slug>'
 require_text "$ROOT" 'Branch creation happens before Interview.'
 require_text "$ROOT" '**Spec approval gate**'
 require_text "$ROOT" '**Plan/Tasks approval gate**'
-require_text "$ROOT" 'Reviewer `Pass` completes the lifecycle'
+require_text "$ROOT" 'Implementation Reviewer `Pass` completes the lifecycle'
 require_text "$ROOT" 'The user owns the optional merge'
 require_text "$ROOT" 'exact per-repository base-to-tip range'
 require_text "$ROOT" 'For each checkpoint in `TASKS.md`, dispatch a fresh Default'
-require_text "$ROOT" 'Route actionable implementation findings to a fresh Default'
+require_text "$ROOT" 'Route actionable `Implementation findings` to a fresh Default'
 require_text "$ROOT" 'wait for the delegated agent to return before continuing'
 require_text "$ROOT" 'Do not interrupt, cancel, replace, parallelize, message, or take over'
+require_text "$ROOT" 'keep that Default assigned to its current'
+require_text "$ROOT" 'all task, fix, and handoff commit maps'
 
 require_text "$DEFAULT" 'skills/incremental-implementation/SKILL.md'
 require_text "$DEFAULT" 'skills/test-driven-development/SKILL.md'
 require_text "$DEFAULT" 'For a `TASKS.md` checkpoint'
-require_text "$DEFAULT" 'For Review findings'
+require_text "$DEFAULT" 'For Implementation Review findings'
 require_text "$DEFAULT" 'each task is a local'
+require_text "$DEFAULT" '## Escalation handoff'
+require_text "$DEFAULT" '`wip:` handoff'
 
-require_text "$REVIEWER" 'skills/code-review-and-quality/SKILL.md'
-require_text "$REVIEWER" 'is read-only, reports only to Root'
-require_text "$REVIEWER" 'Return exactly one verdict'
+require_text "$ARCH_REVIEWER" 'skills/api-and-interface-design/SKILL.md'
+require_text "$ARCH_REVIEWER" '`Architecture Review`'
+require_text "$ARCH_REVIEWER" '`Plan Conformance Review`'
+require_text "$ARCH_REVIEWER" 'Return exactly one verdict'
+
+require_text "$IMPL_REVIEWER" 'skills/code-review-and-quality/SKILL.md'
+require_text "$IMPL_REVIEWER" 'Review committed state only.'
+require_text "$IMPL_REVIEWER" 'Direct Git inspection is read-only'
+require_text "$IMPL_REVIEWER" 'Return exactly one verdict'
 
 printf 'OK role workflow contract\n'

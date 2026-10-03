@@ -15,6 +15,13 @@ If a problem can be fixed inside the delegated scope, fix it and continue.
 Return escalation only when Root must decide or external/user-only state is
 required.
 
+For untracked generated or temporary artifacts produced by the delegated work
+that must not be committed, add the narrowest appropriate `.gitignore` rule
+within the delegated scope.
+
+If Git-visible ownership cannot be established within the delegated scope, leave
+unrelated or ownership-uncertain content untouched and return `Root escalation`.
+
 ## Required inputs
 
 Read and apply:
@@ -93,6 +100,17 @@ Record each resulting commit map.
 Do not change approved artifacts or Root-owned decisions. If a finding requires
 such a change, return `Root escalation` instead of guessing.
 
+## Escalation handoff
+
+Before returning `Root escalation`, if attributable task or fix changes remain
+uncommitted, create a `wip:` handoff commit through the Git workflow.
+
+A handoff commit may be non-`GREEN`. It does not complete the current task, fix,
+or checkpoint.
+
+If the handoff commit is not allowed or fails, do not bypass the Git workflow.
+Return the exact repository state and failure evidence.
+
 ## Return
 
 Successful completion returns `GREEN` with:
@@ -109,5 +127,6 @@ Successful completion returns `GREEN` with:
 Before returning `GREEN`, require the managed repositories to be clean.
 
 `Root escalation` includes the blocker, attempted actions, exact evidence,
-available options, required Root decision, and relevant repository
-paths/branches/OIDs/state.
+available options, required Root decision, relevant repository
+paths/branches/OIDs/state, any handoff commit map, and unfinished tasks or
+findings.

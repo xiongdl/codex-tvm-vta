@@ -260,7 +260,7 @@ Give it:
 - the approved Specify OIDs;
 - the approved Plan/Tasks OIDs;
 - verification evidence;
-- all task and fix commit maps;
+- all task, fix, and handoff commit maps;
 - delegated implementation paths;
 - the exact per-repository base-to-tip range.
 
@@ -319,6 +319,19 @@ If resolution requires changing an approved Specify artifact:
 An escalation reports the blocker, attempted actions, exact evidence, available
 options, required decision, and relevant repository paths/branches/OIDs/state.
 
+For a Default `Root escalation`, keep that Default assigned to its current
+checkpoint or finding set.
+
+If the Default returns a handoff commit map, use those OIDs as the current
+repository state. The handoff does not complete the checkpoint or finding set.
+
+After the escalation is resolved, dispatch the unfinished work back to the same
+Default with the latest approved Specify and Plan/Tasks OIDs and current
+per-repository commit map.
+
+Do not start the next checkpoint or re-review until that Default returns
+`GREEN`.
+
 ## Delegation contract
 
 Root creates every Default, Architecture Reviewer, and Implementation Reviewer.
@@ -357,7 +370,7 @@ An Implementation Reviewer delegation contains:
 - approved Specify OIDs;
 - approved Plan/Tasks OIDs;
 - verification evidence;
-- all task and fix commit maps;
+- all task, fix, and handoff commit maps;
 - delegated implementation paths;
 - the exact per-repository base-to-tip range.
 
