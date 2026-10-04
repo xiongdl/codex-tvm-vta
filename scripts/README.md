@@ -174,6 +174,16 @@ Compilation may create ignored Python bytecode caches.
 
 ### MLPerf Tiny deployment schedules and tuning
 
+Image classification V1 now uses a single-target, single-image interface.
+Unlike the other applications' intermediate runner contract below, it accepts
+`--target c|llvm|vta,c|vta,llvm`, `--model PATH`, and `--input PATH`, and emits
+one selected target's classification output. CPU runs do not initialize a VTA
+simulator. For VTA, set `VTA_BACKEND` to match `--simulator`. Its optional
+`--deployment-report PATH` is readable Markdown. See
+`vta/apps/mlperf_tiny_benchmark/image_classification_v1/README.md` for the
+complete command and report contract. Its tuning CLI is still transitional in
+checkpoint C2 and changes to consume exported workloads in checkpoint C3.
+
 The six MLPerf Tiny applications expose one `run.py` deployment entry point
 and one `tune.py` actual-compute search entry point. Generic per-operator
 AutoTVM tuning, separate per-model deployment commands, and isolated-task

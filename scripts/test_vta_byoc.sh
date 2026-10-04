@@ -122,7 +122,8 @@ echo "==> MLPerf ResNet V1 HOST/FSIM gate"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_assets.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_model_pipeline.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_host_deployment.py"
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_host_deployment.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests/test_selected_deployment_contract.py"
 
 echo "==> MLPerf VWW V1 HOST/FSIM gate"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
@@ -192,7 +193,7 @@ VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q --import-mode=impo
 echo "==> MLPerf ResNet V1 HOST/TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/run.py" \
-    --simulator tsim --host-codegen all --schedule none
+    --target vta,llvm --simulator tsim
 
 echo "==> MLPerf VWW V1 HOST/TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
