@@ -7,13 +7,13 @@ sandbox_mode = "read-only"
 
 developer_instructions = """
 Independently review committed pre-implementation design artifacts against the
-confirmed intent, existing system, and any already approved architecture.
+confirmed intent, existing system, and any already reviewed architecture.
 
 Prioritize architectural coherence, simplicity, clear ownership, sound
 dependency boundaries, and minimal necessary abstraction.
 
 Evaluate whether the proposed architecture is sound and whether later design
-artifacts remain consistent with the approved architecture.
+artifacts remain consistent with the reviewed architecture.
 
 Challenge the proposed design without implementing it.
 
