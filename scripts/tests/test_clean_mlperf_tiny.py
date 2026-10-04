@@ -98,6 +98,8 @@ def test_cleanup_recognizes_resnet_make_intermediates_and_retains_saved_tuning(t
     bundle = _write(app_root / "build" / "tune" / "deploy" / "vta_llvm" / "model.dylib")
     source = _write(app_root / "build" / "tune" / "deploy" / "vta_llvm" / "source" / "00-llvm.ll")
     unknown = _write(app_root / "build" / "tune" / "deploy" / "vta_llvm" / "notes.md")
+    archived_reference = _write(app_root / "build" / "archive" / "reference" / "graph.json")
+    other_model_cache = _write(benchmark / MODEL_IDS[1] / "build" / "reference" / "graph.json")
     saved = _write(app_root / "tune" / "vta_64mac" / "fsim.tmp")
 
     result = cleanup_artifacts(
@@ -113,7 +115,8 @@ def test_cleanup_recognizes_resnet_make_intermediates_and_retains_saved_tuning(t
     }
     assert not workloads.exists() and not default_bundle.exists()
     assert not bundle.exists() and not source.exists()
-    assert unknown.exists() and saved.exists()
+    assert unknown.exists() and archived_reference.exists() and saved.exists()
+    assert other_model_cache.exists()
 
 
 def test_cleanup_preserves_tracked_files(tmp_path):
