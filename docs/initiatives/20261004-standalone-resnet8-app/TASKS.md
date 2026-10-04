@@ -76,3 +76,17 @@ C3 gate: both independent CLI stages, schedule replay and publication negatives 
 - Dependencies: T5. Scope: final integration and end-state verification.
 
 C4 gate: approved end state, complete evidence and clean committed repository maps. Return GREEN to Root for fresh Implementation Review, not an automatic merge.
+
+## Checkpoint C5: resilient candidate search and accurate completion report
+
+Approved amended Specify: main `782ca393b7e07658fdaddf6858a7264f72dea995`, explicitly approved by user. Original task history remains unchanged.
+
+### T7 — Continue candidate failures and report actual search outcome
+- [ ] Distinguish environment/library initialization errors from candidate build/run crashes using the existing measurement boundary; candidate compile/output/timeout/native-abort failures continue FSIM/TSIM, infrastructure and protocol failures stop. Reclaim every worker.
+- [ ] Report per-occurrence attempted trials, successes, requested quota and termination reason. Trials include failed attempts. Exhaustion with at least one success completes normally and exports all successes even below quota. Zero-success fails publication and preserves old results. Failed candidates never enter the FSIM log.
+- [ ] Update affected regression tests and app documentation, preserving successful log compatibility and previous worker protocol fixes. Do not weaken initialization-failure or zero-success checks.
+- Acceptance: default user command completes both stages despite native candidate aborts, counts are accurate, and the saved best schedule replays with correct model output.
+- Verify: meaningful regression tests for real isolated-worker crash continuation/reclamation, initialization failure propagation, quota and exhaustion counters and zero-success preservation; full app suite; actual `make tune WORKLOAD=0` from app cwd with default controls; actual TSIM deployment using resulting best.log. Do not test apps/deploy. Avoid unrelated broad repeated gates.
+- Ownership: VTA repo apps/mlperf_tiny_benchmark/image_classification_v1 measurement.py/tune.py/tuning.py and directly affected tests/docs/saved validated tune outputs; main scripts/README.md only if documentation requires it. Root-owned lifecycle artifacts read-only. No VTA runtime/compiler or other app changes.
+- Dependencies: prior C1–C4 and protocol/crash-classification fixes, current VTA `4e22eb6ef352a63bce6358fc049af4cfaa6db8ec`.
+- Execution: one fresh Default, test/implement/GREEN/simplify/re-verify/git-workflow commit, return exact commit maps and commands/results for independent implementation review.

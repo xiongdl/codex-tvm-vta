@@ -43,3 +43,11 @@ Fast tests prove boundaries, malformed input rejection, selection and publicatio
 ## Completion evidence
 
 Record each task OID map and commands/results. After C4, review complete committed range against approved Specify/Plan. Required resulting behavior includes standalone app imports, CPU without backend, explicit paths, accurate reports, actual workloads handoff with model removed from tuning access, persistent files/config validation and Make orchestration from both cwd conventions. No open architectural questions.
+
+## Approved tuning policy follow-up
+
+Approved Specify amendment: main `782ca393b7e07658fdaddf6858a7264f72dea995` (INTENT.md and SPEC.md), explicitly approved by the user. This supplements the original baseline above. Current implementation evidence: main `76bccb8856969dd705cc7d7d8cc2a4aa6a56f809`, VTA `4e22eb6ef352a63bce6358fc049af4cfaa6db8ec`, TVM `9f2472d8637a4aa1f2f0c0ef2595dc8043bf3aca`.
+
+C5 is one follow-up checkpoint: measurement classifies initialization failures separately from candidate crashes, reclaims workers, and lets tuning continue; tuning prints actual attempted trials, successful candidates, requested quota, and termination reason per occurrence. Exhaustion with successes publishes normally; zero successes preserves the existing failure/publication contract. Use existing module owners, CLI and saved log formats; avoid new abstractions or runtime/compiler changes. Update affected tests and user documentation in the same coherent task.
+
+Verification supersedes the earlier bounded-only advice for this regression: focused classification/counter/publication tests, full app suite, actual `make tune WORKLOAD=0` with default 100/20 controls, then deployment replay with the resulting best schedule on TSIM. Exclude apps/deploy. No need to repeat the previously passing complete BYOC gate for this localized follow-up unless new evidence warrants it. Default commits after GREEN; fresh Implementation Reviewer reviews the follow-up committed range against the amended SPEC and all relevant prior fixes.
