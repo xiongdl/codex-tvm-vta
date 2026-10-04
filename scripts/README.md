@@ -174,25 +174,49 @@ Compilation may create ignored Python bytecode caches.
 
 ### MLPerf Tiny deployment schedules and tuning
 
-Image classification V1 now uses a single-target, single-image interface.
-Unlike the other applications' intermediate runner contract below, it accepts
-`--target c|llvm|vta,c|vta,llvm`, `--model PATH`, and `--input PATH`, and emits
-one selected target's classification output. CPU runs do not initialize a VTA
-simulator. For VTA, set `VTA_BACKEND` to match `--simulator`. Its optional
-`--deployment-report PATH` is readable Markdown. See
-`vta/apps/mlperf_tiny_benchmark/image_classification_v1/README.md` for the
-complete command and report contract. Its tuning CLI is still transitional in
-checkpoint C2 and changes to consume exported workloads in checkpoint C3.
+Image classification V1 provides a local Makefile with `deploy`, `tune-fsim`,
+`tune-tsim`, and `tune` targets. It uses the existing project Python and
+prebuilt TVM/VTA libraries; it does not install dependencies or build
+libraries. From the repository root:
 
-The six MLPerf Tiny applications expose one `run.py` deployment entry point
-and one `tune.py` actual-compute search entry point. Generic per-operator
-AutoTVM tuning, separate per-model deployment commands, and isolated-task
-utilization reports are retired. Each model README documents its sample and
-output checks.
+```bash
+APP=vta/apps/mlperf_tiny_benchmark/image_classification_v1
+make -C "$APP" deploy TARGET=llvm
+make -C "$APP" deploy TARGET=vta,c SIMULATOR=tsim \
+  REPORT=build/deployment-report.md
+make -C "$APP" deploy EXPORT_WORKLOADS=build/workloads.json
+make -C "$APP" tune-fsim WORKLOADS=build/workloads.json WORKLOAD=0 \
+  TRIAL_BATCH=1 MIN_SUCCESSFUL=1
+make -C "$APP" tune-tsim WORKLOADS=build/workloads.json \
+  INPUT_LOGS=tune/vta_64mac/fsim.tmp WORKLOAD=0
+make -C "$APP" tune
+```
 
-Use the existing `.envs/tvm-vta-env`, initialized TVM/VTA submodules, built
-libraries, and the same geometry in each process. Runner `--simulator` must
-match `VTA_BACKEND`:
+The defaults are the float ResNet-8 model and first sample, `TARGET=vta,llvm`,
+`SIMULATOR=fsim`, and `CONFIG=vta/config/vta_64mac.json`. Deployment also
+accepts `MODEL`, `INPUT`, `SCHEDULE`, `OUTPUT_DIR`, `REPORT`, and
+`EXPORT_WORKLOADS`. Split tuning requires `WORKLOADS`; TSIM also requires
+`INPUT_LOGS`. `WORKLOAD=-1` selects all VTA occurrences. FSIM accepts
+`TRIAL_BATCH`, `MIN_SUCCESSFUL`, and `TIMEOUT`; full `tune` accepts separate
+`FSIM_TIMEOUT` and `TSIM_TIMEOUT` plus `OUTPUT_DIR` for ignored build
+intermediates. The full target exports workloads when `WORKLOADS` is omitted,
+then runs FSIM and TSIM in order; it stops at the best schedule and does not
+deploy it automatically.
+
+`CONFIG` selects both `VTA_CONFIG_FILE` and the saved schedule directory
+`image_classification_v1/tune/<config-basename>/`. The directory contains an
+exact `config.json` snapshot, `config.sha256`, grouped FSIM candidates in
+`fsim.tmp` with `fsim.json`, and the TSIM-selected `best.log` with
+`best.json`. These files are tracked deliverables; Make does not commit them.
+The generated workloads and deployment bundles live under ignored `build/`.
+Explicit relative paths are resolved from Make's working directory, including
+when using `make -C`. See the app README for the direct Python CLI and report
+details.
+
+The other MLPerf Tiny applications still use their existing direct Python
+interfaces. Use the existing `.envs/tvm-vta-env`, initialized TVM/VTA
+submodules, built libraries, and the same geometry in each process. Runner
+`--simulator` must match `VTA_BACKEND`:
 
 ```bash
 export VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json"
@@ -207,19 +231,14 @@ VTA_BACKEND=tsim ./.envs/tvm-vta-env/bin/python \
   --simulator tsim --schedule none
 ```
 
-Omitting `--schedule` or passing `none` uses the default schedule without
-search. `--schedule PATH` loads a native AutoTVM `.log` plus the same-stem
-`.json` metadata automatically. The metadata validates model, prepared
+For those applications, omitting `--schedule` or passing `none` uses the
+default schedule. `--schedule PATH` loads a native AutoTVM `.log` plus the
+same-stem `.json` metadata. Their metadata validates model, prepared
 computation, geometry, occurrences, workload/configuration identities, and
-native record hashes. Partial snapshots are supported: included occurrences
-use the selected configurations, uncovered occurrences use their defaults,
-and the runner prints that coverage. Invalid or mismatched artifacts fail
-before deployment. `--deployment-report PATH` writes schedule provenance,
-coverage, output checks, and any measured evidence. On TSIM,
-`--validate-schedule-evidence` requires complete measured coverage and strict
-per-layer cycle alignment; it also requires `--deployment-report`.
+native record hashes. Partial snapshots use defaults for uncovered occurrences.
+Their deployment reports can include schedule provenance and TSIM evidence.
 
-#### Seed and alignment gate
+#### Seed and alignment gate for the other applications
 
 Search measures real prepared deployment occurrences. First measure and export
 the normal default configuration as a full seed snapshot on TSIM. Deploy it
@@ -245,7 +264,7 @@ their measured TSIM evidence uses one counted call after an excluded warmup,
 layer set and enforces the strict per-layer deployment-to-measurement cycle
 bound before search starts.
 
-#### Search, resume, and export
+#### Search, resume, and export for the other applications
 
 Search runs FSIM candidates and measures successful candidates on TSIM in
 isolated workers. Defaults are 100 distinct candidates per batch, a quota of
