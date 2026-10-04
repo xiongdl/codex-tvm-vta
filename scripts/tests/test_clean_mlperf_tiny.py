@@ -90,6 +90,32 @@ def test_cleanup_all_covers_shared_and_each_model_build_directory(tmp_path):
     assert saved.exists()
 
 
+def test_cleanup_recognizes_resnet_make_intermediates_and_retains_saved_tuning(tmp_path):
+    benchmark = tmp_path / "mlperf_tiny_benchmark"
+    app_root = benchmark / MODEL_IDS[0]
+    workloads = _write(app_root / "build" / "tune" / "workloads.json")
+    default_bundle = _write(app_root / "build" / "vta_llvm" / "graph.json")
+    bundle = _write(app_root / "build" / "tune" / "deploy" / "vta_llvm" / "model.dylib")
+    source = _write(app_root / "build" / "tune" / "deploy" / "vta_llvm" / "source" / "00-llvm.ll")
+    unknown = _write(app_root / "build" / "tune" / "deploy" / "vta_llvm" / "notes.md")
+    saved = _write(app_root / "tune" / "vta_64mac" / "fsim.tmp")
+
+    result = cleanup_artifacts(
+        benchmark,
+        model=MODEL_IDS[0],
+        categories={"cache", "tuning-runs"},
+        tracked_paths=set(),
+        dry_run=False,
+    )
+
+    assert {item.path for item in result.removed} == {
+        workloads.resolve(), default_bundle.resolve(), bundle.resolve(), source.resolve()
+    }
+    assert not workloads.exists() and not default_bundle.exists()
+    assert not bundle.exists() and not source.exists()
+    assert unknown.exists() and saved.exists()
+
+
 def test_cleanup_preserves_tracked_files(tmp_path):
     benchmark = tmp_path / "mlperf_tiny_benchmark"
     tracked = _write(benchmark / MODEL_IDS[0] / "build" / "reference" / "graph.json")

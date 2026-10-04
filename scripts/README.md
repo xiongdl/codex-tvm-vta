@@ -316,9 +316,13 @@ before removal. Start with a dry run:
 `--model` accepts one model ID or `all`. At least one category is required:
 `--cache` for recognized compiler/debug outputs and `--tuning-runs` for search
 ledgers, logs, and checkpoints. Remove `--dry-run` to delete only recognized,
-untracked files. Unknown files, tracked files, saved seed/optimal schedules,
-models, samples, and evidence are retained. Removing tuning runs discards
-resume state. The cleaner does not run a simulator.
+untracked files. Unknown files, tracked files, saved schedules, models,
+samples, and evidence are retained. Saved `tune/<config-name>`
+schedules remain outside the cleaner's build roots and are preserved even when
+untracked. The cleaner recognizes the ResNet V1 `build/tune/workloads.json`
+snapshot and `build/tune/deploy` bundle as generated intermediates. Removing
+tuning runs discards those workloads and the other applications' resume state.
+The cleaner does not run a simulator.
 
 ### `extract_mlperf_resnet_samples.py`
 
@@ -392,11 +396,12 @@ logs, and checkpoints; both categories may be selected together. `--dry-run`
 prints categorized absolute file paths and byte totals without changing files.
 Without it, the script removes only recognized, untracked files under the
 shared and model `build/` directories. Unknown files are reported and retained;
-tracked files, samples, models, `tune/seed`, `tune/optimal`, and saved evidence
-are preserved. Symlinked build roots or entries stop cleanup for safety.
-Removing `--tuning-runs` output discards the corresponding resume state. Empty
+tracked files, samples, models, saved `tune/<config-name>` schedules, and
+`tune/legacy` evidence are preserved even when untracked. Symlinked build roots
+or entries stop cleanup for safety. Removing `--tuning-runs` output discards
+ResNet V1's exported workloads and older applications' resume state. Empty
 parent directories are left in place. The script uses the project Python
-environment and the initialized VTA submodule; it does not run a simulator.
+environment and initialized VTA submodule; it does not run a simulator.
 
 ## Environment overrides
 
