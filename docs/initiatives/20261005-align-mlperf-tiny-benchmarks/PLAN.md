@@ -13,7 +13,12 @@ Follow capability-map order: image V2, visual wake words, keyword spotting,
 anomaly, streaming wakeword, then integration cleanup. Each migration is one
 coherent independently GREEN vertical slice, encompassing model preparation,
 selected deployment, snapshot/tuning, tests, its README/manual commands and
-its existing maintained caller updates. Single-app copies of the read-only
+its existing maintained caller updates, including shared tests and root registry
+consumers. Retire migrated app parameters while preserving remaining legacy
+parameters; redirect meaningful assertions to app-owned coverage before removal.
+Shared fixtures pointing at the app migrate to a still-legacy owner only when
+that owner supports the retained contract. Each checkpoint executes the
+remaining shared test set so final cleanup cannot hide an earlier broken gate. Single-app copies of the read-only
 reference implementation are intentional; never introduce a shared runtime.
 Do not split CLI removal from caller migration or publication from validation.
 No parallel agents or checkpoints: Root waits for each fresh Default.

@@ -50,21 +50,36 @@ No Default edits Root-owned lifecycle artifacts. Root owns checkpoint tracking.
 **Dependencies:** previous checkpoint must be GREEN; no app runtime dependency.
 **Owned paths:** `vta/apps/mlperf_tiny_benchmark/image_classification_v2/` (all application
 implementation/tests/README; model/sample/license bytes must remain unchanged),
-only this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
-and benchmark index README; narrow needed app output ignore/pytest config.
+this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
+and benchmark index README; this app's consumer/parametrization/fixture blocks
+in `vta/apps/common/tests/` (deployment_compute, measurement, schedule_artifacts,
+schedule_migration, tuning_controller and any further affected shared tests),
+benchmark-root model_registry.py/tests registration for this app; narrow needed
+app output ignore/pytest config. Preserve other legacy app consumers.
 **Specification:** `SPEC-image_classification_v2.md` in this initiative, exact reviewed OID above.
 **Acceptance:**
 - Complete local structure, CLI/Make, selected deployment, real workload-only
   tuning and report/artifact contract from specification; no forbidden imports.
 - Retire old app runtime/run/model_pipeline/graph modules and old contract tests
   only after meaningful replacement coverage; migrate affected callers now.
+  Remove this app from old registry/shared-test parameter sets and reroute its
+  shared compute/schedule/measurement/tuning checks to app-owned equivalent
+  coverage. If a shared test fixture currently uses this app as its example,
+  select a still-legacy app with the same tested contract or retire that test
+  only when its meaningful contract is already covered by migrated local tests.
+  Do not retarget old-contract tests at the new incompatible implementation.
+  Preserve remaining legacy contracts until their consumers migrate.
 - README includes this app's independently executable manual acceptance set,
   prerequisites/options/expected results for every implemented feature,
   positive supported flow and truthful unsupported paths.
 **Verification:** all common execution/verification gates above for this app;
 run pinned pytest `vta/apps/mlperf_tiny_benchmark/image_classification_v2/tests`, documented
 CLI/Make runtime/tuning commands with bounded occurrence, and affected caller
-validation. Model-specific shape/dtype/topology/preprocessing tests must pass.
+validation. Run the full remaining `vta/apps/common/tests` and benchmark-root
+registry tests under pinned FSIM, plus relevant TSIM shared measurement checks,
+after changes; every retained shared test must pass. Run script cleanup tests,
+`bash -n scripts/test_vta_byoc.sh`, and check runner tests/commands contain no
+removed app references. Model shape/dtype/topology/preprocessing tests pass.
 **Scope:** one coherent full interface migration, larger than five files.
 **Checkpoint GREEN:** task committed, exact evidence/map returned, clean state,
 reference diff empty; unrelated apps and still-used shared consumers intact.
@@ -76,21 +91,36 @@ reference diff empty; unrelated apps and still-used shared consumers intact.
 **Dependencies:** previous checkpoint must be GREEN; no app runtime dependency.
 **Owned paths:** `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/` (all application
 implementation/tests/README; model/sample/license bytes must remain unchanged),
-only this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
-and benchmark index README; narrow needed app output ignore/pytest config.
+this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
+and benchmark index README; this app's consumer/parametrization/fixture blocks
+in `vta/apps/common/tests/` (deployment_compute, measurement, schedule_artifacts,
+schedule_migration, tuning_controller and any further affected shared tests),
+benchmark-root model_registry.py/tests registration for this app; narrow needed
+app output ignore/pytest config. Preserve other legacy app consumers.
 **Specification:** `SPEC-visual_wake_words_v1.md` in this initiative, exact reviewed OID above.
 **Acceptance:**
 - Complete local structure, CLI/Make, selected deployment, real workload-only
   tuning and report/artifact contract from specification; no forbidden imports.
 - Retire old app runtime/run/model_pipeline/graph modules and old contract tests
   only after meaningful replacement coverage; migrate affected callers now.
+  Remove this app from old registry/shared-test parameter sets and reroute its
+  shared compute/schedule/measurement/tuning checks to app-owned equivalent
+  coverage. If a shared test fixture currently uses this app as its example,
+  select a still-legacy app with the same tested contract or retire that test
+  only when its meaningful contract is already covered by migrated local tests.
+  Do not retarget old-contract tests at the new incompatible implementation.
+  Preserve remaining legacy contracts until their consumers migrate.
 - README includes this app's independently executable manual acceptance set,
   prerequisites/options/expected results for every implemented feature,
   positive supported flow and truthful unsupported paths.
 **Verification:** all common execution/verification gates above for this app;
 run pinned pytest `vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests`, documented
 CLI/Make runtime/tuning commands with bounded occurrence, and affected caller
-validation. Model-specific shape/dtype/topology/preprocessing tests must pass.
+validation. Run the full remaining `vta/apps/common/tests` and benchmark-root
+registry tests under pinned FSIM, plus relevant TSIM shared measurement checks,
+after changes; every retained shared test must pass. Run script cleanup tests,
+`bash -n scripts/test_vta_byoc.sh`, and check runner tests/commands contain no
+removed app references. Model shape/dtype/topology/preprocessing tests pass.
 **Scope:** one coherent full interface migration, larger than five files.
 **Checkpoint GREEN:** task committed, exact evidence/map returned, clean state,
 reference diff empty; unrelated apps and still-used shared consumers intact.
@@ -102,14 +132,25 @@ reference diff empty; unrelated apps and still-used shared consumers intact.
 **Dependencies:** previous checkpoint must be GREEN; no app runtime dependency.
 **Owned paths:** `vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/` (all application
 implementation/tests/README; model/sample/license bytes must remain unchanged),
-only this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
-and benchmark index README; narrow needed app output ignore/pytest config.
+this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
+and benchmark index README; this app's consumer/parametrization/fixture blocks
+in `vta/apps/common/tests/` (deployment_compute, measurement, schedule_artifacts,
+schedule_migration, tuning_controller and any further affected shared tests),
+benchmark-root model_registry.py/tests registration for this app; narrow needed
+app output ignore/pytest config. Preserve other legacy app consumers.
 **Specification:** `SPEC-keyword_spotting_v1.md` in this initiative, exact reviewed OID above.
 **Acceptance:**
 - Complete local structure, CLI/Make, selected deployment, real workload-only
   tuning and report/artifact contract from specification; no forbidden imports.
 - Retire old app runtime/run/model_pipeline/graph modules and old contract tests
   only after meaningful replacement coverage; migrate affected callers now.
+  Remove this app from old registry/shared-test parameter sets and reroute its
+  shared compute/schedule/measurement/tuning checks to app-owned equivalent
+  coverage. If a shared test fixture currently uses this app as its example,
+  select a still-legacy app with the same tested contract or retire that test
+  only when its meaningful contract is already covered by migrated local tests.
+  Do not retarget old-contract tests at the new incompatible implementation.
+  Preserve remaining legacy contracts until their consumers migrate.
 - README includes this app's independently executable manual acceptance set,
   prerequisites/options/expected results for every implemented feature,
   positive supported flow and truthful unsupported paths.
@@ -120,7 +161,11 @@ and benchmark index README; narrow needed app output ignore/pytest config.
 **Verification:** all common execution/verification gates above for this app;
 run pinned pytest `vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests`, documented
 CLI/Make runtime/tuning commands with bounded occurrence, and affected caller
-validation. Model-specific shape/dtype/topology/preprocessing tests must pass.
+validation. Run the full remaining `vta/apps/common/tests` and benchmark-root
+registry tests under pinned FSIM, plus relevant TSIM shared measurement checks,
+after changes; every retained shared test must pass. Run script cleanup tests,
+`bash -n scripts/test_vta_byoc.sh`, and check runner tests/commands contain no
+removed app references. Model shape/dtype/topology/preprocessing tests pass.
 **Scope:** one coherent full interface migration, larger than five files.
 **Checkpoint GREEN:** task committed, exact evidence/map returned, clean state,
 reference diff empty; unrelated apps and still-used shared consumers intact.
@@ -132,14 +177,25 @@ reference diff empty; unrelated apps and still-used shared consumers intact.
 **Dependencies:** previous checkpoint must be GREEN; no app runtime dependency.
 **Owned paths:** `vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/` (all application
 implementation/tests/README; model/sample/license bytes must remain unchanged),
-only this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
-and benchmark index README; narrow needed app output ignore/pytest config.
+this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
+and benchmark index README; this app's consumer/parametrization/fixture blocks
+in `vta/apps/common/tests/` (deployment_compute, measurement, schedule_artifacts,
+schedule_migration, tuning_controller and any further affected shared tests),
+benchmark-root model_registry.py/tests registration for this app; narrow needed
+app output ignore/pytest config. Preserve other legacy app consumers.
 **Specification:** `SPEC-anomaly_detection_v1.md` in this initiative, exact reviewed OID above.
 **Acceptance:**
 - Complete local structure, CLI/Make, selected deployment, real workload-only
   tuning and report/artifact contract from specification; no forbidden imports.
 - Retire old app runtime/run/model_pipeline/graph modules and old contract tests
   only after meaningful replacement coverage; migrate affected callers now.
+  Remove this app from old registry/shared-test parameter sets and reroute its
+  shared compute/schedule/measurement/tuning checks to app-owned equivalent
+  coverage. If a shared test fixture currently uses this app as its example,
+  select a still-legacy app with the same tested contract or retire that test
+  only when its meaningful contract is already covered by migrated local tests.
+  Do not retarget old-contract tests at the new incompatible implementation.
+  Preserve remaining legacy contracts until their consumers migrate.
 - README includes this app's independently executable manual acceptance set,
   prerequisites/options/expected results for every implemented feature,
   positive supported flow and truthful unsupported paths.
@@ -149,7 +205,11 @@ and benchmark index README; narrow needed app output ignore/pytest config.
 **Verification:** all common execution/verification gates above for this app;
 run pinned pytest `vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/tests`, documented
 CLI/Make runtime/tuning commands with bounded occurrence, and affected caller
-validation. Model-specific shape/dtype/topology/preprocessing tests must pass.
+validation. Run the full remaining `vta/apps/common/tests` and benchmark-root
+registry tests under pinned FSIM, plus relevant TSIM shared measurement checks,
+after changes; every retained shared test must pass. Run script cleanup tests,
+`bash -n scripts/test_vta_byoc.sh`, and check runner tests/commands contain no
+removed app references. Model shape/dtype/topology/preprocessing tests pass.
 **Scope:** one coherent full interface migration, larger than five files.
 **Checkpoint GREEN:** task committed, exact evidence/map returned, clean state,
 reference diff empty; unrelated apps and still-used shared consumers intact.
@@ -161,14 +221,25 @@ reference diff empty; unrelated apps and still-used shared consumers intact.
 **Dependencies:** previous checkpoint must be GREEN; no app runtime dependency.
 **Owned paths:** `vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/` (all application
 implementation/tests/README; model/sample/license bytes must remain unchanged),
-only this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
-and benchmark index README; narrow needed app output ignore/pytest config.
+this app's caller blocks in `scripts/test_vta_byoc.sh`, `scripts/README.md`
+and benchmark index README; this app's consumer/parametrization/fixture blocks
+in `vta/apps/common/tests/` (deployment_compute, measurement, schedule_artifacts,
+schedule_migration, tuning_controller and any further affected shared tests),
+benchmark-root model_registry.py/tests registration for this app; narrow needed
+app output ignore/pytest config. Preserve other legacy app consumers.
 **Specification:** `SPEC-streaming_wakeword_v1.md` in this initiative, exact reviewed OID above.
 **Acceptance:**
 - Complete local structure, CLI/Make, selected deployment, real workload-only
   tuning and report/artifact contract from specification; no forbidden imports.
 - Retire old app runtime/run/model_pipeline/graph modules and old contract tests
   only after meaningful replacement coverage; migrate affected callers now.
+  Remove this app from old registry/shared-test parameter sets and reroute its
+  shared compute/schedule/measurement/tuning checks to app-owned equivalent
+  coverage. If a shared test fixture currently uses this app as its example,
+  select a still-legacy app with the same tested contract or retire that test
+  only when its meaningful contract is already covered by migrated local tests.
+  Do not retarget old-contract tests at the new incompatible implementation.
+  Preserve remaining legacy contracts until their consumers migrate.
 - README includes this app's independently executable manual acceptance set,
   prerequisites/options/expected results for every implemented feature,
   positive supported flow and truthful unsupported paths.
@@ -179,7 +250,11 @@ and benchmark index README; narrow needed app output ignore/pytest config.
 **Verification:** all common execution/verification gates above for this app;
 run pinned pytest `vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/tests`, documented
 CLI/Make runtime/tuning commands with bounded occurrence, and affected caller
-validation. Model-specific shape/dtype/topology/preprocessing tests must pass.
+validation. Run the full remaining `vta/apps/common/tests` and benchmark-root
+registry tests under pinned FSIM, plus relevant TSIM shared measurement checks,
+after changes; every retained shared test must pass. Run script cleanup tests,
+`bash -n scripts/test_vta_byoc.sh`, and check runner tests/commands contain no
+removed app references. Model shape/dtype/topology/preprocessing tests pass.
 **Scope:** one coherent full interface migration, larger than five files.
 **Checkpoint GREEN:** task committed, exact evidence/map returned, clean state,
 reference diff empty; unrelated apps and still-used shared consumers intact.
