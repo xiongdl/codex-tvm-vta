@@ -127,7 +127,14 @@ not fake successful tuning. Tests must exercise process isolation, metadata
 validation/tamper rejection, CLI boundary errors, real activation roundtrip,
 one bounded occurrence FSIM/TSIM/replay with output agreement and strict under
 10% layer measurement alignment, and Make ordering/quoted paths/safe cleanup.
-Functional equality to prepared CPU graph is a correctness check, not accuracy.
+For int8 models, separately execute the imported QNN graph and the prepared
+CPU graph on the committed inputs and assert exact int8 output equality.
+Preserve scalar and per-axis fixed-point multiplication (multiplier, shift and
+axis semantics), zero-point subtraction and output additions. Existing
+_VTAReadyMutator rewrites may be reused only with established equivalence;
+otherwise remove them and keep the original arithmetic on CPU. Derive actual
+VTA coverage only after semantic-preserving preparation. Equality between
+prepared CPU and VTA is a separate correctness check, not accuracy.
 Do not require full configuration-space search or dataset accuracy evaluation.
 
 ## Manual Acceptance and documentation
@@ -158,5 +165,8 @@ model_pipeline.py injects `_attach_vta_activity_probe` because per-axis
 requantization is unsupported by the scalar-shift VTA composite. A pinned
 environment experiment on 2026-10-05 imports the committed model, normalizes
 it, calls partition_for_vta without the probe and observes zero VTA functions.
-This app therefore has the truthful zero-coverage fallback/negative tuning
-path above with current compiler support; no compiler expansion is in scope.
+That experiment is evidence only for the old normalized graph, not proof
+that its arithmetic matches the original QNN graph. Independently validate
+semantic-preserving canonicalization against imported QNN outputs and derive
+coverage afterward. If there are no real supported functions, use the truthful
+zero-coverage fallback/negative tuning path; no compiler expansion is in scope.

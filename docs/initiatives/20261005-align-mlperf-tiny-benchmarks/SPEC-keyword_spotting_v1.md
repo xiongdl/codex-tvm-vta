@@ -4,7 +4,7 @@
 Owns `vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/`. Migrate this model to the
 read-only reference deployment template for the confirmed workflow goal.
 Default model: `model/kws_ref_model.tflite`. Default input: `samples/down-00176480_nohash_0.wav`.
-Input/preparation: int8 (1,49,10,1); preserve deterministic WAV/MFCC preprocessing, original scales/zero points and existing semantic normalization.
+Input/preparation: int8 (1,49,10,1); preserve deterministic WAV/MFCC preprocessing, original scales/zero points and semantic-preserving QNN canonicalization.
 Observable result: 12-class keyword label/index and raw int8 scores. Accept a custom model matching the supported
 tensor/operator topology; default asset hashes remain provenance, not a blanket
 custom-path rejection. Invalid shape/dtype/audio/image fails before compile.
@@ -127,7 +127,14 @@ not fake successful tuning. Tests must exercise process isolation, metadata
 validation/tamper rejection, CLI boundary errors, real activation roundtrip,
 one bounded occurrence FSIM/TSIM/replay with output agreement and strict under
 10% layer measurement alignment, and Make ordering/quoted paths/safe cleanup.
-Functional equality to prepared CPU graph is a correctness check, not accuracy.
+For int8 models, separately execute the imported QNN graph and the prepared
+CPU graph on the committed inputs and assert exact int8 output equality.
+Preserve scalar and per-axis fixed-point multiplication (multiplier, shift and
+axis semantics), zero-point subtraction and output additions. Existing
+_VTAReadyMutator rewrites may be reused only with established equivalence;
+otherwise remove them and keep the original arithmetic on CPU. Derive actual
+VTA coverage only after semantic-preserving preparation. Equality between
+prepared CPU and VTA is a separate correctness check, not accuracy.
 Do not require full configuration-space search or dataset accuracy evaluation.
 
 ## Manual Acceptance and documentation
