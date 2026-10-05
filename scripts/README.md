@@ -163,6 +163,9 @@ config, Git, and `rg`. It runs structural BYOC tests; FSIM and TSIM gates;
 the standalone MLPerf Tiny ResNet V1 and V2 deployment checks, including V2's
 complete app suite and CPU/FSIM/TSIM host-codegen matrix; anomaly detection
 V1's full local deployment/tuning suite and CPU/FSIM/TSIM host-codegen matrix;
+streaming wakeword V1's complete app suite and CPU/FSIM/TSIM host-codegen
+matrix (its VTA targets take the CPU fallback because the exact int8 graph
+produces no real VTA partitions);
 Python compilation; retired-reference checks; and scoped repository checks.
 Compilation may create ignored Python bytecode caches.
 
@@ -265,6 +268,33 @@ int8 QNN arithmetic is preserved exactly. The current partitioner yields no
 real VTA workloads, so requested VTA targets run the CPU fallback and report
 zero coverage; export, schedule replay, and tuning stop without producing a
 synthetic workload or winner.
+
+Streaming Wakeword V1 uses the standalone workflow documented in
+`vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/README.md`. It preserves
+the imported QNN int8 arithmetic and validates exact output equality against
+the canonicalized CPU graph on all three committed WAVs. The current
+partitioner finds no real VTA workloads, so `vta,c` and `vta,llvm` execute
+their CPU fallbacks without loading FSIM/TSIM; export, replay, and `make tune`
+stop before publishing a workload or claiming a winner. Its manual acceptance
+set covers all four selected targets, these rejection paths, report output,
+and safe cleanup.
+
+The streaming app's `Makefile` delegates `deploy`, `tune-fsim`, `tune-tsim`,
+`tune`, and `clean` to its local `scripts/make_tasks.sh`. It accepts `CONFIG`,
+`MODEL`, `INPUT`, `TARGET`, `SIMULATOR`, `PYTHON`, `SCHEDULE`, `OUTPUT_DIR`,
+`REPORT`, `EXPORT_WORKLOADS`, `WORKLOADS`, `WORKLOAD`, `TRIAL_BATCH`,
+`MIN_SUCCESSFUL`, `TIMEOUT`, `FSIM_TIMEOUT`, `TSIM_TIMEOUT`, `INPUT_LOGS`, and
+`OUTPUT_LOGS`, using the same meanings as Image classification V1. Defaults are
+the streaming int8 model, Marvin WAV, `TARGET=vta,llvm`, and `SIMULATOR=fsim`.
+CPU targets do not initialize VTA. VTA targets require an absolute `CONFIG`
+and matching simulator selection; this model reports zero actual VTA layers,
+so workload export, schedule replay, and full tuning stop before publication.
+Deployments write compiled graph bundles under `OUTPUT_DIR` and optional
+reports/workloads at their specified paths. Tuning outputs use
+`streaming_wakeword_v1/tune/<config-basename>/`. `clean` removes only local
+`build/` and Python caches and preserves persistent tune evidence and model
+assets. The app script uses the existing environment and built libraries; it
+does not install or build dependencies.
 
 Anomaly Detection V1 uses the selected-target workflow documented in
 `vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/README.md`. It preprocesses
