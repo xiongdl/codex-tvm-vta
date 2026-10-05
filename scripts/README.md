@@ -396,8 +396,8 @@ logs, and checkpoints; both categories may be selected together. `--dry-run`
 prints categorized absolute file paths and byte totals without changing files.
 Without it, the script removes only recognized, untracked files under the
 shared and model `build/` directories. Unknown files are reported and retained;
-tracked files, samples, models, saved `tune/<config-name>` schedules, and
-`tune/legacy` evidence are preserved even when untracked. Symlinked build roots
+tracked files, samples, models, and saved `tune/<config-name>` schedules are
+preserved even when untracked. Symlinked build roots
 or entries stop cleanup for safety. Removing `--tuning-runs` output discards
 ResNet V1's exported workloads and older applications' resume state. Empty
 parent directories are left in place. The script uses the project Python
