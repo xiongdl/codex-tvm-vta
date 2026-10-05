@@ -87,7 +87,7 @@ done
 
 export TVM_PATH VTA_PATH VTA_CONFIG_FILE="${config_file}"
 export VTA_BACKEND=fsim
-export PYTHONPATH="${TVM_PATH}/python:${VTA_PATH}/python:${VTA_PATH}/apps${PYTHONPATH:+:${PYTHONPATH}}"
+export PYTHONPATH="${TVM_PATH}/python:${VTA_PATH}/python:${VTA_PATH}/apps:${VTA_PATH}/apps/mlperf_tiny_benchmark${PYTHONPATH:+:${PYTHONPATH}}"
 
 echo "==> BYOC structural tests"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
@@ -100,27 +100,12 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q \
     "${VTA_PATH}/tests/python/unittest/test_byoc_codegen.py" \
     "${VTA_PATH}/tests/python/unittest/test_byoc_graphpack_retirement.py"
 
-echo "==> Retained MLPerf shared providers and cleanup contracts"
-VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
-    "${VTA_PATH}/apps/common/tests/test_artifacts.py" \
-    "${VTA_PATH}/apps/common/tests/test_deployment_evidence.py" \
-    "${VTA_PATH}/apps/common/tests/test_tuning_controller.py" \
-    "${VTA_PATH}/apps/common/tests/test_tuning.py" \
-    "${VTA_PATH}/apps/common/tests/test_measurement.py" \
+echo "==> Cleanup and MLPerf migration contracts"
+"${python_bin}" -m pytest -q --import-mode=importlib \
     "${project_dir}/scripts/tests/test_clean_mlperf_tiny.py"
-VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
-    "${VTA_PATH}/apps/common/tests/test_deployment_compute.py"
-VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
-    "${VTA_PATH}/apps/common/tests/test_schedule_artifacts.py"
-VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
-    "${VTA_PATH}/apps/common/tests/test_schedule_migration.py"
 
 echo "==> FSIM gate"
 VTA_CONFIG_FILE="${fsim_config}" "${script_dir}/test_vta_fsim.sh" --env-name "${env_name}"
-
-echo "==> MLPerf ResNet V1 HOST/FSIM gate"
-VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/tests"
 
 echo "==> MLPerf image classification V2 standalone FSIM workflow"
 VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
@@ -208,11 +193,6 @@ echo "==> TSIM gate"
 export VTA_BACKEND=tsim
 VTA_CONFIG_FILE="${tsim_config}" "${script_dir}/test_vta_tsim.sh" --env-name "${env_name}"
 
-
-echo "==> MLPerf ResNet V1 HOST/TSIM gate"
-VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/deploy.py" \
-    --target vta,llvm --simulator tsim
 
 echo "==> MLPerf VWW V1 standalone TSIM host-codegen matrix"
 for host_codegen in c llvm; do

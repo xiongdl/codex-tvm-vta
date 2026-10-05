@@ -159,91 +159,23 @@ libraries, and an absolute, existing `VTA_CONFIG_FILE`. Set
 cannot be combined.
 
 The complete BYOC gate requires FSIM, TSIM, hardware, the shared geometry
-config, Git, and `rg`. It runs structural BYOC tests; FSIM and TSIM gates;
-the standalone MLPerf Tiny ResNet V1 and V2 deployment checks, including V2's
-complete app suite and CPU/FSIM/TSIM host-codegen matrix; anomaly detection
-V1's full local deployment/tuning suite and CPU/FSIM/TSIM host-codegen matrix;
-streaming wakeword V1's complete app suite and CPU/FSIM/TSIM host-codegen
-matrix (its VTA targets take the CPU fallback because the exact int8 graph
-produces no real VTA partitions);
-Python compilation; retired-reference checks; and scoped repository checks.
-Compilation may create ignored Python bytecode caches.
+config, Git, and `rg`. It runs structural BYOC tests; FSIM and TSIM gates; all
+five standalone MLPerf Tiny application suites and selected-target matrices;
+the cleanup/migration contracts; Python compilation; retired-reference checks;
+and scoped repository checks. KWS and Streaming Wakeword VTA targets use their
+documented CPU fallback because their exact int8 graphs produce no real VTA
+partitions. Compilation may create ignored Python bytecode caches.
 
 ### MLPerf Tiny deployment schedules and tuning
 
-Image classification V1 provides a local Makefile with `deploy`, `tune-fsim`,
-`tune-tsim`, and `tune` targets. It uses the existing project Python and
-prebuilt TVM/VTA libraries; it does not install dependencies or build
-libraries. From the repository root:
+Each migrated application owns its deployment and tuning interface. The five
+standalone manuals provide independently executable acceptance commands:
 
-```bash
-APP=vta/apps/mlperf_tiny_benchmark/image_classification_v1
-make -C "$APP" deploy TARGET=llvm
-make -C "$APP" deploy TARGET=vta,c SIMULATOR=tsim \
-  REPORT=build/deployment-report.md
-make -C "$APP" deploy EXPORT_WORKLOADS=build/workloads.json
-make -C "$APP" tune-fsim WORKLOADS=build/workloads.json WORKLOAD=0 \
-  TRIAL_BATCH=1 MIN_SUCCESSFUL=1
-make -C "$APP" tune-tsim WORKLOADS=build/workloads.json \
-  INPUT_LOGS=tune/vta_64mac/fsim.tmp WORKLOAD=0
-make -C "$APP" tune
-```
-
-The application keeps its public Python entry points at the app root: `deploy.py`
-for deployment and `tune.py` for the FSIM/TSIM command line. Implementation
-modules live under `python/`: `model.py` owns model import, quantization,
-partitioning and image input; `deployment.py` owns compilation, execution and
-reports; `vta_workload.py` owns workload capture and serialization;
-`autotvm_dispatch.py` binds per-occurrence configurations; `tuning.py` owns
-search, measurement orchestration and candidate-log rules; `measurement.py`
-owns isolated candidate processes; `schedule_io.py` owns schedule snapshots;
-`tuning_storage.py` owns atomic tuning-file publication; and
-`graph_artifacts.py` owns compiled bundles.
-
-`image_classification_v1/scripts/make_tasks.sh` is the maintained shell
-orchestrator called by the app Makefile. Its positional action is `deploy`,
-`tune-fsim`, `tune-tsim`, or `tune`; its inputs are the Make variables
-documented below (`CONFIG`, `MODEL`, `INPUT`, `TARGET`, `SIMULATOR`, `PYTHON`,
-`SCHEDULE`, `OUTPUT_DIR`, `REPORT`, `EXPORT_WORKLOADS`, `WORKLOADS`,
-`WORKLOAD`, `TRIAL_BATCH`, `MIN_SUCCESSFUL`, `TIMEOUT`, `FSIM_TIMEOUT`,
-`TSIM_TIMEOUT`, `INPUT_LOGS`, and `OUTPUT_LOGS`). It requires the existing
-project Python, initialized TVM/VTA checkouts and prebuilt libraries; VTA
-actions also require a geometry config and the selected simulator library. It
-sets `PYTHONPATH`, `VTA_CONFIG_FILE`, and the matching `VTA_BACKEND` for each
-child process. Deployment writes bundles and optional reports/workloads under
-`OUTPUT_DIR` or the requested paths. Tuning writes schedules and metadata under
-`image_classification_v1/tune/<config-basename>/`; the full `tune` action also
-writes ignored intermediates under `OUTPUT_DIR`. It does not install packages or
-build libraries. Invoke it with one of its four actions; normal use is through
-`make -C "$APP" <target>`.
-
-The app's `make clean` action removes only its local `build/`, Python
-`__pycache__/` directories, and `.pyc`/`.pyo` files. It preserves `tune/`,
-`model/`, and `samples/`; custom `OUTPUT_DIR` paths outside the application are
-not removed. It needs no project runtime, TVM/VTA libraries, config, or model,
-and repeated runs succeed. Cache traversal does not follow directory symlinks;
-a `build/` symlink is unlinked while its external target stays intact.
-
-The defaults are the float ResNet-8 model and first sample, `TARGET=vta,llvm`,
-`SIMULATOR=fsim`, and `CONFIG=vta/config/vta_64mac.json`. Deployment also
-accepts `MODEL`, `INPUT`, `SCHEDULE`, `OUTPUT_DIR`, `REPORT`, and
-`EXPORT_WORKLOADS`. Split tuning requires `WORKLOADS`; TSIM also requires
-`INPUT_LOGS`. `WORKLOAD=-1` selects all VTA occurrences. FSIM accepts
-`TRIAL_BATCH`, `MIN_SUCCESSFUL`, and `TIMEOUT`; full `tune` accepts separate
-`FSIM_TIMEOUT` and `TSIM_TIMEOUT` plus `OUTPUT_DIR` for ignored build
-intermediates. The full target exports workloads when `WORKLOADS` is omitted,
-then runs FSIM and TSIM in order; it stops at the best schedule and does not
-deploy it automatically.
-
-`CONFIG` selects both `VTA_CONFIG_FILE` and the saved schedule directory
-`image_classification_v1/tune/<config-basename>/`. The directory contains an
-exact `config.json` snapshot, `config.sha256`, grouped FSIM candidates in
-`fsim.tmp` with `fsim.json`, and the TSIM-selected `best.log` with
-`best.json`. These files are tracked deliverables; Make does not commit them.
-The generated workloads and deployment bundles live under ignored `build/`.
-Explicit relative paths are resolved from Make's working directory, including
-when using `make -C`. See the app README for the direct Python CLI and report
-details.
+- [Image classification V2](../vta/apps/mlperf_tiny_benchmark/image_classification_v2/README.md)
+- [Visual Wake Words V1](../vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/README.md)
+- [Keyword Spotting V1](../vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/README.md)
+- [Anomaly Detection V1](../vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/README.md)
+- [Streaming Wakeword V1](../vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/README.md)
 
 Image classification V2 has the same local `Makefile` entry points and the
 same variables, with its large float model and first sample as defaults. Its
@@ -301,31 +233,6 @@ Anomaly Detection V1 uses the selected-target workflow documented in
 one WAV and executes the first feature vector once. The current topology has
 nine real VTA partitions; its README gives the complete workload export,
 bounded FSIM/TSIM tuning, replay, report, and cleanup acceptance commands.
-
-#### Clean generated files
-
-The maintained `clean_mlperf_tiny.py` script classifies generated build output
-before removal. Start with a dry run:
-
-```bash
-.envs/tvm-vta-env/bin/python scripts/clean_mlperf_tiny.py \
-  --model all --cache --tuning-runs --dry-run
-```
-
-`--model` accepts one model ID or `all`. At least one category is required:
-`--cache` for recognized compiler/debug outputs and `--tuning-runs` for search
-ledgers, logs, and checkpoints. Remove `--dry-run` to delete only recognized,
-untracked files. Unknown files, tracked files, saved schedules, models,
-samples, and evidence are retained. Saved `tune/<config-name>`
-schedules remain outside the cleaner's build roots and are preserved even when
-untracked. The cleaner recognizes the ResNet V1 `build/tune/workloads.json`
-snapshot and `build/tune/deploy` bundle as generated intermediates. Removing
-tuning runs discards those workloads and the other applications' resume state.
-The cleaner does not run a simulator.
-
-Visual Wake Words V1 owns a standalone `make clean` target. Use the application
-README for its local cleanup command; the legacy cleaner no longer classifies
-or removes VWW build output.
 
 ### `extract_mlperf_resnet_samples.py`
 
@@ -386,25 +293,19 @@ library, has no model or TVM dependency, and never runs a simulator.
 ### `clean_mlperf_tiny.py`
 
 ```bash
-VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
-PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps" \
-  ./.envs/tvm-vta-env/bin/python scripts/clean_mlperf_tiny.py \
-  --model all --cache --dry-run
+.envs/tvm-vta-env/bin/python scripts/clean_mlperf_tiny.py \
+  --model all --dry-run
 ```
 
-`--model` is required and accepts one of the six MLPerf Tiny model directory
-IDs or `all`. At least one category is required: `--cache` selects known
-compiler/debug outputs and `--tuning-runs` selects generated search ledgers,
-logs, and checkpoints; both categories may be selected together. `--dry-run`
-prints categorized absolute file paths and byte totals without changing files.
-Without it, the script removes only recognized, untracked files under the
-shared and model `build/` directories. Unknown files are reported and retained;
-tracked files, samples, models, and saved `tune/<config-name>` schedules are
-preserved even when untracked. Symlinked build roots
-or entries stop cleanup for safety. Removing `--tuning-runs` output discards
-ResNet V1's exported workloads and older applications' resume state. Empty
-parent directories are left in place. The script uses the project Python
-environment and initialized VTA submodule; it does not run a simulator.
+`--model` accepts one of the five migrated application IDs or `all`; `all`
+selects only those five applications. `--dry-run` lists recognized generated
+files and byte totals without changing files. Without it, the script removes
+only recognized, untracked outputs inside each selected application's local
+`build/` directory. Unknown and tracked files, model/sample/license assets,
+and saved `tune/<config-name>` schedules are retained. A symlink in a selected
+build tree blocks the entire cleanup operation, and traversal never follows
+external symlink targets. The script requires the initialized VTA submodule
+for Git's tracked-file inventory and does not run a simulator.
 
 ## Environment overrides
 
@@ -420,8 +321,10 @@ environment and initialized VTA submodule; it does not run a simulator.
 | `JAVA_HOME` | VTA hardware build | `<env>/lib/jvm`; must contain `bin/java` |
 | `CXX` | VTA hardware build | Apple `clang++` on macOS; `c++` elsewhere |
 
-Test scripts prepend `<TVM_PATH>/python` and `<VTA_PATH>/python` to an existing
-`PYTHONPATH`. `build_tvm_lib_macos.sh` accepts no path overrides.
+Test scripts prepend `<TVM_PATH>/python`, `<VTA_PATH>/python`, and
+`<VTA_PATH>/apps` to an existing `PYTHONPATH`. The BYOC runner also adds the
+benchmark directory so spawned app test workers can import their test package.
+`build_tvm_lib_macos.sh` accepts no path overrides.
 
 Use the narrowest script that proves the requested behavior. Build TVM before
 VTA, and build each required library before its tests. Update this file when a
