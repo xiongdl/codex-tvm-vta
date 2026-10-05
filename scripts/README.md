@@ -192,6 +192,34 @@ make -C "$APP" tune-tsim WORKLOADS=build/workloads.json \
 make -C "$APP" tune
 ```
 
+The application keeps its public Python entry points at the app root: `deploy.py`
+for deployment and `tune.py` for the FSIM/TSIM command line. Implementation
+modules live under `python/`: `model.py` owns model import, quantization,
+partitioning and image input; `deployment.py` owns compilation, execution and
+reports; `vta_workload.py` owns workload capture and serialization;
+`autotvm_dispatch.py` binds per-occurrence configurations; `tuning.py` owns
+search, measurement orchestration and candidate-log rules; `measurement.py`
+owns isolated candidate processes; `schedule_io.py` owns schedule snapshots;
+`tuning_storage.py` owns atomic tuning-file publication; and
+`graph_artifacts.py` owns compiled bundles.
+
+`image_classification_v1/scripts/make_tasks.sh` is the maintained shell
+orchestrator called by the app Makefile. Its positional action is `deploy`,
+`tune-fsim`, `tune-tsim`, or `tune`; its inputs are the Make variables
+documented below (`CONFIG`, `MODEL`, `INPUT`, `TARGET`, `SIMULATOR`, `PYTHON`,
+`SCHEDULE`, `OUTPUT_DIR`, `REPORT`, `EXPORT_WORKLOADS`, `WORKLOADS`,
+`WORKLOAD`, `TRIAL_BATCH`, `MIN_SUCCESSFUL`, `TIMEOUT`, `FSIM_TIMEOUT`,
+`TSIM_TIMEOUT`, `INPUT_LOGS`, and `OUTPUT_LOGS`). It requires the existing
+project Python, initialized TVM/VTA checkouts and prebuilt libraries; VTA
+actions also require a geometry config and the selected simulator library. It
+sets `PYTHONPATH`, `VTA_CONFIG_FILE`, and the matching `VTA_BACKEND` for each
+child process. Deployment writes bundles and optional reports/workloads under
+`OUTPUT_DIR` or the requested paths. Tuning writes schedules and metadata under
+`image_classification_v1/tune/<config-basename>/`; the full `tune` action also
+writes ignored intermediates under `OUTPUT_DIR`. It does not install packages or
+build libraries. Invoke it with one of its four actions; normal use is through
+`make -C "$APP" <target>`.
+
 The defaults are the float ResNet-8 model and first sample, `TARGET=vta,llvm`,
 `SIMULATOR=fsim`, and `CONFIG=vta/config/vta_64mac.json`. Deployment also
 accepts `MODEL`, `INPUT`, `SCHEDULE`, `OUTPUT_DIR`, `REPORT`, and
@@ -293,7 +321,7 @@ VTA_BACKEND=fsim ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune.py" \
 A successful search writes `best.log` and same-stem metadata. Explicit exports
 require `--resume-manifest` and `--output-log PATH`; choose `--export-candidate CANDIDATE` with `--workload-index OCCURRENCE` for one ledger candidate, or `--export-best` for
 best successful TSIM candidates. Either export is a regular schedule snapshot
-for `run.py --schedule PATH`; candidate exports can cover just one occurrence.
+for `deploy.py --schedule PATH`; candidate exports can cover just one occurrence.
 Metadata preserves provenance and measured/unmeasured status.
 
 Compatible historical complete-fusion manifests can be migrated through

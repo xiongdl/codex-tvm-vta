@@ -189,7 +189,7 @@ VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q --import-mode=impo
 
 echo "==> MLPerf ResNet V1 HOST/TSIM gate"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/run.py" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v1/deploy.py" \
     --target vta,llvm --simulator tsim
 
 echo "==> MLPerf VWW V1 HOST/TSIM gate"
