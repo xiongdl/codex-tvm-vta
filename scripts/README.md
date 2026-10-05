@@ -258,91 +258,12 @@ separate `python/` implementation and `scripts/make_tasks.sh`. CPU targets
 export rejects zero real VTA coverage, and `make clean` preserves model,
 samples, licenses, and persistent tuning evidence.
 
-The four remaining MLPerf Tiny applications still use their existing direct
-Python interfaces. Use the existing `.envs/tvm-vta-env`, initialized TVM/VTA
-submodules, built libraries, and the same geometry in each process. Runner
-`--simulator` must match `VTA_BACKEND`:
-
-```bash
-export VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json"
-export PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps"
-
-VTA_BACKEND=tsim ./.envs/tvm-vta-env/bin/python \
-  vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/run.py \
-  --simulator tsim --host-codegen llvm --schedule none
-```
-
-For those applications, omitting `--schedule` or passing `none` uses the
-default schedule. `--schedule PATH` loads a native AutoTVM `.log` plus the
-same-stem `.json` metadata. Their metadata validates model, prepared
-computation, geometry, occurrences, workload/configuration identities, and
-native record hashes. Partial snapshots use defaults for uncovered occurrences.
-Their deployment reports can include schedule provenance and TSIM evidence.
-
-#### Seed and alignment gate for the other applications
-
-Search measures real prepared deployment occurrences. First measure and export
-the normal default configuration as a full seed snapshot on TSIM. Deploy it
-with the one-sample performance check and all committed correctness samples to
-produce the alignment report required by search:
-
-```bash
-MODEL=visual_wake_words_v1
-MODEL_DIR="vta/apps/mlperf_tiny_benchmark/$MODEL"
-
-VTA_BACKEND=tsim ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune.py" --seed --all
-VTA_BACKEND=tsim ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/run.py" \
-  --simulator tsim \
-  --schedule "$MODEL_DIR/build/actual_compute_tuning/seed/seed.log" \
-  --validate-schedule-evidence \
-  --deployment-report "$MODEL_DIR/build/actual_compute_tuning/seed/deployment.json"
-```
-
-Seed log and same-stem metadata are written under
-`<model>/build/actual_compute_tuning/seed/`. Seed records identify defaults;
-their measured TSIM evidence uses one counted call after an excluded warmup,
-`tsim_single_call_v1`, in cycles. The alignment gate requires the complete
-layer set and enforces the strict per-layer deployment-to-measurement cycle
-bound before search starts.
-
-#### Search, resume, and export for the other applications
-
-Search runs FSIM candidates and measures successful candidates on TSIM in
-isolated workers. Defaults are 100 distinct candidates per batch, a quota of
-20 successful candidates per occurrence, and timeouts of 60 seconds on FSIM
-and 120 seconds on TSIM. Search stops at the quota or when the valid schedule
-space is exhausted. `--workload-index N` selects an occurrence;
-`--max-workloads N` bounds the selected occurrence count. Search state,
-measurement records, failures, and `resume-manifest.json` are stored under
-`<model>/build/actual_compute_tuning/<run-id>/`. Bounded searches are reported
-as incomplete. Search requires the passing seed alignment report:
-
-```bash
-VTA_BACKEND=fsim ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune.py" \
-  --all --alignment-report "$MODEL_DIR/build/actual_compute_tuning/seed/deployment.json"
-```
-
-Resume with the saved manifest and the same seed/report, model, geometry,
-compute, occurrence selection, timeouts, and search options:
-
-```bash
-VTA_BACKEND=fsim ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune.py" \
-  --all --alignment-report "$MODEL_DIR/build/actual_compute_tuning/seed/deployment.json" \
-  --resume-manifest "$MODEL_DIR/build/actual_compute_tuning/<run-id>/resume-manifest.json"
-```
-
-A successful search writes `best.log` and same-stem metadata. Explicit exports
-require `--resume-manifest` and `--output-log PATH`; choose `--export-candidate CANDIDATE` with `--workload-index OCCURRENCE` for one ledger candidate, or `--export-best` for
-best successful TSIM candidates. Either export is a regular schedule snapshot
-for `deploy.py --schedule PATH`; candidate exports can cover just one occurrence.
-Metadata preserves provenance and measured/unmeasured status.
-
-Compatible historical complete-fusion manifests can be migrated through
-`common.schedule.migrate_legacy_full_fusion` against the actual prepared
-computation. It checks model, geometry, occurrence and compute identity,
-configuration validity, native record integrity, and the historical TSIM
-single-call protocol. It rejects incomplete/incompatible artifacts and creates
-no measurements. This is a migration helper, not a second deployment flow.
+Visual Wake Words V1 now uses the standalone workflow documented in
+`vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/README.md`. It follows the
+same four-target deployment contract as Image classification V2, with a local
+96×96 RGB preprocessing and model-specific workload identity. Its Makefile
+sets FSIM or TSIM per stage; do not set `VTA_BACKEND` to a different simulator
+than `SIMULATOR`.
 
 #### Clean generated files
 
@@ -364,6 +285,10 @@ untracked. The cleaner recognizes the ResNet V1 `build/tune/workloads.json`
 snapshot and `build/tune/deploy` bundle as generated intermediates. Removing
 tuning runs discards those workloads and the other applications' resume state.
 The cleaner does not run a simulator.
+
+Visual Wake Words V1 owns a standalone `make clean` target. Use the application
+README for its local cleanup command; the legacy cleaner no longer classifies
+or removes VWW build output.
 
 ### `extract_mlperf_resnet_samples.py`
 
