@@ -20,3 +20,6 @@ Depends on Task 1.
 
 ### Checkpoint verification
 Both tasks GREEN, exact per-task OID maps recorded; final managed repositories clean. No uncommitted generated outputs. Return verification evidence and known runtime limitations for complete Implementation Review.
+
+## Required smoke isolation procedure
+For real combined `make tune`, OUTPUT_LOGS does not override tune/<CONFIG stem>. Create a collision-checked unique config file in /private/tmp with byte-identical geometry to vta/config/vta_64mac.json, using a unique basename (for example ic-cleanup-smoke-<unique>.json). Confirm application tune/<unique stem> does not exist before running; use that absolute CONFIG and matching VTA_CONFIG_FILE for deployment/workload export and both tuning stages. Set OUTPUT_DIR and WORKLOADS to a temporary directory. Snapshot hashes of every existing tune/ file before and after all smoke runs. Remove only the newly created unique tune directory and temporary config/output files afterward, even on failure; never delete or restore pre-existing tuning data. Separate stages use explicit temporary OUTPUT_LOGS. Record preservation evidence. This procedure preserves the existing full Make target contract without adding output overrides.
