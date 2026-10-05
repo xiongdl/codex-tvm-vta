@@ -129,12 +129,19 @@ VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=impo
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_graph_artifacts.py" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/tests/test_host_deployment.py"
 
-echo "==> MLPerf ResNet V2 HOST/FSIM gate"
-VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_assets.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_model_pipeline.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_graph_artifacts.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests/test_host_deployment.py"
+echo "==> MLPerf image classification V2 standalone FSIM workflow"
+VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/tests"
+echo "==> MLPerf image classification V2 CPU target matrix (no VTA environment)"
+env -u VTA_BACKEND -u VTA_CONFIG_FILE "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/deploy.py" --target c
+env -u VTA_BACKEND -u VTA_CONFIG_FILE "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/deploy.py" --target llvm
+echo "==> MLPerf image classification V2 FSIM host-codegen matrix"
+VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/deploy.py" --target vta,c --simulator fsim
+VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/deploy.py" --target vta,llvm --simulator fsim
 
 echo "==> MLPerf Keyword Spotting V1 HOST/FSIM gate (12 committed WAV samples)"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
@@ -197,10 +204,11 @@ VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/visual_wake_words_v1/run.py" \
     --simulator tsim --host-codegen all --schedule none
 
-echo "==> MLPerf ResNet V2 HOST/TSIM gate"
-VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/run.py" \
-    --simulator tsim --host-codegen all --schedule none
+echo "==> MLPerf image classification V2 TSIM host-codegen matrix"
+VTA_BACKEND=tsim VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/deploy.py" --target vta,c --simulator tsim
+VTA_BACKEND=tsim VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/deploy.py" --target vta,llvm --simulator tsim
 
 echo "==> MLPerf Keyword Spotting V1 HOST/TSIM gate (12 committed WAV samples)"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \

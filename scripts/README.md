@@ -166,10 +166,10 @@ cannot be combined.
 
 The complete BYOC gate requires FSIM, TSIM, hardware, the shared geometry
 config, Git, and `rg`. It runs structural BYOC tests; FSIM and TSIM gates;
-MLPerf Tiny ResNet V1 and V2 plus anomaly detection V1 asset, model, graph,
-HOST, FSIM,
-and HOST/TSIM coverage;
-Python compilation; retired-reference checks; and scoped repository checks.
+the standalone MLPerf Tiny ResNet V1 and V2 deployment checks, including V2's
+complete app suite and CPU/FSIM/TSIM host-codegen matrix; plus anomaly
+detection V1 asset, model, graph, HOST, FSIM, and HOST/TSIM coverage; Python
+compilation; retired-reference checks; and scoped repository checks.
 Compilation may create ignored Python bytecode caches.
 
 ### MLPerf Tiny deployment schedules and tuning
@@ -248,8 +248,18 @@ Explicit relative paths are resolved from Make's working directory, including
 when using `make -C`. See the app README for the direct Python CLI and report
 details.
 
-The other MLPerf Tiny applications still use their existing direct Python
-interfaces. Use the existing `.envs/tvm-vta-env`, initialized TVM/VTA
+Image classification V2 has the same local `Makefile` entry points and the
+same variables, with its large float model and first sample as defaults. Its
+workflow is documented independently in
+`vta/apps/mlperf_tiny_benchmark/image_classification_v2/README.md`; it owns a
+separate `python/` implementation and `scripts/make_tasks.sh`. CPU targets
+`c` and `llvm` need no VTA backend or geometry. VTA targets `vta,c` and
+`vta,llvm` require the matching `SIMULATOR` and absolute `CONFIG`. Workload
+export rejects zero real VTA coverage, and `make clean` preserves model,
+samples, licenses, and persistent tuning evidence.
+
+The four remaining MLPerf Tiny applications still use their existing direct
+Python interfaces. Use the existing `.envs/tvm-vta-env`, initialized TVM/VTA
 submodules, built libraries, and the same geometry in each process. Runner
 `--simulator` must match `VTA_BACKEND`:
 
@@ -257,13 +267,9 @@ submodules, built libraries, and the same geometry in each process. Runner
 export VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json"
 export PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/vta/apps"
 
-VTA_BACKEND=fsim ./.envs/tvm-vta-env/bin/python \
-  vta/apps/mlperf_tiny_benchmark/image_classification_v2/run.py \
-  --simulator fsim
-
 VTA_BACKEND=tsim ./.envs/tvm-vta-env/bin/python \
-  vta/apps/mlperf_tiny_benchmark/image_classification_v2/run.py \
-  --simulator tsim --schedule none
+  vta/apps/mlperf_tiny_benchmark/visual_wake_words_v1/run.py \
+  --simulator tsim --host-codegen llvm --schedule none
 ```
 
 For those applications, omitting `--schedule` or passing `none` uses the
@@ -281,7 +287,7 @@ with the one-sample performance check and all committed correctness samples to
 produce the alignment report required by search:
 
 ```bash
-MODEL=image_classification_v2
+MODEL=visual_wake_words_v1
 MODEL_DIR="vta/apps/mlperf_tiny_benchmark/$MODEL"
 
 VTA_BACKEND=tsim ./.envs/tvm-vta-env/bin/python "$MODEL_DIR/tune.py" --seed --all
