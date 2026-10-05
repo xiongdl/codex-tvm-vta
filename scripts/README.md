@@ -161,9 +161,9 @@ cannot be combined.
 The complete BYOC gate requires FSIM, TSIM, hardware, the shared geometry
 config, Git, and `rg`. It runs structural BYOC tests; FSIM and TSIM gates;
 the standalone MLPerf Tiny ResNet V1 and V2 deployment checks, including V2's
-complete app suite and CPU/FSIM/TSIM host-codegen matrix; plus anomaly
-detection V1 asset, model, graph, HOST, FSIM, and HOST/TSIM coverage; Python
-compilation; retired-reference checks; and scoped repository checks.
+complete app suite and CPU/FSIM/TSIM host-codegen matrix; anomaly detection
+V1's full local deployment/tuning suite and CPU/FSIM/TSIM host-codegen matrix;
+Python compilation; retired-reference checks; and scoped repository checks.
 Compilation may create ignored Python bytecode caches.
 
 ### MLPerf Tiny deployment schedules and tuning
@@ -265,6 +265,12 @@ int8 QNN arithmetic is preserved exactly. The current partitioner yields no
 real VTA workloads, so requested VTA targets run the CPU fallback and report
 zero coverage; export, schedule replay, and tuning stop without producing a
 synthetic workload or winner.
+
+Anomaly Detection V1 uses the selected-target workflow documented in
+`vta/apps/mlperf_tiny_benchmark/anomaly_detection_v1/README.md`. It preprocesses
+one WAV and executes the first feature vector once. The current topology has
+nine real VTA partitions; its README gives the complete workload export,
+bounded FSIM/TSIM tuning, replay, report, and cleanup acceptance commands.
 
 #### Clean generated files
 
