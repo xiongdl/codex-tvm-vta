@@ -6,6 +6,10 @@ SCRIPT_DIR="$(
     pwd
 )"
 CUSTOM_DIR="$(dirname "$SCRIPT_DIR")"
+PROJECT_ROOT="$(
+    cd "$CUSTOM_DIR/../.."
+    pwd
+)"
 
 require_text() {
     local file="$1"
@@ -13,26 +17,54 @@ require_text() {
 
     grep -F -- "$expected" "$file" >/dev/null || {
         printf 'FAIL missing-text file=%s text=%s\n' \
-            "${file#"$CUSTOM_DIR"/}" \
+            "${file#"$PROJECT_ROOT"/}" \
             "$expected" >&2
         exit 1
     }
+}
+
+reject_text() {
+    local file="$1"
+    local unexpected="$2"
+
+    if grep -F -- "$unexpected" "$file" >/dev/null; then
+        printf 'FAIL unexpected-text file=%s text=%s\n' \
+            "${file#"$PROJECT_ROOT"/}" \
+            "$unexpected" >&2
+        exit 1
+    fi
 }
 
 ROOT="$CUSTOM_DIR/root.md"
 DEFAULT="$CUSTOM_DIR/default.md"
 ARCH_REVIEWER="$CUSTOM_DIR/architecture-reviewer.md"
 IMPL_REVIEWER="$CUSTOM_DIR/implementation-reviewer.md"
+ARCH_TOML="$PROJECT_ROOT/.codex/agents/architecture-reviewer.toml"
+DEFAULT_TOML="$PROJECT_ROOT/.codex/agents/default.toml"
+IMPL_TOML="$PROJECT_ROOT/.codex/agents/implementation-reviewer.toml"
 
+# Basic role wiring and lifecycle vocabulary.
 require_text "$ROOT" 'skills/interview-me/SKILL.md'
 require_text "$ROOT" 'skills/spec-driven-development/SKILL.md'
 require_text "$ROOT" 'skills/planning-and-task-breakdown/SKILL.md'
 require_text "$ROOT" 'YYYYMMDD-<kebab-case-slug>'
 require_text "$ROOT" 'Branch creation happens before Interview.'
-require_text "$ROOT" '**Spec approval gate**'
-require_text "$ROOT" '**Plan/Tasks approval gate**'
-require_text "$ROOT" 'Implementation Reviewer `Pass` completes the lifecycle'
-require_text "$ROOT" 'The user owns the optional merge'
+require_text "$ROOT" '`INTENT.md` is the only user-confirmed lifecycle artifact.'
+require_text "$ROOT" '`## Manual Acceptance`'
+require_text "$ROOT" 'No user approval is required for Specify.'
+require_text "$ROOT" 'No user approval is required for `PLAN.md` or `TASKS.md`.'
+require_text "$ROOT" 'Implementation Reviewer `Pass` means the committed candidate is ready for User'
+require_text "$ROOT" '## User Acceptance and Finish'
+require_text "$ROOT" '### Failed User Acceptance triage'
+require_text "$ROOT" 'Do not provide the'
+require_text "$ROOT" 'merge command yet.'
+require_text "$ROOT" './.agents/custom/scripts/git-workflow merge <initiative-id>'
+
+reject_text "$ROOT" '**Spec approval gate**'
+reject_text "$ROOT" '**Plan/Tasks approval gate**'
+reject_text "$ROOT" 'Implementation Reviewer `Pass` completes the lifecycle'
+
+# Delegation and committed-boundary invariants.
 require_text "$ROOT" 'exact per-repository base-to-tip range'
 require_text "$ROOT" 'For each checkpoint in `TASKS.md`, dispatch a fresh Default'
 require_text "$ROOT" 'Route actionable `Implementation findings` to a fresh Default'
@@ -40,7 +72,31 @@ require_text "$ROOT" 'wait for the delegated agent to return before continuing'
 require_text "$ROOT" 'Do not interrupt, cancel, replace, parallelize, message, or take over'
 require_text "$ROOT" 'keep that Default assigned to its current'
 require_text "$ROOT" 'all task, fix, and handoff commit maps'
+require_text "$ROOT" 'reviewed Specify and Plan/Tasks OIDs'
+require_text "$ROOT" 'Human review or approval gates for a capability map, Specify, Plan, or Tasks'
+require_text "$ROOT" 'creates the map and its'
+require_text "$ROOT" 'checkpoints do'
+require_text "$ROOT" '`CAPABILITY_MAP.md`, when needed, is a decomposition/index artifact'
+require_text "$ROOT" '`TASKS.md` is the authoritative execution contract'
+require_text "$ROOT" '## Baseline revision after implementation starts'
+require_text "$ROOT" 'identify the earliest already-completed checkpoint'
+require_text "$ROOT" 'Repository policy files, role files, vendor skills, and agent'
 
+# Upstream-baseline invalidation must be explicit and unconditional.
+require_text "$ROOT" '### Baseline dependency invalidation'
+require_text "$ROOT" 'immediately invalidate the prior Plan Conformance `Pass`'
+require_text "$ROOT" 'even when `PLAN.md` and `TASKS.md` are byte-for-byte unchanged'
+require_text "$ROOT" 'rerun every downstream review whose upstream reviewed OID map changed'
+
+# User Acceptance failure must be triaged before implementation re-review.
+require_text "$ROOT" 'A failed manual acceptance step is evidence, not automatically an implementation'
+require_text "$ROOT" '**Intent change or ambiguity**'
+require_text "$ROOT" '**Specify defect**'
+require_text "$ROOT" '**Implementation or verification defect**'
+require_text "$ROOT" 'Before dispatching another'
+require_text "$ROOT" 'classify the failure against the confirmed'
+
+# Default contract.
 require_text "$DEFAULT" 'skills/incremental-implementation/SKILL.md'
 require_text "$DEFAULT" 'skills/test-driven-development/SKILL.md'
 require_text "$DEFAULT" 'For a `TASKS.md` checkpoint'
@@ -48,18 +104,21 @@ require_text "$DEFAULT" 'For Implementation Review findings'
 require_text "$DEFAULT" 'each task is a local'
 require_text "$DEFAULT" '## Escalation handoff'
 require_text "$DEFAULT" '`wip:` handoff'
+require_text "$DEFAULT" 'reviewed artifacts'
+require_text "$DEFAULT" 'the exact delegated checkpoint'
 
+# Architecture reviewer contract.
 require_text "$ARCH_REVIEWER" 'skills/api-and-interface-design/SKILL.md'
 require_text "$ARCH_REVIEWER" '`Architecture Review`'
 require_text "$ARCH_REVIEWER" '`Plan Conformance Review`'
 require_text "$ARCH_REVIEWER" 'Return exactly one verdict'
-
+require_text "$ARCH_REVIEWER" '`CAPABILITY_MAP.md`, when present, is a decomposition/index'
+require_text "$ARCH_REVIEWER" '`TASKS.md` is the'
 require_text "$ROOT" 'For both Architecture Reviewer scopes, include unambiguous repository/path to'
 require_text "$ROOT" 'state its provenance and confirmation.'
-
 require_text "$ARCH_REVIEWER" 'Review committed inputs only.'
 require_text "$ARCH_REVIEWER" 'For `Architecture Review`, Root supplies the initiative id, confirmed'
-require_text "$ARCH_REVIEWER" 'For `Plan Conformance Review`, Root supplies the initiative id, approved'
+require_text "$ARCH_REVIEWER" 'For `Plan Conformance Review`, Root supplies the initiative id, reviewed'
 require_text "$ARCH_REVIEWER" 'Use the first matching rule.'
 require_text "$ARCH_REVIEWER" 'Re-review at new OIDs repeats the full workflow.'
 require_text "$ARCH_REVIEWER" 'Before `Pass`, verify every distinct material current-state claim'
@@ -82,9 +141,114 @@ require_text "$ARCH_REVIEWER" '4. **Verification:**'
 require_text "$ARCH_REVIEWER" '5. **Risk and locality:**'
 require_text "$ARCH_REVIEWER" '6. **End state:**'
 
+# Implementation reviewer contract, including acceptance evidence boundary.
 require_text "$IMPL_REVIEWER" 'skills/code-review-and-quality/SKILL.md'
 require_text "$IMPL_REVIEWER" 'Review committed state only.'
 require_text "$IMPL_REVIEWER" 'Direct Git inspection is read-only'
 require_text "$IMPL_REVIEWER" 'Return exactly one verdict'
+require_text "$IMPL_REVIEWER" 'reviewed Specify commit OIDs'
+require_text "$IMPL_REVIEWER" 'reviewed Plan/Tasks commit OIDs'
+require_text "$IMPL_REVIEWER" 'reviewed `TASKS.md` is the'
+require_text "$IMPL_REVIEWER" 'failed User Acceptance evidence'
+require_text "$IMPL_REVIEWER" 'Do not reinterpret that evidence as a'
+
+# Structural checks that grep alone cannot enforce: parse TOML and validate
+# ordering/state-machine invariants in the Root contract.
+python3 - \
+    "$ROOT" \
+    "$ARCH_TOML" \
+    "$DEFAULT_TOML" \
+    "$IMPL_TOML" <<'PY'
+from pathlib import Path
+import sys
+
+try:
+    import tomllib
+except ModuleNotFoundError as exc:
+    raise SystemExit(f"FAIL python3 requires tomllib for role contract validation: {exc}")
+
+root_path, arch_path, default_path, impl_path = map(Path, sys.argv[1:])
+root = root_path.read_text(encoding="utf-8")
+flat_root = " ".join(root.split())
+
+
+def fail(message: str) -> None:
+    raise SystemExit(f"FAIL {message}")
+
+
+def position(text: str, needle: str) -> int:
+    pos = text.find(needle)
+    if pos < 0:
+        fail(f"missing state-machine anchor: {needle}")
+    return pos
+
+
+def load_toml(path: Path) -> dict:
+    try:
+        with path.open("rb") as f:
+            return tomllib.load(f)
+    except Exception as exc:
+        fail(f"invalid TOML file={path}: {exc}")
+
+
+# Agent runtime policy: architecture review is now the only derived design gate,
+# so it must retain a read-only sandbox and use high reasoning effort.
+arch = load_toml(arch_path)
+default = load_toml(default_path)
+impl = load_toml(impl_path)
+
+expected = [
+    (arch_path, arch, "architecture-reviewer", "read-only", "high"),
+    (default_path, default, "default", "workspace-write", "high"),
+    (impl_path, impl, "implementation-reviewer", "read-only", "high"),
+]
+for path, data, name, sandbox, effort in expected:
+    if data.get("name") != name:
+        fail(f"agent-name file={path} expected={name} actual={data.get('name')}")
+    if data.get("sandbox_mode") != sandbox:
+        fail(
+            f"agent-sandbox file={path} expected={sandbox} "
+            f"actual={data.get('sandbox_mode')}"
+        )
+    if data.get("model_reasoning_effort") != effort:
+        fail(
+            f"agent-reasoning file={path} expected={effort} "
+            f"actual={data.get('model_reasoning_effort')}"
+        )
+
+# #1: merge command is shown only after the user reports acceptance Pass.
+merge_cmd = "./.agents/custom/scripts/git-workflow merge <initiative-id>"
+if root.count(merge_cmd) != 1:
+    fail(f"merge command must occur exactly once in root.md; count={root.count(merge_cmd)}")
+accept_handoff = position(flat_root, "After every Implementation Reviewer `Pass`, Root must:")
+stop_wait = position(flat_root, "STOP and wait for the user's manual acceptance result")
+accept_pass = position(flat_root, "If the user reports that manual acceptance passes")
+merge_pos = position(flat_root, merge_cmd)
+if not (accept_handoff < stop_wait < accept_pass < merge_pos):
+    fail("User Acceptance ordering must be handoff -> STOP -> user Pass -> merge command")
+if merge_cmd in flat_root[accept_handoff:accept_pass]:
+    fail("merge command appears before User Acceptance Pass")
+
+# #2: a failed acceptance is triaged against Intent + Specify before any
+# implementation re-review route is allowed.
+failed = position(flat_root, "### Failed User Acceptance triage")
+classify = position(flat_root, "Before dispatching another Implementation Reviewer, Root must classify")
+intent_case = position(flat_root, "**Intent change or ambiguity**")
+spec_case = position(flat_root, "**Specify defect**")
+impl_case = position(flat_root, "**Implementation or verification defect**")
+impl_dispatch = position(flat_root, "Dispatch a fresh Implementation Reviewer for Re-review")
+if not (failed < classify < intent_case < spec_case < impl_case < impl_dispatch):
+    fail("failed User Acceptance must classify Intent -> Specify -> implementation before re-review")
+
+# #3: a changed reviewed Specify OID invalidates Plan Conformance regardless of
+# whether Plan/Tasks bytes changed.
+invalidation = position(flat_root, "### Baseline dependency invalidation")
+unconditional = position(flat_root, "immediately invalidate the prior Plan Conformance `Pass`")
+unchanged = position(flat_root, "even when `PLAN.md` and `TASKS.md` are byte-for-byte unchanged")
+if not (invalidation < unconditional < unchanged):
+    fail("Specify OID change must unconditionally invalidate Plan Conformance Pass")
+
+print("OK structural role workflow contract")
+PY
 
 printf 'OK role workflow contract\n'

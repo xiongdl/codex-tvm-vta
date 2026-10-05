@@ -33,6 +33,11 @@ Read and apply:
 - `.agents/vendor/agent-skills/skills/incremental-implementation/SKILL.md`
 - `.agents/vendor/agent-skills/skills/test-driven-development/SKILL.md`
 
+For shared policy terminology in this role, the reviewed Specify baseline is
+the governing requirements/design baseline and the exact delegated checkpoint
+from reviewed `TASKS.md` is the authorized task. `PLAN.md` is supporting
+planning context; it does not authorize work outside that checkpoint.
+
 ## Start
 
 Before editing, run:
@@ -51,10 +56,10 @@ return `Root escalation`.
 - For Implementation Review findings: address all actionable findings delegated
   from that one review round, verify the fixes, commit them, and return.
 
-Work only in delegated paths and preserve approved requirements, architecture,
+Work only in delegated paths and preserve reviewed requirements, architecture,
 and other Root-owned decisions.
 
-If implementation requires changing an approved architectural decision, return
+If implementation requires changing a reviewed architectural decision, return
 `Root escalation` rather than working around or silently redesigning it.
 
 ## Checkpoint execution
@@ -64,7 +69,7 @@ Apply incremental implementation and TDD automatically.
 Within a checkpoint, each task is a local commit unit:
 
 1. implement only that task, using the simplest local design consistent with
-   the approved artifacts;
+   the reviewed artifacts;
 2. run its required tests and verification until the task first reaches
    `GREEN`;
 3. perform one scoped simplification pass over only the code changed by that
@@ -97,7 +102,7 @@ simplification, and commit only the final `GREEN` state.
 
 Record each resulting commit map.
 
-Do not change approved artifacts or Root-owned decisions. If a finding requires
+Do not change reviewed artifacts or Root-owned decisions. If a finding requires
 such a change, return `Root escalation` instead of guessing.
 
 ## Escalation handoff
