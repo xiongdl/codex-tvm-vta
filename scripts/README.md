@@ -220,6 +220,13 @@ writes ignored intermediates under `OUTPUT_DIR`. It does not install packages or
 build libraries. Invoke it with one of its four actions; normal use is through
 `make -C "$APP" <target>`.
 
+The app's `make clean` action removes only its local `build/`, Python
+`__pycache__/` directories, and `.pyc`/`.pyo` files. It preserves `tune/`,
+`model/`, and `samples/`; custom `OUTPUT_DIR` paths outside the application are
+not removed. It needs no project runtime, TVM/VTA libraries, config, or model,
+and repeated runs succeed. Cache traversal does not follow directory symlinks;
+a `build/` symlink is unlinked while its external target stays intact.
+
 The defaults are the float ResNet-8 model and first sample, `TARGET=vta,llvm`,
 `SIMULATOR=fsim`, and `CONFIG=vta/config/vta_64mac.json`. Deployment also
 accepts `MODEL`, `INPUT`, `SCHEDULE`, `OUTPUT_DIR`, `REPORT`, and
