@@ -151,17 +151,24 @@ for host_codegen in c llvm; do
         --target "vta,${host_codegen}" --simulator fsim
 done
 
-echo "==> MLPerf Keyword Spotting V1 HOST/FSIM gate (12 committed WAV samples)"
-VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_assets.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_model_pipeline.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_graph_artifacts.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_host_deployment.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_deployment_profile.py" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_two_stage_tuning.py"
-VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/run.py" \
-    --simulator fsim --host-codegen all --schedule none
+echo "==> MLPerf Keyword Spotting V1 standalone FSIM workflow"
+VTA_BACKEND=fsim VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests"
+echo "==> MLPerf KWS CPU target matrix (no VTA environment)"
+env -u VTA_BACKEND -u VTA_CONFIG_FILE "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/deploy.py" --target c
+env -u VTA_BACKEND -u VTA_CONFIG_FILE "${python_bin}" \
+    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/deploy.py" --target llvm
+echo "==> MLPerf KWS FSIM and TSIM fallback host-codegen matrix"
+for backend in fsim tsim; do
+    config="${fsim_config}"
+    [[ "$backend" == tsim ]] && config="${tsim_config}"
+    for host_codegen in c llvm; do
+        VTA_BACKEND="$backend" VTA_CONFIG_FILE="$config" "${python_bin}" \
+            "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/deploy.py" \
+            --target "vta,$host_codegen" --simulator "$backend"
+    done
+done
 
 echo "==> MLPerf anomaly detection V1 HOST/FSIM gate (10 samples; normal=5 anomaly=5)"
 VTA_CONFIG_FILE="${fsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
@@ -190,9 +197,6 @@ echo "==> TSIM gate"
 export VTA_BACKEND=tsim
 VTA_CONFIG_FILE="${tsim_config}" "${script_dir}/test_vta_tsim.sh" --env-name "${env_name}"
 
-echo "==> MLPerf Keyword Spotting V1 TSIM unit gate"
-VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/tests/test_tsim_deployment.py"
 
 echo "==> MLPerf anomaly detection V1 TSIM unit gate"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" -m pytest -q --import-mode=importlib \
@@ -220,10 +224,6 @@ VTA_BACKEND=tsim VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
 VTA_BACKEND=tsim VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
     "${VTA_PATH}/apps/mlperf_tiny_benchmark/image_classification_v2/deploy.py" --target vta,llvm --simulator tsim
 
-echo "==> MLPerf Keyword Spotting V1 HOST/TSIM gate (12 committed WAV samples)"
-VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \
-    "${VTA_PATH}/apps/mlperf_tiny_benchmark/keyword_spotting_v1/run.py" \
-    --simulator tsim --host-codegen all --schedule none
 
 echo "==> MLPerf anomaly detection V1 HOST/TSIM gate (10 samples; normal=5 anomaly=5)"
 VTA_CONFIG_FILE="${tsim_config}" "${python_bin}" \

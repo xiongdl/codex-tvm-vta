@@ -64,15 +64,9 @@ Runtime and test processes use the same absolute `VTA_CONFIG_FILE` and an
 explicit matching `VTA_BACKEND=fsim` or `VTA_BACKEND=tsim`. MLPerf runners
 currently expose `--simulator fsim|tsim` (and HOST where supported); that flag
 must match `VTA_BACKEND`. HOST is a CPU reference mode, not a third VTA
-backend. Use the project Python environment for runner commands:
-
-```bash
-VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
-PYTHONPATH="$PWD/tvm/python:$PWD/vta/python" \
-  ./.envs/tvm-vta-env/bin/python \
-  vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/run.py \
-  --simulator fsim --host-codegen all
-```
+backend. The standalone KWS application provides its selected-target commands and full
+manual acceptance sequence in
+[`keyword_spotting_v1/README.md`](../vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/README.md).
 
 The old `TARGET=sim` and `TARGET=tsim` configuration selectors are not
 supported. Configurations containing those simulator target fields are
@@ -264,6 +258,13 @@ same four-target deployment contract as Image classification V2, with a local
 96×96 RGB preprocessing and model-specific workload identity. Its Makefile
 sets FSIM or TSIM per stage; do not set `VTA_BACKEND` to a different simulator
 than `SIMULATOR`.
+
+Keyword Spotting V1 uses the standalone workflow documented in
+`vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/README.md`. Its original
+int8 QNN arithmetic is preserved exactly. The current partitioner yields no
+real VTA workloads, so requested VTA targets run the CPU fallback and report
+zero coverage; export, schedule replay, and tuning stop without producing a
+synthetic workload or winner.
 
 #### Clean generated files
 
