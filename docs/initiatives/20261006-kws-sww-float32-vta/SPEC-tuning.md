@@ -1,0 +1,9 @@
+# Conditional Standalone Tuning
+## Objective
+Only after both supplied float models produce compiled/executed real VTA workloads, complete each independent app's deployment and tuning to image_classification_v1 behavior.
+## Contract
+Retain four target selectors c, llvm, vta,c, vta,llvm; FSIM/TSIM selection and vta_64mac geometry; Make deploy, tune-fsim, tune-tsim, tune, clean. Capture actual occurrence-bound workloads and activations from deployment. FSIM candidates require verified output; TSIM selection uses measured cycles and verified output. Replay exported schedules through same deployed graph. Never manufacture logs, winners or cycle counts. Persistent tuning evidence tied to new model/graph hashes; reject old int8 schedules. Clean preserves models, WAVs/licenses and valid tune evidence.
+## Verification and Delivery
+Run each focused app suite, all four selected targets on FSIM and VTA targets on TSIM; export workloads, execute a bounded real FSIM candidate measurement per occurrence and TSIM selection/replay, document exact commands and resulting logs/schedules. Reference CLI exposes TRIAL_BATCH/MIN_SUCCESSFUL/timeouts: use one successful candidate per occurrence for smoke evidence, no unrequested exhaustive search. Verify corruption/mismatch rejection and clean preservation. Record evidence and limitations in RESULTS.md; pass independent implementation review before manual acceptance. Zero-workload branch stops before tuning work.
+## Ownership and Boundaries
+Each app owns its tuning.py, vta_workload.py, deployment.py, CLI/Make helpers/tests/README; no runtime dependency on reference app or other apps. Copy necessary established patterns rather than introduce shared abstractions. No compiler changes or old int8 synthetic results retained as new-model evidence.
