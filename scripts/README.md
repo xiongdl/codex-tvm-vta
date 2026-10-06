@@ -110,15 +110,15 @@ creates a Python 3.11 prefix at `.envs/<name>` and installs the exact
 is reused and its packages are reconciled with that requirements file; an
 existing invalid prefix is left untouched and reported. This dedicated
 environment is a conversion-only exception to the default `.envs/tvm-vta-env`
-Python rule. KWS uses its checked-in float32 TFLite directly and needs no
-separate environment.
+Python rule. The existing `.envs/sww-env` also exports the upstream KWS
+SavedModel once; KWS deployment itself uses only its checked-in float32 TFLite.
 
 ### `convert_sww_model.py`
 
 ```bash
 .envs/sww-env/bin/python scripts/convert_sww_model.py \
   --model .envs/tiny-v1.4/benchmark/training/streaming_wakeword/trained_models/str_ww_ref_model.h5 \
-  --output vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/model/str_ww_ref_model_floag32.tflite
+  --output vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/model/str_ww_ref_model_float32.tflite
 ```
 
 The model and output options default to these paths. The command adapts the
@@ -130,6 +130,23 @@ script, and output. The temporary adapted script is removed after conversion;
 the H5 and any conversion intermediates remain outside the application tree.
 Inspect the final FlatBuffer with `.envs/tvm-vta-env/bin/python` before using
 it for deployment.
+
+### `convert_kws_model.py`
+
+```bash
+.envs/sww-env/bin/python scripts/convert_kws_model.py \
+  --model .envs/tiny-v1.4/benchmark/training/keyword_spotting/trained_models/kws_ref_model \
+  --output vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/model/kws_ref_model_float32.tflite
+```
+
+The model and output options default to these paths. The command exports the
+upstream TensorFlow SavedModel through `TFLiteConverter.from_saved_model` with
+default float conversion, without training, `Optimize.DEFAULT`, or a
+representative dataset. It checks the SavedModel signature and learned
+variable dtypes, then validates float32 TFLite input/output and the absence of
+quantization metadata. It prints hashes for every SavedModel file and the
+output. The source remains in the ignored upstream tree; the app stores only
+the TFLite model and its provenance README.
 
 ### `build_tvm_lib_macos.sh`
 
@@ -198,10 +215,11 @@ five standalone MLPerf Tiny application suites and selected-target matrices;
 the cleanup/migration contracts; Python compilation; retired-reference checks;
 and scoped repository checks. Streaming Wakeword V1 now deploys its float32
 TFLite model through four real VTA regions under the documented global-scale
-quantization policy. The supplied KWS float32-I/O model has dynamic-range
-quantized Conv2D weights that the pinned TFLite frontend rejects before Relay
-import; its C2 deployment gate remains escalated. Compilation may create
-ignored Python bytecode caches.
+quantization policy. The originally supplied KWS float32-I/O model had
+dynamic-range quantized Conv2D weights. Checkpoint 1R replaces it with an
+all-float export from the upstream SavedModel; the C2 deployment and workload
+gate must be rerun against that replacement. Compilation may create ignored
+Python bytecode caches.
 
 ### MLPerf Tiny deployment schedules and tuning
 

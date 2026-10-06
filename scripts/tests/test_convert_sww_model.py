@@ -29,6 +29,13 @@ def test_upstream_adaptation_uses_float_defaults_without_calibration():
     assert "TFLITE_BUILTINS_INT8" not in adapted
 
 
+def test_converter_uses_the_corrected_float32_output_name():
+    converter = load_converter()
+    args = converter.build_parser().parse_args([])
+    assert args.output.name == "str_ww_ref_model_float32.tflite"
+    assert converter.FLOAT_OUTPUT_NAME == args.output.name
+
+
 def test_converter_rejects_non_h5_input_before_running_tensorflow(tmp_path):
     converter = load_converter()
     try:

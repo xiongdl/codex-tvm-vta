@@ -15,9 +15,9 @@ SOURCE_MODEL = TRAINING / "trained_models/str_ww_ref_model.h5"
 UPSTREAM_SCRIPT = TRAINING / "quantize.py"
 OUTPUT_MODEL = (
     ROOT
-    / "vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/model/str_ww_ref_model_floag32.tflite"
+    / "vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/model/str_ww_ref_model_float32.tflite"
 )
-FLOAT_OUTPUT_NAME = "str_ww_ref_model_floag32.tflite"
+FLOAT_OUTPUT_NAME = "str_ww_ref_model_float32.tflite"
 
 
 def sha256(path):

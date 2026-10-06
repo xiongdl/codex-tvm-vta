@@ -1,15 +1,18 @@
 # Checkpoint 2: Float deployments and workload gate
 
-Status: **ROOT ESCALATION — KWS model import is unsupported by the pinned TVM frontend**
+Status: **HISTORICAL — C2 must resume against the reconciled model assets**
 
-SWW C2 is verified independently. Overall C2 cannot finish until Root resolves
-the KWS importer blocker below. This is not a zero-workload finding; C3 and
-tuning search have not started.
+This report records the prior C2 attempt before Task1R. SWW evidence was rerun
+against its corrected filename and is recorded in the current Task1R results.
+The old KWS importer blocker applied to the superseded hybrid float-I/O file;
+the replacement all-float export imports successfully into TVM. KWS deployment
+and the two-model workload gate remain to be rerun by the resumed C2 task. This
+is not a zero-workload finding; C3 and tuning search have not started.
 
 ## SWW evidence
 
 The application stores only
-`model/str_ww_ref_model_floag32.tflite` (191,428 bytes, SHA-256
+`model/str_ww_ref_model_float32.tflite` (191,428 bytes, SHA-256
 `c735ab47248df7648d9cb4397c0e7d161fe2e88ede17ad900f34a4163d89b267`). Its
 FlatBuffer has float32 input `[1, 30, 1, 40]`, float32 output `[1, 3]`, and the
 expected 11-operator topology. WAV preprocessing yields float32 features; no
@@ -53,7 +56,7 @@ make -C "$APP" deploy TARGET=llvm
 PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/$APP" \
 VTA_CONFIG_FILE="$PWD/vta/config/vta_64mac.json" VTA_BACKEND=fsim \
   .envs/tvm-vta-env/bin/python "$APP/deploy.py" \
-  --model "$APP/model/str_ww_ref_model_floag32.tflite" \
+  --model "$APP/model/str_ww_ref_model_float32.tflite" \
   --input "$APP/samples/marvin-00176480_nohash_0.wav" \
   --target vta,llvm --simulator fsim \
   --export-workloads /tmp/sww-float-workloads.json \
@@ -64,13 +67,20 @@ PYTHONPATH="$PWD/tvm/python:$PWD/vta/python:$PWD/$APP" \
 
 ## KWS blocker
 
-The requested KWS model was copied to
+The originally requested KWS model was copied to
 `vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/model/kws_ref_model_float32.tflite`.
 Its SHA-256 is `e5004c6f1012246e33fa068d8488325538e0444073cd361f5a7edb40c73f12d2`
 (43,392 bytes). It has float32 input `input_1` `[1, 49, 10, 1]`, float32
 output `Identity` `[1, 12]`, and the expected 13-operator topology. The graph
 also contains five int8 Conv2D weight tensors with quantization metadata,
 making those dynamic-range quantized convolutions despite float32 model I/O.
+Task1R replaces it with the all-float SavedModel export
+`kws_ref_model_float32.tflite` (SHA-256
+`738a9f29d175aaa3928db9c8281265be5ec3406598fd3d30018b26084a3d5536`). The
+replacement has 56 float32 learned variables in its source and successfully
+imports through the pinned TFLite frontend to float32 Relay `[1,12]` output.
+The prior failure below is historical; KWS deployment and VTA coverage have
+not yet been rerun.
 
 The repository TVM environment fails at `relay.frontend.from_tflite` before
 Relay import or quantization:
@@ -79,7 +89,7 @@ Relay import or quantization:
 tvm.error.OpNotImplemented: The following operators are likely to have dynamic range quantization: 'CONV_2D'. If you are running an optimized graph, please turn off dynamic range quantization or use full integer quantization
 ```
 
-KWS CPU/mixed deployment and output equivalence are not verified. Root must
-resolve how to handle KWS dynamic-range Conv2D semantics under the approved
-constraints before overall C2 can continue. The old KWS app model remains
-while the requested model has not passed deployment verification.
+KWS CPU/mixed deployment and output equivalence are not verified for the
+replacement model. This historical importer error no longer blocks C2; resume
+the original C2 acceptance against the all-float model, then remove the old
+int8 KWS asset atomically after successful deployment verification.
