@@ -1,0 +1,6 @@
+# Plan
+Reviewed Specify: root cb7606af8bbbecc13c6f7bca538e6a309a847863, Architecture Review Pass. Specifications: SPEC-conversion.md, SPEC-models.md, SPEC-tuning.md; CAPABILITY_MAP.md and confirmed INTENT.md at same OID.
+Sequence: conversion environment/model first, then coherent float migrations and actual deployment gates for both applications, then conditional tuning. Each checkpoint is a fresh Default with stable committed handoff. No architecture changes or compiler expansion.
+SWW pinned TensorFlow 2.15 on Apple Silicon may impose Python/platform constraints; determine supported compatible Python and use SWW-only packages. Conversion must not depend on calibration samples. If exact requirements cannot be satisfied, report environment blocker before migration. A missing simulator/library is infrastructure failure, not zero workload.
+Both float migrations happen before tuning, to expose any zero-workload result early. Reference qconfig stays fixed; depthwise and unsupported kernels remain CPU. If either zero, return truthful fallback evidence and stop per user request. If positive, bounded per-occurrence real tuning and replay prove workflow rather than exhaustive optimization.
+User acceptance follows implementation review of complete committed range. Only user can authorize merge/push.
