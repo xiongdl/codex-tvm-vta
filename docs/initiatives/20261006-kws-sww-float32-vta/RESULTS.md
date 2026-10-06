@@ -177,3 +177,21 @@ four actual workload occurrences and captured activations. KWS passed 69 tests;
 SWW passed 23. No C3 tuning search or TSIM winner/replay has started. Complete
 commands, outputs, score vectors, and model/WAV/snapshot/config hashes are in
 [CHECKPOINT-C2.md](CHECKPOINT-C2.md).
+
+## Checkpoint 3: Deployment and bounded tuning
+
+C3 is **GREEN** for both models. Each standalone app now documents and exposes
+the complete `deploy`, `tune-fsim`, `tune-tsim`, `tune`, and `clean` workflow
+with float32 TFLite passed as the model input. The actual `make tune` command
+exported the model's four real workloads, verified one FSIM candidate per
+occurrence (`TRIAL_BATCH=1`, `MIN_SUCCESSFUL=1`), and selected candidates from
+measured TSIM cycles. Both VTA host-codegen replays passed on TSIM. All four
+deployment targets (`c`, `llvm`, `vta,c`, `vta,llvm`) passed on FSIM for each
+app. Corrupt workload seals, mismatched model content, and tampered schedule
+logs were rejected. The KWS suite passed 70 tests and SWW passed 23, including
+clean preservation of model/sample/license/tune evidence.
+
+See [CHECKPOINT-C3.md](CHECKPOINT-C3.md) for model, sample, snapshot and config
+hashes; per-occurrence TSIM cycles; persistent candidate/schedule hashes; exact
+commands; and output predictions. The smoke search used one candidate per
+occurrence and does not claim exhaustive tuning or comparative performance.
