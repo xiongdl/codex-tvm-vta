@@ -11,3 +11,5 @@ Use `.envs/tvm-vta-env/bin/python`, PYTHONPATH containing tvm/python and vta/pyt
 ## Boundaries and Style
 No retraining, TensorFlow app runtime dependency or modifications to TVM/VTA compiler. Keep model ownership local. Preserve schedule/workload validation of model hash, config, activations and serialized graph. Dataclasses and explicit validation follow reference app.
 Both deployment and tuning CLIs accept float32 TFLite via `--model`; Make MODEL forwards this path to both. Reject H5 and int8 model inputs with clear validation. Replace old application int8 model assets only when verified float replacements exist; store no H5 under application tree.
+
+KWS final deployment source is newly exported all-float TFLite from confirmed SavedModel, superseding the original hybrid float-I/O asset. Validate all learned weights float32, not just I/O; no training or manual weight rewriting. SWW corrected filename `str_ww_ref_model_float32.tflite` must propagate through defaults, metadata, tests and documentation. Reverify both models against corrected asset hashes/paths; earlier SWW verification is invalidated for path/metadata-dependent behavior until reconciled.
