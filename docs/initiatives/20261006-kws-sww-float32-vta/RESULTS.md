@@ -76,3 +76,18 @@ preservation of an existing environment prefix, converter input boundaries,
 and the calibration-free float conversion adaptation. Actual conversion,
 `pip check`, imports, and FlatBuffer validation were also run as recorded
 above.
+
+## Checkpoint 2 import blocker
+
+The supplied KWS model was copied to its application model directory and
+inspected. Its float32 input/output and 13-op topology match the application
+contract, but its five convolution weight tensors are int8 with quantization
+metadata. The pinned TVM TFLite frontend rejects dynamic-range Conv2D before
+Relay import; see [CHECKPOINT-C2.md](CHECKPOINT-C2.md) for the exact exception
+and required Root decision. The KWS model SHA-256 is
+`e5004c6f1012246e33fa068d8488325538e0444073cd361f5a7edb40c73f12d2`.
+
+SWW float TFLite import and float feature preparation succeeded, but the
+quantized graph, CPU deployment, mixed deployment, output equivalence, and
+workload gate were not reached for either app. C2 is escalated as an importer
+failure; this is not a zero-workload finding and C3 has not started.
