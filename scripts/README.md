@@ -97,6 +97,40 @@ Pip packages: `attrs`, `numpy`, `cython`, `decorator`, `ml_dtypes`, `pytest`,
 
 The script does not activate the new environment.
 
+### `setup_sww_env.sh`
+
+```text
+--env-name NAME    environment name under .envs; default: sww-env
+--help             show usage
+```
+
+Requires Conda and the initialized, ignored MLPerf Tiny v1.4 source tree. It
+creates a Python 3.11 prefix at `.envs/<name>` and installs the exact
+`streaming_wakeword/requirements.txt` file with pip. A valid existing prefix
+is reused and its packages are reconciled with that requirements file; an
+existing invalid prefix is left untouched and reported. This dedicated
+environment is a conversion-only exception to the default `.envs/tvm-vta-env`
+Python rule. KWS uses its checked-in float32 TFLite directly and needs no
+separate environment.
+
+### `convert_sww_model.py`
+
+```bash
+.envs/sww-env/bin/python scripts/convert_sww_model.py \
+  --model .envs/tiny-v1.4/benchmark/training/streaming_wakeword/trained_models/str_ww_ref_model.h5 \
+  --output vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/model/str_ww_ref_model_floag32.tflite
+```
+
+The model and output options default to these paths. The command adapts the
+upstream `streaming_wakeword/quantize.py` in a temporary file beside its source
+modules, keeps the upstream Keras load and TFLite conversion, and uses the
+converter's float defaults without loading calibration samples or enabling
+the upstream INT8 block. It prints SHA-256 hashes for the source H5, upstream
+script, and output. The temporary adapted script is removed after conversion;
+the H5 and any conversion intermediates remain outside the application tree.
+Inspect the final FlatBuffer with `.envs/tvm-vta-env/bin/python` before using
+it for deployment.
+
 ### `build_tvm_lib_macos.sh`
 
 ```text
