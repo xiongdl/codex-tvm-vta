@@ -6,3 +6,5 @@ Deploy both models and determine real VTA workloads. If either has none, stop an
 No retraining or artificial activity probes.
 ## Manual Acceptance
 User runs documented deployment/Make commands and inspects output, actual VTA coverage and, on the positive branch, tuning results.
+## Additional confirmed constraint
+User explicitly requires application tree to store only float32 TFLite models, no float32 H5. Both deploy.py and tune.py must take float32 TFLite as model input. H5 remains solely in upstream training source.

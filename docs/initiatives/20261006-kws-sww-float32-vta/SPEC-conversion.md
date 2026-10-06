@@ -10,3 +10,4 @@ Output: `str_ww_ref_model_floag32.tflite` (retain requested spelling). Verify in
 Test invalid options/name boundaries and float conversion without calibration dependency; run pip check and imports in created environment. Shell style follows setup_tvm_vta_env.sh, set -euo pipefail, quoted paths.
 ## Boundaries
 Never delete an existing unrelated environment, train models, or commit environment/package caches. Dependency changes are confined to conversion environment. Conversion owns external file I/O; app modules do not import TensorFlow.
+Application directories contain only float32 `.tflite` model assets, never H5 or int8 model assets. H5 conversion source stays in upstream training directory. Generated conversion intermediates stay outside application tree.
