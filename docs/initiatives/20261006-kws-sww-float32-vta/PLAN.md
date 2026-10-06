@@ -7,3 +7,5 @@ User acceptance follows implementation review of complete committed range. Only 
 
 ## Baseline revision
 User authorized KWS all-float re-export using existing SWW environment, corrected source to SavedModel and corrected SWW filename. Original Specify cb7606af baseline and Plan f3cb2d07 review invalidated. C1 conversion environment remains valid; conversion output/default/path evidence must be reconciled. C2 model source, path metadata and prior deployment verification invalidated where dependent. Earliest affected checkpoint C1: fresh Default reconcile tooling/name and KWS export; same unfinished C2 Default resumes after new reviews and C1 GREEN. Full final review covers all commits.
+
+Latest reviewed Specify OID: root `0faeb948e1ec3de60f46862247b54cca89f3a902` covering INTENT, CAPABILITY_MAP and all three SPEC files; Architecture Review Pass. This replaces previous Specify mappings above. C1 reconciliation runs before original unfinished C2; C3 remains conditional. Evidence maps root `0faeb948e1ec3de60f46862247b54cca89f3a902`, VTA `5bd0d630d8c30122af26dd80b0e638a16ee8bcc9`, TVM `9f2472d8637a4aa1f2f0c0ef2595dc8043bf3aca`.
