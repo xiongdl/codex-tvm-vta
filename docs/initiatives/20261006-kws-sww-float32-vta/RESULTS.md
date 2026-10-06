@@ -77,17 +77,17 @@ and the calibration-free float conversion adaptation. Actual conversion,
 `pip check`, imports, and FlatBuffer validation were also run as recorded
 above.
 
-## Checkpoint 2 import blocker
+## Checkpoint 2
 
-The supplied KWS model was copied to its application model directory and
-inspected. Its float32 input/output and 13-op topology match the application
-contract, but its five convolution weight tensors are int8 with quantization
-metadata. The pinned TVM TFLite frontend rejects dynamic-range Conv2D before
-Relay import; see [CHECKPOINT-C2.md](CHECKPOINT-C2.md) for the exact exception
-and required Root decision. The KWS model SHA-256 is
-`e5004c6f1012246e33fa068d8488325538e0444073cd361f5a7edb40c73f12d2`.
+SWW is verified independently: float TFLite import and features, global-scale
+Relay quantization, four real VTA regions, LLVM CPU deployment, FSIM mixed
+execution, exact CPU/mixed output equality on the Marvin WAV, and export of
+four actual occurrence workloads. The SWW app suite passed 23 tests. Full
+evidence, commands, output, and snapshot hash are recorded in
+[CHECKPOINT-C2.md](CHECKPOINT-C2.md).
 
-SWW float TFLite import and float feature preparation succeeded, but the
-quantized graph, CPU deployment, mixed deployment, output equivalence, and
-workload gate were not reached for either app. C2 is escalated as an importer
-failure; this is not a zero-workload finding and C3 has not started.
+Overall C2 is escalated because the requested KWS float32-I/O model contains
+five int8 dynamic-range Conv2D weight tensors, which the pinned TVM TFLite
+frontend rejects before Relay import. KWS deployment and the two-model gate
+remain unverified. This is an importer failure rather than zero coverage; C3
+and tuning search have not started.

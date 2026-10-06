@@ -196,9 +196,12 @@ The complete BYOC gate requires FSIM, TSIM, hardware, the shared geometry
 config, Git, and `rg`. It runs structural BYOC tests; FSIM and TSIM gates; all
 five standalone MLPerf Tiny application suites and selected-target matrices;
 the cleanup/migration contracts; Python compilation; retired-reference checks;
-and scoped repository checks. KWS and Streaming Wakeword VTA targets use their
-documented CPU fallback because their exact int8 graphs produce no real VTA
-partitions. Compilation may create ignored Python bytecode caches.
+and scoped repository checks. Streaming Wakeword V1 now deploys its float32
+TFLite model through four real VTA regions under the documented global-scale
+quantization policy. The supplied KWS float32-I/O model has dynamic-range
+quantized Conv2D weights that the pinned TFLite frontend rejects before Relay
+import; its C2 deployment gate remains escalated. Compilation may create
+ignored Python bytecode caches.
 
 ### MLPerf Tiny deployment schedules and tuning
 
@@ -229,21 +232,19 @@ sets FSIM or TSIM per stage; do not set `VTA_BACKEND` to a different simulator
 than `SIMULATOR`.
 
 Keyword Spotting V1 uses the standalone workflow documented in
-`vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/README.md`. Its original
-int8 QNN arithmetic is preserved exactly. The current partitioner yields no
-real VTA workloads, so requested VTA targets run the CPU fallback and report
-zero coverage; export, schedule replay, and tuning stop without producing a
-synthetic workload or winner.
+`vta/apps/mlperf_tiny_benchmark/keyword_spotting_v1/README.md`. The requested
+float32-I/O model contains int8 dynamic-range convolution weights; the pinned
+TVM frontend rejects its Conv2D operators during TFLite import. Deployment and
+VTA coverage for this source model remain unverified pending resolution of
+that importer limitation.
 
 Streaming Wakeword V1 uses the standalone workflow documented in
-`vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/README.md`. It preserves
-the imported QNN int8 arithmetic and validates exact output equality against
-the canonicalized CPU graph on all three committed WAVs. The current
-partitioner finds no real VTA workloads, so `vta,c` and `vta,llvm` execute
-their CPU fallbacks without loading FSIM/TSIM; export, replay, and `make tune`
-stop before publishing a workload or claiming a winner. Its manual acceptance
-set covers all four selected targets, these rejection paths, report output,
-and safe cleanup.
+`vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/README.md`. It imports
+the generated float32 TFLite, preserves float32 audio features, then applies
+the TVM `global_scale=8.0`, `skip_conv_layers=[0]` policy. C2 verified four
+real VTA convolution occurrences with FSIM, exported their actual workloads,
+and matched CPU and mixed float32 scores on the committed Marvin WAV. Overall
+initiative tuning remains gated on resolving KWS.
 
 The streaming app's `Makefile` delegates `deploy`, `tune-fsim`, `tune-tsim`,
 `tune`, and `clean` to its local `scripts/make_tasks.sh`. It accepts `CONFIG`,
@@ -251,10 +252,13 @@ The streaming app's `Makefile` delegates `deploy`, `tune-fsim`, `tune-tsim`,
 `REPORT`, `EXPORT_WORKLOADS`, `WORKLOADS`, `WORKLOAD`, `TRIAL_BATCH`,
 `MIN_SUCCESSFUL`, `TIMEOUT`, `FSIM_TIMEOUT`, `TSIM_TIMEOUT`, `INPUT_LOGS`, and
 `OUTPUT_LOGS`, using the same meanings as Image classification V1. Defaults are
-the streaming int8 model, Marvin WAV, `TARGET=vta,llvm`, and `SIMULATOR=fsim`.
-CPU targets do not initialize VTA. VTA targets require an absolute `CONFIG`
-and matching simulator selection; this model reports zero actual VTA layers,
-so workload export, schedule replay, and full tuning stop before publication.
+the app-owned float32 TFLite model, Marvin WAV, `TARGET=vta,llvm`, and
+`SIMULATOR=fsim`. Both deploy and tune pass `MODEL`; tuning checks its hash
+against the workload snapshot before search or replay. CPU targets do not
+initialize VTA. VTA targets require an absolute `CONFIG` and matching
+simulator selection. The verified FSIM deployment exports four real
+occurrence workloads. Initiative tuning remains gated on both models passing
+the workload gate.
 Deployments write compiled graph bundles under `OUTPUT_DIR` and optional
 reports/workloads at their specified paths. Tuning outputs use
 `streaming_wakeword_v1/tune/<config-basename>/`. `clean` removes only local
