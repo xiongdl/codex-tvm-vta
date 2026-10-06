@@ -86,9 +86,10 @@ make -C vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1 deploy TARGET=llvm:
 corrected-name FSIM deploy: four workloads exported; 20 VTA operation rows; class 0 (Marvin)
 ```
 
-The earlier C2 KWS error below is retained as historical evidence for the
-superseded hybrid float-I/O file. The replacement now imports into TVM; C2
-must still rerun KWS deployment and the full two-model workload gate.
+The prior C2 importer failure applied to the superseded hybrid float-I/O
+artifact. The replacement all-float SavedModel export passed KWS import,
+deployment, and the two-model workload gate; final C2 evidence is recorded in
+[CHECKPOINT-C2.md](CHECKPOINT-C2.md).
 
 ## Environment and conversion
 
@@ -169,15 +170,10 @@ above.
 
 ## Checkpoint 2
 
-SWW is verified independently: float TFLite import and features, global-scale
-Relay quantization, four real VTA regions, LLVM CPU deployment, FSIM mixed
-execution, exact CPU/mixed output equality on the Marvin WAV, and export of
-four actual occurrence workloads. The SWW app suite passed 23 tests. Full
-evidence, commands, output, and snapshot hash are recorded in
+C2 is **GREEN** for both apps. KWS and SWW use verified all-float TFLite assets,
+each has four real VTA regions, and both CPU and FSIM mixed deployments produce
+identical float32 scores on their committed sample. Both FSIM runs exported
+four actual workload occurrences and captured activations. KWS passed 69 tests;
+SWW passed 23. No C3 tuning search or TSIM winner/replay has started. Complete
+commands, outputs, score vectors, and model/WAV/snapshot/config hashes are in
 [CHECKPOINT-C2.md](CHECKPOINT-C2.md).
-
-Overall C2 is escalated because the requested KWS float32-I/O model contains
-five int8 dynamic-range Conv2D weight tensors, which the pinned TVM TFLite
-frontend rejects before Relay import. KWS deployment and the two-model gate
-remain unverified. This is an importer failure rather than zero coverage; C3
-and tuning search have not started.

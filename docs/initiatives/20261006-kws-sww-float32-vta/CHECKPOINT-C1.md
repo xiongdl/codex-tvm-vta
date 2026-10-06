@@ -12,8 +12,9 @@ temporary adapter remain outside the application tree.
 The application-owned float32 model is
 `vta/apps/mlperf_tiny_benchmark/streaming_wakeword_v1/model/str_ww_ref_model_float32.tflite`.
 FlatBuffer checks confirm float32 input/output, float32 weights/activations,
-one int32 reshape shape constant, and no quantized tensor or operator. The
-existing int8 model is retained until the C2 atomic model migration.
+one int32 reshape shape constant, and no quantized tensor or operator. C2
+removed the superseded int8 deployment asset after verifying the replacement;
+see [CHECKPOINT-C2.md](CHECKPOINT-C2.md).
 
 Commands and output hashes are in [RESULTS.md](RESULTS.md). C2 owns both model
 deployments and the real VTA workload gate.
@@ -33,6 +34,6 @@ The SWW artifact and every live app/default reference now use
 `str_ww_ref_model_float32.tflite`. The asset bytes and SHA-256 are unchanged
 from the earlier conversion; its corrected-path suite, CPU deployment, and
 FSIM deployment/workload export were rerun. Full hashes and commands are in
-[RESULTS.md](RESULTS.md). The former KWS importer failure applies only to the
-superseded float-I/O asset; C2 must continue with the replacement and repeat
-both-model deployment/workload acceptance.
+[RESULTS.md](RESULTS.md). The former KWS importer failure applied to the
+superseded float-I/O asset; the corrected replacement completed C2 deployment
+and workload acceptance.
