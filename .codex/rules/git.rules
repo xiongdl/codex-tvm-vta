@@ -1,0 +1,75 @@
+# Git Rules
+#
+# Automate routine development operations.
+# Preserve approval for integration and destructive actions.
+
+# Routine implementation
+prefix_rule(
+    pattern = ["git", ["add", "commit"]],
+    decision = "allow",
+)
+
+# Create development branches
+prefix_rule(
+    pattern = ["git", "switch", "-c"],
+    decision = "allow",
+)
+
+prefix_rule(
+    pattern = ["git", "checkout", "-b"],
+    decision = "allow",
+)
+
+# Create isolated worktrees
+prefix_rule(
+    pattern = ["git", "worktree", "add"],
+    decision = "allow",
+)
+
+# Explicitly prompt for common amend and discard forms
+prefix_rule(
+    pattern = ["git", "commit", "--amend"],
+    decision = "prompt",
+)
+
+prefix_rule(
+    pattern = ["git", "switch", "--discard-changes"],
+    decision = "prompt",
+)
+
+# Remote operations and history changes
+prefix_rule(
+    pattern = [
+        "git",
+        ["pull", "push", "merge", "rebase",
+         "reset", "cherry-pick", "clean"]
+    ],
+    decision = "prompt",
+)
+
+# Worktree cleanup
+prefix_rule(
+    pattern = [
+        "git", "worktree",
+        ["remove", "prune"]
+    ],
+    decision = "prompt",
+)
+
+# Branch deletion
+prefix_rule(
+    pattern = [
+        "git", "branch",
+        ["-d", "-D", "--delete"]
+    ],
+    decision = "prompt",
+)
+
+# Pull Request operations
+prefix_rule(
+    pattern = [
+        "gh", "pr",
+        ["create", "merge", "close"]
+    ],
+    decision = "prompt",
+)
