@@ -107,9 +107,9 @@ CMSIS一致性用例限制x*2^max(s,0)在INT32范围内。VTA自身对普通左�
 
 保持现有VTAUopPush接口对旧调用的行为，增加显式支持rounding和RMUL/RSFT opcode的
 ALU构建入口，复用现有uop/loop/runtime队列。rounding与opcode纳入kernel缓存键，
-避免不同舍入模式错误复用指令。增加VTAPushALUOpEx入口显式传入预期rounding，
-使缓存命中时也能选择正确模式；原VTAPushALUOp默认预期rounding=00。
-回调接收原有signature，实际初始化模式必须与预期一致。Python常量与测试编码器同步。
+避免不同舍入模式错误复用指令。增加VTAPushALUOpEx入口显式传入预期rounding和opcode，
+使缓存命中时也能选择正确模式；原VTAPushALUOp保留原有签名和行为，默认预期rounding=00。
+回调接收原有signature，实际初始化的opcode及rounding必须与预期一致。Python常量与测试编码器同步。
 
 更新FSIM执行、Chisel ISA/Decode/TensorAlu两条执行路径及相关解码测试。
 用户要求32位乘法按一个cycle实现：32×32乘积与Q31格式转换/舍入使用
