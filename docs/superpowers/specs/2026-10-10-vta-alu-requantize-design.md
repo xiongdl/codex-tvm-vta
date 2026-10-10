@@ -119,7 +119,7 @@ Chisel测试确认计算延迟。该要求不是一次完整ALU指令含SRAM访�
 
 ## 模型样例与验收
 
-新增测试内容统一位于`vta/tests/quantization/`，不得修改`vta/apps`。
+新增测试内容统一位于`vta/tests/qconv2d/`，不得修改`vta/apps`。
 该目录包含：
 
 - `extract_conv_fixture.py`：从.envs量化模型及固定CIFAR-10输入提取卷积样例。
