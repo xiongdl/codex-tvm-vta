@@ -1,13 +1,13 @@
-# VTA ALU 对齐 CMSIS-NN 默认 requantize 路径
+# VTA ALU 对齐 CMSIS-NN 双舍入与单舍入 requantize 路径
 
 日期：2026-10-10
 
 ## 目标与范围
 
-实现 CMSIS-NN `arm_nn_requantize` 的默认双舍入路径。先实现并验收
+实现 CMSIS-NN `arm_nn_requantize` 的默认双舍入与单舍入路径。先实现并验收
 FSIM，再实现并验收 Chisel TSIM。MUL 和 SHIFT 为独立 ALU 指令，二者
-写回和读取的 accumulator 均为 INT32。不实现 `CMSIS_NN_USE_SINGLE_ROUNDING`，
-不增加64位 accumulator 或跨指令隐藏乘积状态。
+写回和读取的 accumulator 均为 INT32。单舍入采用ARM MVE的非舍入Q31乘法
+加最终舍入SHIFT序列。不增加64位 accumulator 或跨指令隐藏乘积状态。
 
 参考：https://raw.githubusercontent.com/ARM-software/CMSIS-NN/main/Include/arm_nnsupportfunctions.h
 
@@ -77,6 +77,23 @@ Chisel使用完整乘积、算术右移及舍弃位判断，最后转换为32位
 CMSIS一致性用例限制x*2^max(s,0)在INT32范围内。VTA自身对普通左移明确
 定义低32位回绕，并独立测试。输出转换不隐式饱和。
 
+## 单舍入指令序列与范围
+
+单舍入的MUL使用mul_q31=1、rounding=00，输出算术右移31位后的INT32，
+第一次Q31格式转换不舍入。最终SHIFT使用rounding=01，仅在这里舍入。
+
+- s<0：MUL输出b=floor(x*m/2^31)，SHIFT将b右移-s位并舍入。对非负
+  Q31 multiplier和全部INT32输入，这与当前标量单舍入公式一致。即使
+  丢弃乘积低31位，最终右移至少1位，其舍入判断需要的位仍保留在b中。
+- s>=0：先将x左移s+1位，再使用不舍入Q31 MUL，最后右移1位并舍入。
+  该序列要求预左移x*2^(s+1)能由INT32表示；生成器和测试检查此前提。
+  超出此前提不得宣称与64位标量单舍入一致，也不得静默使用回绕结果。
+
+本次量化模型的所有CONV_2D通道shift均为负。首层16个通道的shift为
+[-8,-10,-9,-8,-9,-9,-9,-8,-9,-9,-10,-9,-8,-11,-10,-7]，
+因此真实模型的单舍入无需预左移，也不受上述正shift范围限制。
+实现时再次从模型生成参数并校验，不能将这些数值作为计算参数硬编码。
+
 ## 软件接口与硬件
 
 保持现有VTAUopPush接口对旧调用的行为，增加显式支持rounding和mul_q31的
@@ -84,8 +101,11 @@ ALU构建入口，复用现有uop/loop/runtime队列。新字段纳入kernel缓�
 避免不同舍入模式错误复用指令。Python常量与测试编码器同步。
 
 更新FSIM执行、Chisel ISA/Decode/TensorAlu两条执行路径及相关解码测试。
-TSIM可以增加定点乘法流水周期，但必须同步valid/opcode/rounding及写回
-控制，验证依赖指令连续执行。现有其他后端不能静默执行带新字段的指令；
+用户要求32位乘法按一个cycle实现：32×32乘积与Q31格式转换/舍入使用
+一个计算cycle，不额外增加乘法流水stage；现有SRAM访问与控制周期仍保留。
+必须同步valid/opcode/rounding及写回控制，验证依赖指令连续执行，并通过
+Chisel测试确认计算延迟。该要求不是一次完整ALU指令含SRAM访问总共一个cycle，
+也不是未经综合验证的目标频率保证。现有其他后端不能静默执行带新字段的指令；
 本次实现和数值验收目标为FSIM与Chisel TSIM。
 
 ## 模型样例与验收
@@ -99,16 +119,25 @@ TSIM可以增加定点乘法流水周期，但必须同步valid/opcode/rounding�
 量化参数、输入和输出，以及TFLite运行时版本。使用.envs中的CIFAR-10固定
 样例输入，保留可复现的提取脚本；禁用delegate并保留中间tensor以获得参考输出。
 
-量化multiplier/shift使用TFLite兼容的生成规则。VTA实际执行卷积累加、bias、
+量化multiplier/shift使用TFLite兼容的生成规则，均为per-output-channel，
+不能将任一参数简化成per-tensor。multiplier按lane加载；对于不同shift，
+按channel对应关系调度SHIFT，不能因分组改变输出通道顺序或padding lane结果。
+VTA实际执行卷积累加、bias、
 requantize及裁剪，考虑输入zero point、padding及3通道输入的硬件对齐。
 先独立验证INT32累加，再逐元素比较最终输出。不能仅在Python计算卷积后宣称
 硬件卷积路径通过。
 
 测试包括：两种舍入的正负半值及邻值；零、INT32边界；移位0/1/31；正负
 shift；高位乘积；立即数和寄存器操作数；编码往返；旧ALU回归；非法字段；
-定点MUL紧接SHIFT的流水和依赖。CMSIS默认标量函数为独立算术参考。
+定点MUL紧接SHIFT的流水和依赖。CMSIS默认标量函数与当前版本单舍入标量
+函数分别为独立算术参考。覆盖s<0全INT32范围、s>=0合法预左移范围与
+超范围显式拒绝；包括x=1、m=2^30、s=-1时双舍入1/单舍入0的区分样例。
 
 真实TFLite结果为最终模型验收依据；如运行时使用其他算术路径，必须报告并
-确定使用默认双舍入参考内核，不能通过调整容差掩盖差异。FSIM通过后，重建
+先运行双舍入和单舍入参考卷积，查找两者输出不同的位置，再与TFLite实际
+输出比较以识别其舍入路径；真实样例不能区分时补充能区分的确定性输入。
+仍无法区分时检查对应运行时源码/构建设置并报告证据，不凭模型量化参数
+猜测，不将两种结果相同当作识别成功。记录确认的路径并据此验收。不能通过
+调整容差掩盖差异。FSIM通过后，重建
 TSIM并使用同一组固定样例，最终要求输出零差异。环境缺失导致的未执行检查
 应明确报告，不把跳过测试作为通过。
