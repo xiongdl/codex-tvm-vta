@@ -5,15 +5,15 @@
 ## 目标与范围
 
 实现 CMSIS-NN `arm_nn_requantize` 的默认双舍入与单舍入路径。先实现并验收
-FSIM，再实现并验收 Chisel TSIM。MUL 和 SHIFT 为独立 ALU 指令，二者
+FSIM，再实现并验收 Chisel TSIM。RMUL 和 RSFT 为独立 ALU 指令，二者
 写回和读取的 accumulator 均为 INT32。单舍入采用ARM MVE的非舍入Q31乘法
-加最终舍入SHIFT序列。不增加64位 accumulator 或跨指令隐藏乘积状态。
+加最终舍入RSFT序列。不增加64位 accumulator 或跨指令隐藏乘积状态。
 
 参考：https://raw.githubusercontent.com/ARM-software/CMSIS-NN/main/Include/arm_nnsupportfunctions.h
 
 ## 指令定义
 
-opcode定义：MIN=0、MAX=1、ADD=2、SHIFT=3、MUL=4、RMUL=5。6–7保留。
+opcode定义：MIN=0、MAX=1、ADD=2、SHIFT=3、MUL=4、RMUL=5、RSFT=6。7保留。
 SHIFT 的正移位量表示算术右移，负移位量表示左移。删除 Chisel 将负移位
 转换为内部 opcode 4 的处理；直接根据实际移位操作数的符号选择方向。
 
@@ -28,7 +28,7 @@ SHIFT 的正移位量表示算术右移，负移位量表示左移。删除 Chis
 长度与原有字段位置。C位域、Chisel Bundle、编码工具和ABI标识必须同步。
 旧编码在尾部字段为零时保留现有运算语义。
 
-MIN/MAX/ADD/MUL要求rounding=00。SHIFT和RMUL允许rounding=00/01/10。
+MIN/MAX/ADD/SHIFT/MUL要求rounding=00。RMUL和RSFT允许rounding=00/01/10。
 RMUL是独立opcode，表示Q31格式的乘法，不表示总是舍入；是否舍入由
 rounding字段决定。主指令opcode ALU=4、DWC=5保持不变；RMUL=5属于
 独立的alu_opcode命名空间，不能与主指令DWC混淆。
@@ -53,9 +53,16 @@ RMUL支持现有use_imm：立即数符号扩展，但完整Q31 multiplier通常�
 
 ### SHIFT
 
-输入和输出均为INT32，移位量来自imm或源accumulator。支持移位量[-31,31]。
-零直接返回。负移位量左移并保留低32位，要求rounding=00。正移位量按
-rounding指定的规则处理。不得将移位量简单截取低5位而将31以外输入误执行。
+保持现有SHIFT左右移行为不变，不增加舍入功能，rounding必须为00。
+输入和输出均为INT32，移位量来自imm或源accumulator；正值算术右移，
+负值左移并保留低32位，零直接返回。回归覆盖立即数及寄存器左右移。
+Chisel内部左移编码调整只用于消除与MUL opcode的冲突，不改变外部语义。
+
+### RSFT
+
+输入和输出均为INT32，右移量来自imm或源accumulator，范围为[0,31]。
+零直接返回；负数和大于31的右移量为非法操作，不截取低5位误执行。
+RSFT不承担左移；预左移继续使用原有SHIFT。
 
 对右移n>0，令q=v>>n、r=v-q*2^n、h=2^(n-1)：
 
@@ -72,7 +79,7 @@ Chisel使用完整乘积、算术右移及舍弃位判断，最后转换为32位
 
 1. 若s>0：普通SHIFT将x左移s位。
 2. RMUL：乘m，rounding=01，输出INT32 b。
-3. 若s<0：SHIFT将b右移-s位，rounding=10；否则b为结果。
+3. 若s<0：RSFT将b右移-s位，rounding=10；否则b为结果。
 4. ADD输出zero point，MIN/MAX按融合激活与INT8范围裁剪。
 
 默认CMSIS C路径的预左移使用有符号INT32乘法；溢出没有可移植确定语义。
@@ -82,12 +89,12 @@ CMSIS一致性用例限制x*2^max(s,0)在INT32范围内。VTA自身对普通左�
 ## 单舍入指令序列与范围
 
 单舍入使用RMUL、rounding=00，输出算术右移31位后的INT32，
-第一次Q31格式转换不舍入。最终SHIFT使用rounding=01，仅在这里舍入。
+第一次Q31格式转换不舍入。最终RSFT使用rounding=01，仅在这里舍入。
 
-- s<0：RMUL输出b=floor(x*m/2^31)，SHIFT将b右移-s位并舍入。对非负
+- s<0：RMUL输出b=floor(x*m/2^31)，RSFT将b右移-s位并舍入。对非负
   Q31 multiplier和全部INT32输入，这与当前标量单舍入公式一致。即使
   丢弃乘积低31位，最终右移至少1位，其舍入判断需要的位仍保留在b中。
-- s>=0：先将x左移s+1位，再使用不舍入RMUL，最后右移1位并舍入。
+- s>=0：先用SHIFT将x左移s+1位，再使用不舍入RMUL，最后用RSFT右移1位并舍入。
   该序列要求预左移x*2^(s+1)能由INT32表示；生成器和测试检查此前提。
   超出此前提不得宣称与64位标量单舍入一致，也不得静默使用回绕结果。
 
@@ -98,7 +105,7 @@ CMSIS一致性用例限制x*2^max(s,0)在INT32范围内。VTA自身对普通左�
 
 ## 软件接口与硬件
 
-保持现有VTAUopPush接口对旧调用的行为，增加显式支持rounding和RMUL opcode的
+保持现有VTAUopPush接口对旧调用的行为，增加显式支持rounding和RMUL/RSFT opcode的
 ALU构建入口，复用现有uop/loop/runtime队列。rounding与opcode纳入kernel缓存键，
 避免不同舍入模式错误复用指令。Python常量与测试编码器同步。
 
@@ -123,7 +130,8 @@ Chisel测试确认计算延迟。该要求不是一次完整ALU指令含SRAM访�
 
 量化multiplier/shift使用TFLite兼容的生成规则，均为per-output-channel，
 不能将任一参数简化成per-tensor。multiplier按lane加载；对于不同shift，
-按channel对应关系调度SHIFT，不能因分组改变输出通道顺序或padding lane结果。
+按channel对应关系调度RSFT及必要的预左移SHIFT，不能因分组改变输出通道顺序
+或padding lane结果。
 VTA实际执行卷积累加、bias、
 requantize及裁剪，考虑输入zero point、padding及3通道输入的硬件对齐。
 先独立验证INT32累加，再逐元素比较最终输出。不能仅在Python计算卷积后宣称
@@ -131,7 +139,7 @@ requantize及裁剪，考虑输入zero point、padding及3通道输入的硬件�
 
 测试包括：两种舍入的正负半值及邻值；零、INT32边界；移位0/1/31；正负
 shift；高位乘积；立即数和寄存器操作数；编码往返；旧ALU回归；非法字段；
-定点MUL紧接SHIFT的流水和依赖。CMSIS默认标量函数与当前版本单舍入标量
+RMUL紧接RSFT的流水和依赖。CMSIS默认标量函数与当前版本单舍入标量
 函数分别为独立算术参考。覆盖s<0全INT32范围、s>=0合法预左移范围与
 超范围显式拒绝；包括x=1、m=2^30、s=-1时双舍入1/单舍入0的区分样例。
 
