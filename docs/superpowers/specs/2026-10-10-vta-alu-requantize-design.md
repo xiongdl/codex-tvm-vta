@@ -13,37 +13,39 @@ FSIM，再实现并验收 Chisel TSIM。MUL 和 SHIFT 为独立 ALU 指令，二
 
 ## 指令定义
 
-保留 opcode：MIN=0、MAX=1、ADD=2、SHIFT=3、MUL=4。5–7保留。
+opcode定义：MIN=0、MAX=1、ADD=2、SHIFT=3、MUL=4、RMUL=5。6–7保留。
 SHIFT 的正移位量表示算术右移，负移位量表示左移。删除 Chisel 将负移位
 转换为内部 opcode 4 的处理；直接根据实际移位操作数的符号选择方向。
 
-在现有 ALU `imm` 字段之后追加两个独立字段：
+在现有 ALU `imm` 字段之后追加独立rounding字段，不增加mul_q31字段：
 
 | 字段 | 宽度 | 含义 |
 | --- | --- | --- |
 | rounding | 2 | 00不舍入；01最近舍入、半值向正无穷；10最近舍入、半值远离零；11非法 |
-| mul_q31 | 1 | 0普通乘法；1定点Q31乘法 |
 
-在当前 vta_64mac 配置下：rounding=[125:124]、mul_q31=[126]，bit127保留为零。
-字段位偏移由配置计算，其他配置必须检查尾部至少剩余3位。保留128位指令
+在当前 vta_64mac 配置下：rounding=[125:124]，bits[127:126]保留为零。
+字段位偏移由配置计算，其他配置必须检查尾部至少剩余2位。保留128位指令
 长度与原有字段位置。C位域、Chisel Bundle、编码工具和ABI标识必须同步。
 旧编码在尾部字段为零时保留现有运算语义。
 
-MIN/MAX/ADD要求新字段为零。SHIFT要求mul_q31=0。普通MUL要求rounding=00。
+MIN/MAX/ADD/MUL要求rounding=00。SHIFT和RMUL允许rounding=00/01/10。
+RMUL是独立opcode，表示Q31格式的乘法，不表示总是舍入；是否舍入由
+rounding字段决定。主指令opcode ALU=4、DWC=5保持不变；RMUL=5属于
+独立的alu_opcode命名空间，不能与主指令DWC混淆。
 非法组合在编码及模拟器入口检查，硬件拒绝非法编码，避免静默执行其他操作。
 
 ## 运算语义
 
-### MUL
+### MUL 与 RMUL
 
 普通MUL：有符号操作数相乘，输出低32位；用明确的位运算表达回绕，避免
 C++有符号溢出。保留现有use_imm行为。
 
-Q31 MUL：内部生成完整有符号32×32乘积P，根据rounding将P右移31位后
+RMUL：内部生成完整有符号32×32乘积P，根据rounding将P右移31位后
 写回INT32。乘法中的31位缩放是Q31格式转换的一部分，不使用imm编码缩放
 量。默认requantize使用rounding=01，等价于`int32((P + 2^30) >> 31)`。
 rounding=00/10分别使用相同的截断/半值远离零规则。内部完整乘积不写入SRAM。
-Q31模式支持现有use_imm：立即数符号扩展，但完整Q31 multiplier通常通过
+RMUL支持现有use_imm：立即数符号扩展，但完整Q31 multiplier通常通过
 源accumulator读取，因为imm只有16位。
 
 不额外饱和。参考中的no_sat函数不处理两个乘数都为INT32_MIN的饱和特例；
@@ -69,7 +71,7 @@ Chisel使用完整乘积、算术右移及舍弃位判断，最后转换为32位
 给定INT32累加值x、非负Q31 multiplier m、shift s∈[-31,30]：
 
 1. 若s>0：普通SHIFT将x左移s位。
-2. Q31 MUL：乘m，rounding=01，输出INT32 b。
+2. RMUL：乘m，rounding=01，输出INT32 b。
 3. 若s<0：SHIFT将b右移-s位，rounding=10；否则b为结果。
 4. ADD输出zero point，MIN/MAX按融合激活与INT8范围裁剪。
 
@@ -79,13 +81,13 @@ CMSIS一致性用例限制x*2^max(s,0)在INT32范围内。VTA自身对普通左�
 
 ## 单舍入指令序列与范围
 
-单舍入的MUL使用mul_q31=1、rounding=00，输出算术右移31位后的INT32，
+单舍入使用RMUL、rounding=00，输出算术右移31位后的INT32，
 第一次Q31格式转换不舍入。最终SHIFT使用rounding=01，仅在这里舍入。
 
-- s<0：MUL输出b=floor(x*m/2^31)，SHIFT将b右移-s位并舍入。对非负
+- s<0：RMUL输出b=floor(x*m/2^31)，SHIFT将b右移-s位并舍入。对非负
   Q31 multiplier和全部INT32输入，这与当前标量单舍入公式一致。即使
   丢弃乘积低31位，最终右移至少1位，其舍入判断需要的位仍保留在b中。
-- s>=0：先将x左移s+1位，再使用不舍入Q31 MUL，最后右移1位并舍入。
+- s>=0：先将x左移s+1位，再使用不舍入RMUL，最后右移1位并舍入。
   该序列要求预左移x*2^(s+1)能由INT32表示；生成器和测试检查此前提。
   超出此前提不得宣称与64位标量单舍入一致，也不得静默使用回绕结果。
 
@@ -96,8 +98,8 @@ CMSIS一致性用例限制x*2^max(s,0)在INT32范围内。VTA自身对普通左�
 
 ## 软件接口与硬件
 
-保持现有VTAUopPush接口对旧调用的行为，增加显式支持rounding和mul_q31的
-ALU构建入口，复用现有uop/loop/runtime队列。新字段纳入kernel缓存键，
+保持现有VTAUopPush接口对旧调用的行为，增加显式支持rounding和RMUL opcode的
+ALU构建入口，复用现有uop/loop/runtime队列。rounding与opcode纳入kernel缓存键，
 避免不同舍入模式错误复用指令。Python常量与测试编码器同步。
 
 更新FSIM执行、Chisel ISA/Decode/TensorAlu两条执行路径及相关解码测试。
