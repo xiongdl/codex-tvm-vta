@@ -119,6 +119,19 @@ Chisel测试确认计算延迟。该要求不是一次完整ALU指令含SRAM访�
 
 ## 模型样例与验收
 
+新增测试内容统一位于`vta/tests/quantization/`，不得修改`vta/apps`。
+该目录包含：
+
+- `extract_conv_fixture.py`：从.envs量化模型及固定CIFAR-10输入提取卷积样例。
+- `fixtures/`：保存固定输入、权重、bias、逐通道参数、TFLite输出与版本/hash元数据。
+- `reference/`：独立CMSIS-NN参考程序和版本/编译宏信息。
+- `test_alu_requantize.py`及`test_conv_requantize.py`：驱动真实FSIM/TSIM指令测试。
+- `reports/`：运行时生成差异定位报告，加入忽略规则，不提交重复生成的运行日志。
+
+Chisel自身的单元测试继续位于现有`vta/hardware/chisel/src/test/scala/`，
+测试入口脚本可以扩展现有`scripts/test_vta_fsim.sh`和`test_vta_tsim.sh`。
+提取过程仅读取.envs模型，不向apps复制模型、样例或生成文件。
+
 使用仓库根目录下的：
 `.envs/tiny-v1.4/benchmark/training/image_classification/trained_models/pretrainedResnet_quant.tflite`。
 不使用apps目录中的浮点模型。
