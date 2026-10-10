@@ -87,6 +87,7 @@ test_paths=(
     "${VTA_PATH}/tests/python/unittest/test_vta_insn.py"
     "${VTA_PATH}/tests/python/unittest/test_byoc_runtime.py"
     "${VTA_PATH}/tests/qconv2d/test_alu_requantize.py"
+    "${VTA_PATH}/tests/qconv2d/test_conv_requantize.py"
 )
 if [[ "${run_integration}" == true ]]; then
     test_paths+=("${VTA_PATH}/tests/python/integration")
