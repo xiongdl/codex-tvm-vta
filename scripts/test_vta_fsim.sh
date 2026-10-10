@@ -86,9 +86,10 @@ test_paths=(
     "${VTA_PATH}/tests/python/unittest/test_environment.py"
     "${VTA_PATH}/tests/python/unittest/test_vta_insn.py"
     "${VTA_PATH}/tests/python/unittest/test_byoc_runtime.py"
+    "${VTA_PATH}/tests/qconv2d/test_alu_requantize.py"
 )
 if [[ "${run_integration}" == true ]]; then
     test_paths+=("${VTA_PATH}/tests/python/integration")
 fi
 
-"${python_bin}" -m pytest -v "${test_paths[@]}"
+"${python_bin}" -m pytest -p no:cacheprovider -v "${test_paths[@]}"
